@@ -1,5 +1,6 @@
 import _ from "lodash";
 import { inputKeyName } from "../../shared/constant.js";
+import { evalCalculation } from "../../shared/utils.js";
 
 /**
  * Calculates the total price to make each object.
@@ -7,12 +8,12 @@ import { inputKeyName } from "../../shared/constant.js";
  * @param {Array} goodsPrice - The array of element prices.
  * @returns {Array} The array of objects with their total price.
  */
-export const calculateTotalPrice = (skuList, goodsPrice) => {
+export const calculatePpuPrice = (skuList, goodsPrice) => {
   const exchangeRate = goodsPrice[0].exchangeRate;
   return skuList.map((good) => {
     // đơn vị CNY
     const ppuPrice = good.elements.reduce((acc, element) => {
-      const priceObj = goodsPrice.find((p) => p.name === element.name);
+      const priceObj = goodsPrice.find((p) => p.name.toLowerCase() === element.name.toLowerCase());
       const cnyPrice = priceObj ? priceObj.price : 0;
       const usdPrice = `${cnyPrice} / ${exchangeRate}`;
 
@@ -23,11 +24,11 @@ export const calculateTotalPrice = (skuList, goodsPrice) => {
         totalGoodsPrice = `${usdPrice} * ${element.quantity}`;
       }
 
-      const domesticShippingCode =
+      const domesticShippingCost =
         priceObj?.[inputKeyName.domesticShippingCost];
-      if (domesticShippingCode) {
-        const usdDomesticShippingCode = `${domesticShippingCode} / ${exchangeRate}`;
-        totalGoodsPrice = `(${usdPrice} + ${usdDomesticShippingCode}) * ${element.quantity}`;
+      if (domesticShippingCost) {
+        const usdDomesticShippingCost = `${domesticShippingCost} / ${exchangeRate}`;
+        totalGoodsPrice = `(${usdPrice} + ${usdDomesticShippingCost}) * ${element.quantity}`;
       }
 
       if (acc == "") {
@@ -67,14 +68,16 @@ export const addPackingCost = (skuList, cartonFee) => {
 export const addCustomizeCost = (skuList, goodsPrice) => {
   return skuList.map((item) => {
     const customizePackage = item?.customizePackage;
-    const customizeObj = goodsPrice.find((item) => item.name == customizePackage);
+    const customizeObj = goodsPrice.find(
+      (item) => item.name == customizePackage
+    );
     if (!_.isEmpty(customizeObj)) {
       const cnyPrice = customizeObj.price;
       const exchangeRate = customizeObj?.exchangeRate;
       const usdPrice = `${cnyPrice} / ${exchangeRate}`;
       return { ...item, [inputKeyName.customPackageCost]: usdPrice };
     }
-    return item;
+    return { ...item, [inputKeyName.customPackageCost]: "0" };
   });
 };
 
@@ -82,5 +85,97 @@ export const removeObjKey = (skuList, keyName) => {
   return skuList.map((item) => {
     delete item[keyName];
     return item;
+  });
+};
+
+/**
+ * Calculates the total price to make each object.
+ * @param {Array} skuList - The array of objects.
+ * @param {Array} shippingCostArr - The array of element prices.
+ * @returns {Array} The array of objects with their total price.
+ */
+export const addShippingCost = (skuList = [], shippingCostArr = []) => {
+  const shipmentId = skuList[0].shipmentId;
+  const shipmentQuantity = skuList.reduce((acc, item) => {
+    return acc + item.quantity;
+  }, 0);
+
+  const domesticShippingCostObj = shippingCostArr.find(
+    ({ shipmentId: id, isDomestic }) => id === shipmentId && isDomestic
+  );
+  const internationalShippingCostObj = shippingCostArr.find(
+    ({ shipmentId: id, isInternational }) =>
+      id === shipmentId && isInternational
+  );
+
+  const itemPaymentCost = getItemPaymentCost({
+    domesticShippingCostObj,
+    internationalShippingCostObj,
+    shipmentQuantity,
+  });
+
+  let itemDomesticShippingCost = 0,
+    itemInternationalShippingCost = 0;
+
+  const shipmentDomesticCost = domesticShippingCostObj?.totalUsd ?? 0;
+  const shipmentInternationalCost = internationalShippingCostObj?.totalUsd ?? 0;
+  if (domesticShippingCostObj) {
+    itemDomesticShippingCost = evalCalculation(
+      `${shipmentDomesticCost} / ${shipmentQuantity}`
+    );
+  }
+
+  if (internationalShippingCostObj) {
+    itemInternationalShippingCost = evalCalculation(
+      `${shipmentInternationalCost} / ${shipmentQuantity}`
+    );
+  }
+
+  return skuList.map((item) => {
+    return {
+      ...item,
+      domesticShippingCost: itemDomesticShippingCost,
+      internationalShippingCost: itemInternationalShippingCost,
+      itemPaymentCost,
+    };
+  });
+};
+
+const getItemPaymentCost = ({
+  domesticShippingCostObj,
+  internationalShippingCostObj,
+  shipmentQuantity,
+}) => {
+  const paymentCostDivisor =
+    domesticShippingCostObj?.paymentCostDivisor ??
+    internationalShippingCostObj?.paymentCostDivisor;
+
+  const shipmentDomesticCost = domesticShippingCostObj?.totalUsd ?? 0;
+  const shipmentInternationalCost = internationalShippingCostObj?.totalUsd ?? 0;
+  const shipmentPaymentCost = `(${shipmentDomesticCost} + ${shipmentInternationalCost}) / ${paymentCostDivisor}`;
+  const itemShipmentPaymentCost = `${shipmentPaymentCost} / ${shipmentQuantity}`;
+  return itemShipmentPaymentCost;
+};
+
+/**
+ * Calculates the total price to make each object.
+ * @param {Array} skuList - The array of objects.
+ * @returns {Array} The array of objects with their total price.
+ */
+export const addCogsAndAmount = (skuList = []) => {
+  return skuList.map((item) => {
+    const {
+      ppuPrice = "0",
+      [inputKeyName.customPackageCost]: customPackageCost = "0",
+      [inputKeyName.packingLabeling]: packingLabeling = "0",
+      domesticShippingCost = "0",
+      internationalShippingCost = "0",
+      itemPaymentCost = "0",
+      quantity,
+    } = item;
+    const formula = `${ppuPrice} + ${customPackageCost} + ${packingLabeling} + ${domesticShippingCost} + ${internationalShippingCost} + ${itemPaymentCost}`;
+    const cogs = eval(formula);
+    const amount = cogs * quantity;
+    return { ...item, cogs, amount };
   });
 };

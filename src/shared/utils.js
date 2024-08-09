@@ -20,7 +20,9 @@ export const compareStringsIgnoreCase = (str1, str2) => {
  */
 export const mergeArrays = (arr1, arr2, key) => {
   const merged = arr1.reduce((acc, obj1) => {
-    const obj2 = arr2.find((obj) => obj[key] === obj1[key]);
+    const obj2 = arr2.find(
+      (obj) => obj[key].toLowerCase() === obj1[key].toLowerCase()
+    );
     if (obj2) {
       acc.push({ ...obj1, ...obj2 });
     } else {
@@ -40,10 +42,19 @@ export const mergeArrays = (arr1, arr2, key) => {
 
 export const evalCalculation = (expression) => {
   let result = eval(expression);
-    let decimalPart = result.toString().split('.')[1];
-    
-    if (decimalPart && decimalPart.length > 4) {
-        return expression;
+  let decimalPart = result.toString().split(".")[1];
+
+  if (decimalPart && decimalPart.length > 4) {
+    if (
+      decimalPart[decimalPart.length - 1] == "9" &&
+      decimalPart[decimalPart.length - 2] == "9" &&
+      decimalPart[decimalPart.length - 3] == "9" &&
+      decimalPart[decimalPart.length - 4] == "9"
+    ) {
+      return result.toFixed(4);
+    } else {
+      return expression;
     }
-    return result.toString(); 
+  }
+  return result.toString();
 };

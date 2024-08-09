@@ -1,15 +1,18 @@
 import _ from "lodash";
 import {
+  addCogsAndAmount,
   addCustomizeCost,
   addPackingCost,
-  calculateTotalPrice,
-  removeObjKey,
+  addShippingCost,
+  calculatePpuPrice,
+  removeObjKey
 } from "../../helper/calculate-helper/index.js";
 import {
   transformCartonFeeInput,
   transformOrderList1Input,
   transformOrderList2Input,
   transformProductListInput,
+  transformShippingCostInput,
 } from "../../helper/data-input-helper/index.js";
 import { readAndTransformTsvFile } from "../../helper/tsv-helper/index.js";
 import { jsonToXLSX, xlsxToJSON } from "../../helper/xlsx-helper/index.js";
@@ -17,6 +20,13 @@ import { fileTestName, inputKeyName } from "../../shared/constant.js";
 import { mergeArrays } from "../../shared/utils.js";
 
 export const calculateGood = async () => {
+  const inputShippingCost = transformShippingCostInput(
+    xlsxToJSON({
+      fileName: fileTestName.orderList4,
+      paymentCostKeyName: inputKeyName.totalUsd,
+    })
+  );
+
   const inputGoodsPrice = transformOrderList1Input(
     xlsxToJSON({
       fileName: fileTestName.orderList1,
@@ -41,7 +51,7 @@ export const calculateGood = async () => {
     inputTsvData,
     inputProductList,
     inputKeyName.sku
-  ).filter((el) => !_.isEmpty(el.elements));
+  ).filter((item) => !_.isEmpty(item.elements));
 
   const inputCartonFee = transformCartonFeeInput(
     xlsxToJSON({
@@ -51,14 +61,21 @@ export const calculateGood = async () => {
   );
 
   const goodsPriceAndPrinttingFee = [...inputGoodsPrice, ...inputPrinttingFee];
-  skuList = calculateTotalPrice(skuList, goodsPriceAndPrinttingFee);
+
+  skuList = calculatePpuPrice(skuList, goodsPriceAndPrinttingFee);
   skuList = addCustomizeCost(skuList, goodsPriceAndPrinttingFee);
   skuList = addPackingCost(skuList, inputCartonFee);
-  
+  skuList = addShippingCost(skuList, inputShippingCost);
+  skuList = addCogsAndAmount(skuList);
+
+  skuList = removeSkuKey(skuList);
+
+  jsonToXLSX({ json: skuList });
+};
+
+const removeSkuKey = (skuList = []) => {
   skuList = removeObjKey(skuList, inputKeyName.elements);
   skuList = removeObjKey(skuList, "packing");
   skuList = removeObjKey(skuList, "customizePackage");
-
-
-  jsonToXLSX({ json: skuList });
+  return skuList;
 };

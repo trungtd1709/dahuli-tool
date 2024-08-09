@@ -1,4 +1,4 @@
-import { inputKeyName } from "../../shared/constant.js";
+import { inputKeyName, keyPreferences } from "../../shared/constant.js";
 import { evalCalculation } from "../../shared/utils.js";
 
 /**
@@ -79,6 +79,7 @@ export const transformOrderList1Input = (rawJson = []) => {
 
   // add phí ship nội địa vào obj nếu có
   for (let [index, item] of rawJson.entries()) {
+    // tìm những obj k có quantity, đấy là obj phí ship nội địa
     if (!item?.[inputKeyName.quantity]) {
       const quantity = rawJson[index - 1]?.[inputKeyName.quantity].toString();
       const totalShippingFee = item?.[inputKeyName.totalCny].toString();
@@ -117,4 +118,48 @@ export const transformCartonFeeInput = (rawJson = []) => {
     return transformCartonFee(item);
   });
   return cartonFeeInput.filter((item) => item.price);
+};
+
+export const transformShippingCostInput = (shippingArr = []) => {
+  shippingArr.pop();
+  shippingArr.pop();
+
+  return shippingArr.map((item) => {
+    return transformShippingCostItem(item);
+  });
+};
+
+const transformShippingCostItem = (obj) => {
+  const {
+    [inputKeyName.productName]: name,
+    // [inputKeyName.totalUsd]: totalUsd,
+    [inputKeyName.price]: pricePerKilo,
+    [inputKeyName.weight]: weight,
+    paymentCostDivisor,
+  } = obj;
+
+  const totalUsd = `(${pricePerKilo} * ${weight})`;
+
+  const matchShipmentId = name.match(/"([^"]+)"/);
+  let shipmentId;
+
+  const isInternational = name
+    .toLowerCase()
+    .includes(keyPreferences.international);
+  const isDomestic = name.toLowerCase().includes(keyPreferences.domestic);
+
+  if (matchShipmentId && matchShipmentId[1]) {
+    shipmentId = matchShipmentId[1];
+    console.log("[shipmentId]: ", shipmentId); // Output: FBA176VBB993
+  } else {
+    console.log("Cant find shipmentId.");
+  }
+
+  return {
+    shipmentId,
+    totalUsd,
+    isInternational,
+    isDomestic,
+    paymentCostDivisor,
+  };
 };
