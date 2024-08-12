@@ -4,7 +4,7 @@ node_modules/
 public/*/
 .gitlab-ci.yml
 yarn.lock
-
+sample-file/
 **/*.log
 
 *.sh

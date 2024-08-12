@@ -40,7 +40,7 @@ const transformProductItem = (obj) => {
   return product;
 };
 
-const transformOrderListItem = (obj) => {
+const transformOrderItem = (obj) => {
   const {
     [inputKeyName.productName]: name,
     // [inputKeyName.price]: cnyPrice, // đơn vị là CNY
@@ -68,7 +68,7 @@ const transformOrderListItem = (obj) => {
 export const transformOrderList2Input = (rawJson = []) => {
   rawJson.pop();
   const printtingFeeInput = rawJson.map((item) => {
-    return transformOrderListItem(item);
+    return transformOrderItem(item);
   });
   return printtingFeeInput.filter((item) => item.price);
 };
@@ -79,7 +79,15 @@ export const transformOrderList1Input = (rawJson = []) => {
 
   // add phí ship nội địa vào obj nếu có
   for (let [index, item] of rawJson.entries()) {
-    // tìm những obj k có quantity, đấy là obj phí ship nội địa
+    if (
+      item?.[inputKeyName.productName]
+        ?.toLowerCase()
+        .includes(keyPreferences.domestic)
+    ) {
+      // item.
+    }
+
+    // tìm những obj k có quantity, đấy là obj phí ship nội địa của 1 sản phẩm
     if (!item?.[inputKeyName.quantity]) {
       const quantity = rawJson[index - 1]?.[inputKeyName.quantity].toString();
       const totalShippingFee = item?.[inputKeyName.totalCny].toString();
@@ -93,10 +101,10 @@ export const transformOrderList1Input = (rawJson = []) => {
   // remove obj shipping cost
   rawJson = rawJson.filter((item) => item?.[inputKeyName.price]);
 
-  const order1Input = rawJson.map((item) => {
-    return transformOrderListItem(item);
+  const inputGoodsPrice = rawJson.map((item) => {
+    return transformOrderItem(item);
   });
-  return order1Input;
+  return { inputGoodsPrice };
   // return order1Input.filter((item) => item.price);
 };
 
@@ -133,20 +141,25 @@ const transformShippingCostItem = (obj) => {
   const {
     [inputKeyName.productName]: name,
     // [inputKeyName.totalUsd]: totalUsd,
-    [inputKeyName.price]: pricePerKilo,
+    // [inputKeyName.price]: pricePerKilo,
     [inputKeyName.weight]: weight,
+    shippingFormula,
     paymentCostDivisor,
   } = obj;
 
-  const totalUsd = `(${pricePerKilo} * ${weight})`;
+  const totalUsd = `(${shippingFormula} * ${weight})`;
 
   const matchShipmentId = name.match(/"([^"]+)"/);
-  let shipmentId;
 
-  const isInternational = name
-    .toLowerCase()
-    .includes(keyPreferences.international);
-  const isDomestic = name.toLowerCase().includes(keyPreferences.domestic);
+  const lowerCaseShipName = name.toLowerCase();
+
+  let shipmentId;
+  const isInternational = lowerCaseShipName.includes(
+    keyPreferences.international
+  );
+  const isDomestic =
+    lowerCaseShipName.includes(keyPreferences.domestic) ||
+    lowerCaseShipName.includes(keyPreferences.domestic);
 
   if (matchShipmentId && matchShipmentId[1]) {
     shipmentId = matchShipmentId[1];

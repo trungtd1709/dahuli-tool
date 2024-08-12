@@ -58,3 +58,16 @@ export const evalCalculation = (expression) => {
   }
   return result.toString();
 };
+
+export const isEmptyValue = (value) => {
+  return (
+    value === 0 ||
+    value === "0" ||
+    value === null ||
+    value === undefined ||
+    value === "" ||
+    value === false ||
+    (Array.isArray(value) && value.length === 0) || // Check for empty array
+    (typeof value === "object" && Object.keys(value).length === 0) // Check for empty object
+  );
+};

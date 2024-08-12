@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "exceljs": "^4.4.0",
     "express": "^4.19.2",
     "lodash": "^4.17.21",
     "multer": "^1.4.5-lts.1",
