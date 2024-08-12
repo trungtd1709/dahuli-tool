@@ -278,10 +278,7 @@ const getShippingCodeFormulas = ({
   return formulas;
 };
 
-export const jsonToXlsx = async ({
-  json = [],
-  sheetName = "Sheet1",
-}) => {
+export const jsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
   try {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(sheetName);
@@ -300,107 +297,25 @@ export const jsonToXlsx = async ({
 
     const firstRowNum = 2;
     let lastRowNum = null;
-
     worksheet.eachRow((row, rowNumber) => {
-      // Skip empty rows
       if (row.values.length > 0) {
         lastRowNum = rowNumber;
       }
     });
 
     // Apply formulas
-    json.forEach((item, index) => {
-      const rowNumber = index + 2; // Starting from row 2, assuming row 1 has headers
-
-      // cell address
-      const ppuCell = `${outputColAlphabet.ppu}${rowNumber}`;
-      const customPackageCostCell = `${outputColAlphabet.customPackageCost}${rowNumber}`;
-      const packingLabelingCostCell = `${outputColAlphabet.packingLabelingCost}${rowNumber}`;
-      const domesticShippingCostCell = `${outputColAlphabet.domesticShippingCost}${rowNumber}`;
-      const internationalShippingCostCell = `${outputColAlphabet.internationalShippingCost}${rowNumber}`;
-      const paymentCostCell = `${outputColAlphabet.paymentCost}${rowNumber}`;
-      const cogsCell = `${outputColAlphabet.cogs}${rowNumber}`;
-      const amountCell = `${outputColAlphabet.amount}${rowNumber}`;
-      const totalAmountCell = `${outputColAlphabet.totalAmount}${firstRowNum}`;
-
-      // formulas
-      const cogsFormula = `SUM(${outputColAlphabet.ppu}${rowNumber}:${outputColAlphabet.paymentCost}${rowNumber})`;
-      const amountFormula = `${outputColAlphabet.cogs}${rowNumber} * ${outputColAlphabet.quantity}${rowNumber}`;
-      const totalAmountFormula = `SUM(${outputColAlphabet.amount}${firstRowNum}:${outputColAlphabet.amount}${lastRowNum})`;
-
-      const {
-        [outputKeyname.customPackageCost]: customPackageFormula,
-        [outputKeyname.ppu]: ppuFormula,
-        [outputKeyname.packingLabelingCost]: packingFormula,
-        [outputKeyname.domesticShippingCost]: domesticShippingFormula,
-        [outputKeyname.internationalShippingCost]: internationalShippingFormula,
-        [outputKeyname.paymentCost]: paymentCostFormula,
-      } = item;
-
-      // add to worksheet
-      setCellFormula(worksheet, ppuCell, ppuFormula);
-      setCellFormula(worksheet, customPackageCostCell, customPackageFormula);
-      setCellFormula(worksheet, packingLabelingCostCell, packingFormula);
-      setCellFormula(
-        worksheet,
-        domesticShippingCostCell,
-        domesticShippingFormula
-      );
-      setCellFormula(
-        worksheet,
-        internationalShippingCostCell,
-        internationalShippingFormula
-      );
-      setCellFormula(worksheet, paymentCostCell, paymentCostFormula);
-      setCellFormula(worksheet, cogsCell, cogsFormula);
-      setCellFormula(worksheet, amountCell, amountFormula);
-      setCellFormula(worksheet, totalAmountCell, totalAmountFormula);
+    addFormulaToWorksheet({
+      jsonData: json,
+      worksheet,
+      firstRowNum,
+      lastRowNum,
     });
 
     // add number format
-    worksheet.getColumn(outputColAlphabet.ppu).numFmt =
-      outputNumDecimalFormat["4digits"];
-    worksheet.getColumn(outputColAlphabet.customPackageCost).numFmt =
-      outputNumDecimalFormat["4digits"];
-    worksheet.getColumn(outputColAlphabet.packingLabelingCost).numFmt =
-      outputNumDecimalFormat["4digits"];
-    worksheet.getColumn(outputColAlphabet.domesticShippingCost).numFmt =
-      outputNumDecimalFormat["4digits"];
-    worksheet.getColumn(outputColAlphabet.internationalShippingCost).numFmt =
-      outputNumDecimalFormat["4digits"];
-    worksheet.getColumn(outputColAlphabet.paymentCost).numFmt =
-      outputNumDecimalFormat["4digits"];
-    worksheet.getColumn(outputColAlphabet.cogs).numFmt =
-      outputNumDecimalFormat["4digits"];
-    worksheet.getColumn(outputColAlphabet.amount).numFmt =
-      outputNumDecimalFormat["2digits"];
-    worksheet.getColumn(outputColAlphabet.totalAmount).numFmt =
-      outputNumDecimalFormat["2digits"];
+    addNumberFormatToWorksheet(worksheet);
 
     // Style cells
-    worksheet.eachRow((row, rowNumber) => {
-      row.eachCell((cell, colNumber) => {
-        if (rowNumber === firstRowNum) {
-          cell.font = { bold: true };
-        }
-
-        // Apply red text color to the entire column J (COGS)
-        if (colNumber === 10) {
-          cell.font = {
-            color: { argb: "FF0000" },
-            bold: rowNumber == firstRowNum ? true : false,
-          };
-        }
-
-        const isNumber = typeof cell.value === "number";
-        const isFormula =
-          cell.value && typeof cell.value === "object" && cell.value.formula;
-
-        if (isNumber || isFormula) {
-          cell.alignment = { vertical: "middle", horizontal: "center" };
-        }
-      });
-    });
+    addStyleToWorksheet(worksheet, firstRowNum);
 
     // Write to file
     const fileName = "test.xlsx";
@@ -418,4 +333,109 @@ export const jsonToXlsx = async ({
 
 const setCellFormula = (worksheet, cell, formula) => {
   worksheet.getCell(cell).value = !isEmptyValue(formula) ? { formula } : "";
+};
+
+const addFormulaToWorksheet = ({
+  jsonData = [],
+  worksheet,
+  firstRowNum,
+  lastRowNum,
+}) => {
+  jsonData.forEach((item, index) => {
+    const rowNumber = index + 2; // Starting from row 2, assuming row 1 has headers
+
+    // cell address
+    const ppuCell = `${outputColAlphabet.ppu}${rowNumber}`;
+    const customPackageCostCell = `${outputColAlphabet.customPackageCost}${rowNumber}`;
+    const packingLabelingCostCell = `${outputColAlphabet.packingLabelingCost}${rowNumber}`;
+    const domesticShippingCostCell = `${outputColAlphabet.domesticShippingCost}${rowNumber}`;
+    const internationalShippingCostCell = `${outputColAlphabet.internationalShippingCost}${rowNumber}`;
+    const paymentCostCell = `${outputColAlphabet.paymentCost}${rowNumber}`;
+    const cogsCell = `${outputColAlphabet.cogs}${rowNumber}`;
+    const amountCell = `${outputColAlphabet.amount}${rowNumber}`;
+    const totalAmountCell = `${outputColAlphabet.totalAmount}${firstRowNum}`;
+
+    // formulas
+    const cogsFormula = `SUM(${outputColAlphabet.ppu}${rowNumber}:${outputColAlphabet.paymentCost}${rowNumber})`;
+    const amountFormula = `${outputColAlphabet.cogs}${rowNumber} * ${outputColAlphabet.quantity}${rowNumber}`;
+    const totalAmountFormula = `SUM(${outputColAlphabet.amount}${firstRowNum}:${outputColAlphabet.amount}${lastRowNum})`;
+
+    const {
+      [outputKeyname.customPackageCost]: customPackageFormula,
+      [outputKeyname.ppu]: ppuFormula,
+      [outputKeyname.packingLabelingCost]: packingFormula,
+      [outputKeyname.domesticShippingCost]: domesticShippingFormula,
+      [outputKeyname.internationalShippingCost]: internationalShippingFormula,
+      [outputKeyname.paymentCost]: paymentCostFormula,
+    } = item;
+
+    // add to worksheet
+    setCellFormula(worksheet, ppuCell, ppuFormula);
+    setCellFormula(worksheet, customPackageCostCell, customPackageFormula);
+    setCellFormula(worksheet, packingLabelingCostCell, packingFormula);
+    setCellFormula(
+      worksheet,
+      domesticShippingCostCell,
+      domesticShippingFormula
+    );
+    setCellFormula(
+      worksheet,
+      internationalShippingCostCell,
+      internationalShippingFormula
+    );
+    setCellFormula(worksheet, paymentCostCell, paymentCostFormula);
+    setCellFormula(worksheet, cogsCell, cogsFormula);
+    setCellFormula(worksheet, amountCell, amountFormula);
+    setCellFormula(worksheet, totalAmountCell, totalAmountFormula);
+  });
+};
+
+/**
+ * @param {ExcelJS.Worksheet} worksheet
+ */
+const addNumberFormatToWorksheet = (worksheet) => {
+  worksheet.getColumn(outputColAlphabet.ppu).numFmt =
+    outputNumDecimalFormat["4digits"];
+  worksheet.getColumn(outputColAlphabet.customPackageCost).numFmt =
+    outputNumDecimalFormat["4digits"];
+  worksheet.getColumn(outputColAlphabet.packingLabelingCost).numFmt =
+    outputNumDecimalFormat["4digits"];
+  worksheet.getColumn(outputColAlphabet.domesticShippingCost).numFmt =
+    outputNumDecimalFormat["4digits"];
+  worksheet.getColumn(outputColAlphabet.internationalShippingCost).numFmt =
+    outputNumDecimalFormat["4digits"];
+  worksheet.getColumn(outputColAlphabet.paymentCost).numFmt =
+    outputNumDecimalFormat["4digits"];
+  worksheet.getColumn(outputColAlphabet.cogs).numFmt =
+    outputNumDecimalFormat["4digits"];
+  worksheet.getColumn(outputColAlphabet.amount).numFmt =
+    outputNumDecimalFormat["2digits"];
+  worksheet.getColumn(outputColAlphabet.totalAmount).numFmt =
+    outputNumDecimalFormat["2digits"];
+};
+
+const addStyleToWorksheet = (worksheet, firstRowNum) => {
+  worksheet.eachRow((row, rowNumber) => {
+    row.eachCell((cell, colNumber) => {
+      if (rowNumber === firstRowNum) {
+        cell.font = { bold: true };
+      }
+
+      // Apply red text color to the entire column J (COGS)
+      if (colNumber === 10) {
+        cell.font = {
+          color: { argb: "FF0000" },
+          bold: rowNumber == firstRowNum ? true : false,
+        };
+      }
+
+      const isNumber = typeof cell.value === "number";
+      const isFormula =
+        cell.value && typeof cell.value === "object" && cell.value.formula;
+
+      if (isNumber || isFormula) {
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+      }
+    });
+  });
 };

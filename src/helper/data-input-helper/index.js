@@ -40,7 +40,7 @@ const transformProductItem = (obj) => {
   return product;
 };
 
-const transformOrderItem = (obj) => {
+const transformOrderItem = (obj, ) => {
   const {
     [inputKeyName.productName]: name,
     // [inputKeyName.price]: cnyPrice, // đơn vị là CNY

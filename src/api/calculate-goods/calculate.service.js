@@ -36,7 +36,7 @@ export const calculateGood = async () => {
     });
 
     const inputProductList = transformProductListInput(
-      xlsxToJSON({ fileName: fileTestName.productList })``
+      xlsxToJSON({ fileName: fileTestName.productList })
     );
 
     const inputPrinttingFee = transformOrderList2Input(

@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { inputKeyName, outputColAlphabet } from "../../shared/constant.js";
-import { evalCalculation } from "../../shared/utils.js";
+import { evalCalculation, removeValueAndSplash } from "../../shared/utils.js";
 
 /**
  * Calculates the total price to make each object.
@@ -11,36 +11,44 @@ import { evalCalculation } from "../../shared/utils.js";
 export const calculatePpuPrice = (skuList, goodsPrice) => {
   const exchangeRate = goodsPrice[0].exchangeRate;
   return skuList.map((good) => {
-    // đơn vị CNY
-    const ppuPrice = good.elements.reduce((acc, element) => {
+    let ppuPrice = good.elements.reduce((acc, element) => {
       const priceObj = goodsPrice.find(
         (p) => p.name.toLowerCase() === element.name.toLowerCase()
       );
       const cnyPrice = priceObj ? priceObj.price : 0;
       const usdPrice = `${cnyPrice} / ${exchangeRate}`;
+      const quantity = parseInt(element.quantity) || 1;
 
-      let totalGoodsPrice;
-      if (parseInt(element.quantity) == 1) {
-        totalGoodsPrice = usdPrice;
-      } else {
-        totalGoodsPrice = `${usdPrice} * ${element.quantity}`;
+      let totalGoodsPrice = usdPrice;
+      if (quantity > 1) {
+        totalGoodsPrice = `${usdPrice} * ${quantity}`;
       }
 
       const domesticShippingCost =
         priceObj?.[inputKeyName.domesticShippingCost];
       if (domesticShippingCost) {
         const usdDomesticShippingCost = `${domesticShippingCost} / ${exchangeRate}`;
-        totalGoodsPrice = `(${usdPrice} + ${usdDomesticShippingCost}) * ${element.quantity}`;
+        totalGoodsPrice = `(${usdPrice} + ${usdDomesticShippingCost}) * ${quantity}`;
       }
 
-      if (acc == "") {
+      if (!acc) {
         return totalGoodsPrice;
       }
 
       return `${acc} + ${totalGoodsPrice}`;
     }, "");
 
-    return { ...good, ppuPrice };
+    const isSameExchangeRate = goodsPrice.every(
+      (item) => item?.exchangeRate == goodsPrice[0]?.exchangeRate
+    );
+    if (isSameExchangeRate) {
+      ppuPrice = `(${removeValueAndSplash(
+        ppuPrice,
+        exchangeRate
+      )}) / ${exchangeRate}`;
+    }
+
+    return { ...good, ppuPrice: ppuPrice };
   });
 };
 
@@ -98,9 +106,6 @@ export const removeObjKey = (skuList, keyName) => {
  */
 export const addShippingCost = (skuList = [], shippingCostArr = []) => {
   const shipmentId = skuList[0].shipmentId;
-  // const shipmentQuantity = skuList.reduce((acc, item) => {
-  //   return acc + item.quantity;
-  // }, 0);
 
   const domesticShippingCostObj = shippingCostArr.find(
     ({ shipmentId: id, isDomestic }) => id === shipmentId && isDomestic
@@ -116,21 +121,19 @@ export const addShippingCost = (skuList = [], shippingCostArr = []) => {
   //   shipmentQuantity,
   // });
 
-  let itemDomesticShippingCostFormula = 0,
-    itemInternationalShippingCostFormula = 0;
-
   const shipmentDomesticCost = domesticShippingCostObj?.totalUsd ?? 0;
   const shipmentInternationalCost = internationalShippingCostObj?.totalUsd ?? 0;
 
   const dataFirstRow = 2; // trong excel row đầu tiên index = 2
   const totalUnitCell = `${outputColAlphabet.totalUnit}${dataFirstRow}`;
-  if (domesticShippingCostObj) {
-    itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${totalUnitCell}`;
-  }
 
-  if (internationalShippingCostObj) {
-    itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${totalUnitCell}`;
-  }
+  const itemDomesticShippingCostFormula = domesticShippingCostObj
+    ? `${shipmentDomesticCost} / ${totalUnitCell}`
+    : 0;
+
+  const itemInternationalShippingCostFormula = internationalShippingCostObj
+    ? `${shipmentInternationalCost} / ${totalUnitCell}`
+    : 0;
 
   const paymentCostDivisor =
     domesticShippingCostObj?.paymentCostDivisor ??
@@ -199,15 +202,14 @@ export const addCogsAndAmount = (skuList = []) => {
  * @returns {Array} The array of objects with their total price.
  */
 export const addTotalAmountAndQuantity = (skuList = []) => {
-  let totalAmount = 0,
-    totalQuantity = 0;
-  skuList.forEach((item) => {
-    const { amount, quantity } = item;
-    totalAmount += amount;
-    totalQuantity += quantity;
-  });
-  skuList[0].totalAmount = totalAmount;
-  skuList[0].totalQuantity = totalQuantity;
+  const { totalAmount, totalQuantity } = skuList.reduce(
+    (acc, { amount, quantity }) => {
+      acc.totalAmount += amount;
+      acc.totalQuantity += quantity;
+      return acc;
+    },
+    { totalAmount: 0, totalQuantity: 0 }
+  );
 
   // chỉ chèn vào phần tử đầu
   return skuList.map((item, index) => {
