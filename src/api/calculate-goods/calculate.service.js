@@ -3,7 +3,7 @@ import {
   addCogsAndAmount,
   addCustomizeCost,
   addPackingCost,
-  addShippingCost,
+  addShippingAndPaymentCost,
   addTotalAmountAndQuantity,
   calculatePpuPrice,
   removeObjKey,
@@ -19,18 +19,10 @@ import { refactorSkuListFunc } from "../../helper/data-output-helper/index.js";
 import { readAndTransformTsvFile } from "../../helper/tsv-helper/index.js";
 import { jsonToXlsx, xlsxToJSON } from "../../helper/xlsx-helper/index.js";
 import { fileTestName, inputKeyName } from "../../shared/constant.js";
-import { mergeArrays } from "../../shared/utils.js";
+import { isEmptyValue, mergeArrays } from "../../shared/utils.js";
 
 export const calculateGood = async () => {
   try {
-    const order1 = transformOrderList1Input(
-      xlsxToJSON({
-        fileName: fileTestName.orderList1,
-        exchangeRateKeyName: inputKeyName.totalUsd,
-      })
-    );
-    const { inputGoodsPrice = [] } = order1;
-
     const inputTsvData = await readAndTransformTsvFile({
       fileName: fileTestName.tsvFile,
     });
@@ -39,6 +31,18 @@ export const calculateGood = async () => {
       xlsxToJSON({ fileName: fileTestName.productList })
     );
 
+    const shipmentId = inputTsvData[0].shipmentId;
+
+    const order1 = transformOrderList1Input(
+      xlsxToJSON({
+        fileName: fileTestName.orderList1,
+        exchangeRateKeyName: inputKeyName.totalUsd,
+      }),
+      shipmentId
+    );
+    const { elementsPrice = [], domesticShippingCostObj } =
+      order1;
+
     const inputPrinttingFee = transformOrderList2Input(
       xlsxToJSON({
         fileName: fileTestName.orderList2,
@@ -46,13 +50,18 @@ export const calculateGood = async () => {
       })
     );
 
-    const inputShippingCost = transformShippingCostInput(
+    let inputShippingCost = transformShippingCostInput(
       xlsxToJSON({
         fileName: fileTestName.orderList4,
+        // fileName: fileTestName.orderList2,
         paymentCostKeyName: inputKeyName.totalUsd,
         isShippingCost: true,
       })
     );
+
+    if (isEmptyValue(domesticShippingCostObj)) {
+      inputShippingCost.push(domesticShippingCostObj);
+    }
 
     let skuList = mergeArrays(
       inputTsvData,
@@ -60,30 +69,27 @@ export const calculateGood = async () => {
       inputKeyName.sku
     ).filter((item) => !_.isEmpty(item.elements));
 
-    const inputCartonFee = transformCartonFeeInput(
+    const inputPackingCost = transformCartonFeeInput(
       xlsxToJSON({
         fileName: fileTestName.orderList3,
         exchangeRateKeyName: inputKeyName.totalUsd,
       })
     );
 
-    const goodsPriceAndPrinttingFee = [
-      ...inputGoodsPrice,
+    const elementsPriceAndPrinttingFee = [
+      ...elementsPrice,
       ...inputPrinttingFee,
     ];
 
-    skuList = calculatePpuPrice(skuList, goodsPriceAndPrinttingFee);
-    skuList = addCustomizeCost(skuList, goodsPriceAndPrinttingFee);
-    skuList = addPackingCost(skuList, inputCartonFee);
-    skuList = addShippingCost(skuList, inputShippingCost);
+    skuList = calculatePpuPrice(skuList, elementsPriceAndPrinttingFee);
+    skuList = addCustomizeCost(skuList, elementsPriceAndPrinttingFee);
+    skuList = addPackingCost(skuList, inputPackingCost);
+    skuList = addShippingAndPaymentCost(skuList, inputShippingCost);
     skuList = addCogsAndAmount(skuList);
-
     skuList = addTotalAmountAndQuantity(skuList);
     skuList = removeSkuKey(skuList);
 
     const refactorSkuList = refactorSkuListFunc(skuList);
-
-    // jsonToXLSX({ json: refactorSkuList });
     jsonToXlsx({ json: refactorSkuList });
   } catch (err) {
     console.log(err);

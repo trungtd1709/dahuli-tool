@@ -1,6 +1,10 @@
 import _ from "lodash";
 import { inputKeyName, outputColAlphabet } from "../../shared/constant.js";
-import { evalCalculation, removeValueAndSplash } from "../../shared/utils.js";
+import {
+  evalCalculation,
+  isEmptyValue,
+  removeValueAndSplash,
+} from "../../shared/utils.js";
 
 /**
  * Calculates the total price to make each object.
@@ -104,7 +108,7 @@ export const removeObjKey = (skuList, keyName) => {
  * @param {Array} shippingCostArr - The array of element prices.
  * @returns {Array} The array of objects with their total price.
  */
-export const addShippingCost = (skuList = [], shippingCostArr = []) => {
+export const addShippingAndPaymentCost = (skuList = [], shippingCostArr = []) => {
   const shipmentId = skuList[0].shipmentId;
 
   const domesticShippingCostObj = shippingCostArr.find(
@@ -114,12 +118,6 @@ export const addShippingCost = (skuList = [], shippingCostArr = []) => {
     ({ shipmentId: id, isInternational }) =>
       id === shipmentId && isInternational
   );
-
-  // const itemPaymentCost = getItemPaymentCost({
-  //   domesticShippingCostObj,
-  //   internationalShippingCostObj,
-  //   shipmentQuantity,
-  // });
 
   const shipmentDomesticCost = domesticShippingCostObj?.totalUsd ?? 0;
   const shipmentInternationalCost = internationalShippingCostObj?.totalUsd ?? 0;
@@ -145,8 +143,9 @@ export const addShippingCost = (skuList = [], shippingCostArr = []) => {
     const domesticShippingCostCell = `${outputColAlphabet.domesticShippingCost}${rowIndex}`;
     const internationalShippingCostCell = `${outputColAlphabet.internationalShippingCost}${rowIndex}`;
 
-    const itemPaymentCostFormula = `(${domesticShippingCostCell} + ${internationalShippingCostCell}) / ${paymentCostDivisor}`;
-
+    const itemPaymentCostFormula = isEmptyValue(paymentCostDivisor)
+      ? ""
+      : `(${domesticShippingCostCell} + ${internationalShippingCostCell}) / ${paymentCostDivisor}`;
     return {
       ...item,
       domesticShippingCost: itemDomesticShippingCostFormula,
@@ -155,22 +154,6 @@ export const addShippingCost = (skuList = [], shippingCostArr = []) => {
       itemPaymentCost: itemPaymentCostFormula,
     };
   });
-};
-
-const getItemPaymentCost = ({
-  domesticShippingCostObj,
-  internationalShippingCostObj,
-  shipmentQuantity,
-}) => {
-  const paymentCostDivisor =
-    domesticShippingCostObj?.paymentCostDivisor ??
-    internationalShippingCostObj?.paymentCostDivisor;
-
-  const shipmentDomesticCost = domesticShippingCostObj?.totalUsd ?? 0;
-  const shipmentInternationalCost = internationalShippingCostObj?.totalUsd ?? 0;
-  const shipmentPaymentCost = `(${shipmentDomesticCost} + ${shipmentInternationalCost}) / ${paymentCostDivisor}`;
-  const itemShipmentPaymentCost = `${shipmentPaymentCost} / ${shipmentQuantity}`;
-  return itemShipmentPaymentCost;
 };
 
 /**

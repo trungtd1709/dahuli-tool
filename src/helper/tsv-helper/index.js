@@ -4,6 +4,7 @@ import Papa from "papaparse";
 import { fileURLToPath } from "url";
 import { findIndexByFirstElement } from "../../shared/utils.js";
 import _ from "lodash";
+import { sampleFolder } from "../../shared/constant.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,7 +15,7 @@ const __dirname = path.dirname(__filename);
  * @returns {Promise<Array>} The parsed data as an array of objects.
  */
 export const readTsvFile = async ({ fileName }) => {
-  const filePath = path.resolve(__dirname, `../../../sample-file/${fileName}`);
+  const filePath = path.resolve(__dirname, `../../../${sampleFolder}/${fileName}`);
 
   try {
     // Read the file content
@@ -50,7 +51,7 @@ export const readTsvFile = async ({ fileName }) => {
 };
 
 export const readAndTransformTsvFile = async ({ fileName }) => {
-  const filePath = path.resolve(__dirname, `../../../sample-file/${fileName}`);
+  const filePath = path.resolve(__dirname, `../../../${sampleFolder}/${fileName}`);
 
   try {
     // Read the file content
