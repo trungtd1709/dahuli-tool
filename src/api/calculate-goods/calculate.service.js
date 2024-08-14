@@ -21,7 +21,7 @@ import { jsonToXlsx, xlsxToJSON } from "../../helper/xlsx-helper/index.js";
 import { fileTestName, inputKeyName } from "../../shared/constant.js";
 import { isEmptyValue, mergeArrays } from "../../shared/utils.js";
 
-export const calculateGood = async () => {
+export const calculateGood = async (files = {}) => {
   try {
     const inputTsvData = await readAndTransformTsvFile({
       fileName: fileTestName.tsvFile,
@@ -40,8 +40,22 @@ export const calculateGood = async () => {
       }),
       shipmentId
     );
-    const { elementsPrice = [], domesticShippingCostObj } =
-      order1;
+    const {
+      elementsPrice = [],
+      domesticShippingCostObj,
+      packingLabelingCost,
+    } = order1;
+
+    // const inputPrinttingFee = [];
+
+    // let inputShippingCost = transformShippingCostInput(
+    //   xlsxToJSON({
+    //     fileName: fileTestName.orderList2,
+    //     isShippingCost: true,
+    //     exchangeRateKeyName: inputKeyName.totalUsd,
+    //   }),
+    //   shipmentId
+    // );
 
     const inputPrinttingFee = transformOrderList2Input(
       xlsxToJSON({
@@ -53,13 +67,13 @@ export const calculateGood = async () => {
     let inputShippingCost = transformShippingCostInput(
       xlsxToJSON({
         fileName: fileTestName.orderList4,
-        // fileName: fileTestName.orderList2,
         paymentCostKeyName: inputKeyName.totalUsd,
         isShippingCost: true,
-      })
+      }),
+      shipmentId
     );
 
-    if (isEmptyValue(domesticShippingCostObj)) {
+    if (!isEmptyValue(domesticShippingCostObj)) {
       inputShippingCost.push(domesticShippingCostObj);
     }
 
@@ -80,6 +94,12 @@ export const calculateGood = async () => {
       ...elementsPrice,
       ...inputPrinttingFee,
     ];
+
+    if (packingLabelingCost) {
+      skuList = skuList.map((item) => {
+        return { ...item, packingLabelingCost };
+      });
+    }
 
     skuList = calculatePpuPrice(skuList, elementsPriceAndPrinttingFee);
     skuList = addCustomizeCost(skuList, elementsPriceAndPrinttingFee);

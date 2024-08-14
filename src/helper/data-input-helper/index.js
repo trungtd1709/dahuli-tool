@@ -101,13 +101,12 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
 
     if (
       productName.includes(keyPreferences.domestic) &&
-      productName.includes(shipmentId)
+      productName.includes(shipmentId.toLowerCase())
     ) {
       const domesticCostUsd = `${totalCny} / ${exchangeRate}`;
       domesticShippingCostObj = {
         shipmentId: shipmentId,
         totalUsd: domesticCostUsd,
-        isInternational: false,
         isDomestic: true,
         paymentCostDivisor: null,
       };
@@ -163,16 +162,22 @@ export const transformCartonFeeInput = (rawJson = []) => {
   return cartonFeeInput.filter((item) => item.price);
 };
 
-export const transformShippingCostInput = (shippingArr = []) => {
-  shippingArr.pop();
-  shippingArr.pop();
+export const transformShippingCostInput = (shippingArr = [], shipmentId) => {
+  // shippingArr.pop();
+  // shippingArr.pop(); cái này trước là payment cost
+
+  shippingArr = shippingArr.filter((item) => {
+    return item[inputKeyName.productName].includes(shipmentId);
+  });
+
+  
 
   return shippingArr.map((item) => {
-    return transformShippingCostItem(item);
+    return transformShippingCostItem(item, shipmentId);
   });
 };
 
-const transformShippingCostItem = (obj) => {
+const transformShippingCostItem = (obj, shipmentId) => {
   const {
     [inputKeyName.productName]: name,
     // [inputKeyName.totalUsd]: totalUsd,
@@ -181,32 +186,16 @@ const transformShippingCostItem = (obj) => {
     shippingFormula,
     paymentCostDivisor,
   } = obj;
-
   const totalUsd = `(${shippingFormula} * ${weight})`;
-
-  const matchShipmentId = name.match(/"([^"]+)"/);
 
   const lowerCaseShipName = name.toLowerCase();
 
-  let shipmentId;
-  const isInternational = lowerCaseShipName.includes(
-    keyPreferences.international
-  );
-  const isDomestic =
-    lowerCaseShipName.includes(keyPreferences.domestic) ||
-    lowerCaseShipName.includes(keyPreferences.domestic);
-
-  if (matchShipmentId && matchShipmentId[1]) {
-    shipmentId = matchShipmentId[1];
-    console.log("[shipmentId]: ", shipmentId); // Output: FBA176VBB993
-  } else {
-    console.log("Cant find shipmentId.");
-  }
+  // ko chứa chữ domestic mặc định là international
+  const isDomestic = lowerCaseShipName.includes(keyPreferences.domestic);
 
   return {
     shipmentId,
     totalUsd,
-    isInternational,
     isDomestic,
     paymentCostDivisor,
   };

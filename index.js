@@ -10,16 +10,16 @@ import { fileURLToPath } from "url";
 const app = express();
 const port = 3000;
 
-calculateGood();
-// app.use("/api", apiRouter);
-// app.use(express.json({ limit: "10mb" }));
-// app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-// // app.use(cors());
+// calculateGood();
+app.use("/api", apiRouter);
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+// app.use(cors());
 
-// app.get('/api/', (req, res) => {
-//   res.send('Hello World!');
-// });
+app.get('/api/', (req, res) => {
+  res.send('Hello World!');
+});
 
-// app.listen(port, () => {
-//   console.log(`Server is running at http://localhost:${port}`);
-// });
+app.listen(port, () => {
+  console.log(`Server is running at http://localhost:${port}`);
+});

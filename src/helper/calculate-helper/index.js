@@ -67,7 +67,7 @@ export const addPackingCost = (skuList, cartonFee) => {
     const packing = item?.packing;
     const packingObj = cartonFee.find((item) => item.name == packing);
     if (!_.isEmpty(packingObj)) {
-      return { ...item, [inputKeyName.packingLabeling]: packingObj.price };
+      return { ...item, packingLabelingCost: packingObj.price };
     }
     return item;
   });
@@ -108,15 +108,17 @@ export const removeObjKey = (skuList, keyName) => {
  * @param {Array} shippingCostArr - The array of element prices.
  * @returns {Array} The array of objects with their total price.
  */
-export const addShippingAndPaymentCost = (skuList = [], shippingCostArr = []) => {
+export const addShippingAndPaymentCost = (
+  skuList = [],
+  shippingCostArr = []
+) => {
   const shipmentId = skuList[0].shipmentId;
 
   const domesticShippingCostObj = shippingCostArr.find(
     ({ shipmentId: id, isDomestic }) => id === shipmentId && isDomestic
   );
   const internationalShippingCostObj = shippingCostArr.find(
-    ({ shipmentId: id, isInternational }) =>
-      id === shipmentId && isInternational
+    ({ shipmentId: id, isDomestic }) => id === shipmentId && isDomestic == false
   );
 
   const shipmentDomesticCost = domesticShippingCostObj?.totalUsd ?? 0;
@@ -166,13 +168,13 @@ export const addCogsAndAmount = (skuList = []) => {
     const {
       ppuPrice = "0",
       [inputKeyName.customPackageCost]: customPackageCost = "0",
-      [inputKeyName.packingLabeling]: packingLabeling = "0",
+      packingLabelingCost = "0",
       domesticShippingCost = "0",
       internationalShippingCost = "0",
       itemPaymentCost = "0",
       quantity,
     } = item;
-    const formula = `${ppuPrice} + ${customPackageCost} + ${packingLabeling} + ${domesticShippingCost} + ${internationalShippingCost} + ${itemPaymentCost}`;
+    const formula = `${ppuPrice} + ${customPackageCost} + ${packingLabelingCost} + ${domesticShippingCost} + ${internationalShippingCost} + ${itemPaymentCost}`;
     // const cogs = eval(formula);
     // const amount = cogs * quantity;
     return { ...item, cogs: "", amount: "" };

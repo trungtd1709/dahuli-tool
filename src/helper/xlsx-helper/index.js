@@ -1,16 +1,16 @@
 import ExcelJS from "exceljs";
-import _ from "lodash";
+import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import XLSX from "xlsx";
-import fs from "fs";
 import {
+  cashSymbolConst,
   outputColAlphabet,
   outputKeyname,
   outputNumDecimalFormat,
   sampleFolder,
 } from "../../shared/constant.js";
-import { evalCalculation, isEmptyValue } from "../../shared/utils.js";
+import { isEmptyValue } from "../../shared/utils.js";
 // import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -18,8 +18,8 @@ const __dirname = path.dirname(__filename);
 
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
 export const xlsxToJSON = ({
-  sheetIndex = 0,
   fileName,
+  sheetIndex = 0,
   exchangeRateKeyName,
   paymentCostKeyName,
   isShippingCost = false, // check xem có phải file order 4 (shipping cost) ko
@@ -39,13 +39,12 @@ export const xlsxToJSON = ({
     const worksheet = workbook.Sheets[sheetName];
     let jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-    const exchangeRate = getExchangeRate({ worksheet, exchangeRateKeyName });
-    if (exchangeRate) {
-      jsonData = jsonData.map((item) => {
-        return { ...item, exchangeRate };
-      });
-    }
-
+    getExchangeRate({
+      worksheet,
+      exchangeRateKeyName,
+      jsonData,
+    });
+  
     const paymentCostDivisor = getPaymentCostDivisor({
       worksheet,
       paymentCostKeyName,
@@ -58,12 +57,7 @@ export const xlsxToJSON = ({
     }
 
     if (isShippingCost) {
-      const shippingFormulas = getShippingCodeFormulas({ worksheet });
-      if (!_.isEmpty(shippingFormulas)) {
-        for (const [index, shippingFormula] of shippingFormulas.entries()) {
-          jsonData[index].shippingFormula = shippingFormula;
-        }
-      }
+      getShippingCodeFormulas(worksheet, jsonData);
     }
 
     return jsonData;
@@ -72,76 +66,7 @@ export const xlsxToJSON = ({
   }
 };
 
-// export const jsonToXLSX = ({ json = [], sheetName = "Sheet1" }) => {
-//   try {
-//     // Create a new workbook
-//     const workbook = XLSX.utils.book_new();
-//     const worksheet = XLSX.utils.json_to_sheet(json);
-
-//     json.forEach((item, index) => {
-//       const rowNumber = index + 2; // Starting from row 2, assuming row 1 has headers
-
-//       worksheet[`D${rowNumber}`] = { f: item[outputKeyname.ppu] };
-//       worksheet[`E${rowNumber}`] = {
-//         f: item?.[outputKeyname.customPackageCost],
-//       };
-//       worksheet[`F${rowNumber}`] = {
-//         f: item?.[outputKeyname.packingLabelingCost],
-//       };
-//       worksheet[`G${rowNumber}`] = {
-//         f: item[outputKeyname.domesticShippingCost],
-//       };
-//       worksheet[`H${rowNumber}`] = {
-//         f: item[outputKeyname.internationalShippingCost],
-//       };
-//       worksheet[`I${rowNumber}`] = { f: item[outputKeyname.paymentCost] };
-//       // worksheet[`J${rowNumber}`] = { f: item[outputKeyname.cogs] };
-//     });
-
-//     const centerStyle = {
-//       alignment: {
-//         vertical: "center",
-//         horizontal: "center",
-//       },
-//     };
-
-//     Object.keys(worksheet).forEach((cell) => {
-//       if (worksheet[cell] && cell[0] !== "!") {
-//         // Ensure it’s not a metadata cell like !ref
-//         worksheet[cell].s = centerStyle;
-//       }
-//     });
-
-//     worksheet["!cols"] = calculateColumnWidths(json);
-
-//     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
-
-//     const fileName = "test.xlsx";
-//     const filePath = path.resolve(
-//       __dirname,
-//       `../../../sample-file/${fileName}`
-//     );
-//     XLSX.writeFile(workbook, filePath);
-
-//     console.log(`XLSX file created at ${filePath}`);
-//   } catch (err) {
-//     console.error("Error creating XLSX file:", err);
-//   }
-// };
-
-const calculateColumnWidths = (data) => {
-  const keys = Object.keys(data[0]);
-  return keys.map((key) => {
-    const maxLength = Math.max(
-      key.length, // Length of the column header
-      ...data.map((item) => String(item[key]).length) // Length of the data in each cell
-    );
-    // return { wch: maxLength + 2 };
-    return { wch: 20 };
-  });
-};
-
-const getExchangeRate = ({ worksheet, exchangeRateKeyName }) => {
+const getExchangeRate = ({ worksheet, exchangeRateKeyName, jsonData }) => {
   if (!worksheet || !exchangeRateKeyName) {
     return;
   }
@@ -162,7 +87,6 @@ const getExchangeRate = ({ worksheet, exchangeRateKeyName }) => {
     );
   }
 
-  const formulas = [];
   if (columnIndex >= 0) {
     for (let R = range.s.r + 1; R <= range.e.r; ++R) {
       // Start from the second row
@@ -170,10 +94,6 @@ const getExchangeRate = ({ worksheet, exchangeRateKeyName }) => {
       const cell = worksheet[cellAddress];
 
       if (cell && cell.f) {
-        // formulas.push({
-        //   cell: cellAddress,
-        //   formula: cell.f,
-        // });
         const formula = cell.f;
 
         // định dạng formula "F2/6.759"
@@ -182,13 +102,12 @@ const getExchangeRate = ({ worksheet, exchangeRateKeyName }) => {
           const exchangeRate = match[1];
           console.log(`[Exchange Rate]: ${exchangeRate}`);
           if (exchangeRate) {
-            return exchangeRate;
+            jsonData[R - 1].exchangeRate = exchangeRate;
           }
         }
       }
     }
   }
-  console.log(formulas);
   return;
 };
 
@@ -240,10 +159,11 @@ function extractDivisor(formula) {
  * Calculates the total price to make each object.
  * @returns {Array}
  */
-const getShippingCodeFormulas = ({
+const getShippingCodeFormulas = (
   worksheet,
-  shippingCostKeyName = "Price",
-}) => {
+  jsonData,
+  shippingCostKeyName = "Price"
+) => {
   if (!worksheet || !shippingCostKeyName) {
     return;
   }
@@ -264,24 +184,50 @@ const getShippingCodeFormulas = ({
     );
   }
 
-  let formulas = [];
-
   if (columnIndex >= 0) {
-    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-      // Start from the second row
-      const cellAddress = XLSX.utils.encode_cell({ r: R, c: columnIndex });
-      const cell = worksheet[cellAddress];
-      if (cell && cell.f) {
-        const formula = cell.f;
-        // formulas.push({
-        //   cell: cellAddress,
-        //   formula: evalCalculation(formula),
-        // });
-        formulas.push(evalCalculation(formula));
+    for (let rowIndex = range.s.r + 1; rowIndex <= range.e.r; ++rowIndex) {
+      if (isEmptyValue(jsonData[rowIndex - 1])) {
+        return;
       }
+      // Start from the second row
+      const cellAddress = XLSX.utils.encode_cell({
+        r: rowIndex,
+        c: columnIndex,
+      });
+      const cell = worksheet[cellAddress];
+
+      let formula = cell?.v ?? "";
+      if (cell && cell.f) {
+        formula = cell.f;
+        const cellReferenceRegex = /^[A-Z]+\d+\/[A-Z]+\d+$/;
+        if (cellReferenceRegex.test(formula)) {
+          // Split the formula into the two cell references
+          const cellReferences = formula.split("/");
+          const firstCell = cellReferences[0];
+          const secondCell = cellReferences[1];
+
+          // Get the value of the first cell
+          const firstCellValue = worksheet[firstCell].v;
+          // Get the value of the second cell
+          const secondCellValue = worksheet[secondCell].v;
+
+          formula = `${firstCellValue} / ${secondCellValue}`;
+          console.log("Converted formula:", formula);
+        } else {
+          console.log("[Shipping formula]: ", formula);
+        }
+
+        // formulas.push(evalCalculation(formula));
+      }
+      if (cell?.w?.includes(cashSymbolConst.yuan)) {
+        const exchangeRate = jsonData[rowIndex - 1]?.exchangeRate;
+        if (exchangeRate) {
+          formula = `${formula} / ${exchangeRate}`;
+        }
+      }
+      jsonData[rowIndex - 1].shippingFormula = formula;
     }
   }
-  return formulas;
 };
 
 export const jsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {

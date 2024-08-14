@@ -10,7 +10,7 @@ export const fileTestName = {
 // export const fileTestName = {
 //   orderList1: "Order1.xlsx",
 //   orderList2: "Order2.xlsx",
-//   productList: "Product List.xlsx",
+//   productList: "Sku List.xlsx",
 //   tsvFile: "FBA17CCQ4ZVY.tsv",
 // };
 
@@ -79,4 +79,9 @@ export const outputColAlphabet = {
 export const outputNumDecimalFormat = {
   "4digits": "0.0000",
   "2digits": "0.00",
+};
+
+export const cashSymbolConst = {
+  yuan: "¥",
+  usd: "$",
 };

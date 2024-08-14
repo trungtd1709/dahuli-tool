@@ -34,15 +34,6 @@ export const readTsvFile = async ({ fileName }) => {
         },
       });
     });
-
-    // console.log(results[0]);
-    // console.log(results[1]);
-    // console.log(results[2]);
-    // console.log(results[3]);
-    // console.log(results[4]);
-    // console.log(results[5]);
-    // console.log(results[6]);
-    // console.log(results[7]);
     return results;
   } catch (err) {
     console.error("Error reading or parsing TSV file:", err);
