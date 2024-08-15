@@ -434,7 +434,7 @@ const changeObjKeyName = (jsonData = []) => {
     Object.keys(obj).forEach((key) => {
       if (key.toLowerCase().includes("weight")) {
         newObj["weight"] = obj[key]; // Rename the key to 'weight'
-      } else if (key.toLowerCase().includes(inputKeyName.productName)) {
+      } else if (key.toLowerCase().includes(inputKeyName.productName.toLowerCase())) {
         newObj["productName"] = obj[key]; // Rename keys containing 'name' to 'name'
       } else {
         newObj[key] = obj[key]; // Keep other keys unchanged

@@ -42,7 +42,7 @@ const transformProductItem = (obj) => {
 
 const transformOrderItem = (obj) => {
   const {
-    [inputKeyName.productName]: name,
+    productName: name,
     // [inputKeyName.price]: cnyPrice, // đơn vị là CNY
     [inputKeyName.quantity]: quantity,
     [inputKeyName.totalCny]: totalCny,
@@ -83,7 +83,7 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
 
   // add phí ship nội địa vào obj nếu có
   for (let [index, item] of rawJson.entries()) {
-    const productName = item[inputKeyName.productName]?.toLowerCase() ?? "";
+    const productName = item?.productName?.toLowerCase() ?? "";
     const totalCny = item?.[inputKeyName.totalCny].toString();
     const quantity = item[inputKeyName.quantity];
     const exchangeRate = item[inputKeyName.exchangeRate];
@@ -92,12 +92,14 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
       productName.includes(keyPreferences.packing) &&
       productName.includes(keyPreferences.labeling)
     ) {
-      packingLabelingCost = `(${totalCny} / ${quantity}) / ${exchangeRate}`;
+      const packingLabelingCostYuan = evalCalculation(
+        `${totalCny} / ${quantity}`
+      );
+      packingLabelingCost = `${packingLabelingCostYuan} / ${exchangeRate}`;
     }
 
     const prevProduct = rawJson[index - 1] ?? {};
-    const prevProductName =
-      prevProduct?.[inputKeyName.productName]?.toLowerCase();
+    const prevProductName = prevProduct?.productName?.toLowerCase();
     const prevProductQuantity = prevProduct?.[inputKeyName.quantity];
 
     if (
@@ -141,10 +143,10 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
   // rawJson = rawJson.filter((item) => item?.[inputKeyName.price]);
   rawJson = rawJson.filter((obj) => {
     return (
-      !obj[inputKeyName.productName].toLowerCase().includes("domestic") &&
+      !obj.productName.toLowerCase().includes("domestic") &&
       !(
-        obj[inputKeyName.productName].toLowerCase().includes("labeling") &&
-        obj[inputKeyName.productName].toLowerCase().includes("packing")
+        obj.productName.toLowerCase().includes("labeling") &&
+        obj.productName.toLowerCase().includes("packing")
       )
     );
   });
@@ -168,7 +170,7 @@ const transformCartonFee = (obj) => {
 
   const itemPrice = `${cnyItemPrice} / ${obj[inputKeyName.exchangeRate]}`;
   const newObj = {
-    name: obj[inputKeyName.productName],
+    name: obj?.productName,
     price: itemPrice,
   };
   return newObj;
@@ -182,15 +184,12 @@ export const transformCartonFeeInput = (rawJson = []) => {
 };
 
 export const transformShippingCostInput = (shippingArr = [], shipmentId) => {
-  // shippingArr.pop();
-  // shippingArr.pop(); cái này trước là payment cost
-
   shippingArr = shippingArr.filter((item) => {
-    return item[inputKeyName.productName].includes(shipmentId);
+    return item.productName.includes(shipmentId);
   });
 
   shippingArr = shippingArr.filter((item) => {
-    return !item[inputKeyName.productName].toLowerCase().includes(keyPreferences.paymentCost);
+    return !item.productName.toLowerCase().includes(keyPreferences.paymentCost);
   });
 
   return shippingArr.map((item) => {
@@ -200,7 +199,7 @@ export const transformShippingCostInput = (shippingArr = [], shipmentId) => {
 
 const transformShippingCostItem = (obj, shipmentId) => {
   const {
-    [inputKeyName.productName]: name,
+    productName: name,
     weight,
     shippingFormula,
     paymentCostDivisor,

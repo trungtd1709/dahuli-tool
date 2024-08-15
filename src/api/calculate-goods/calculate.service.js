@@ -1,4 +1,5 @@
 import _ from "lodash";
+import { BadRequestError } from "../../error/bad-request-err.js";
 import {
   addCogsAndAmount,
   addCustomizeCost,
@@ -18,9 +19,9 @@ import {
 import { refactorSkuListFunc } from "../../helper/data-output-helper/index.js";
 import { readAndTransformTsvFile } from "../../helper/tsv-helper/index.js";
 import { jsonToXlsx, xlsxToJSON } from "../../helper/xlsx-helper/index.js";
-import { fileTestName, inputKeyName } from "../../shared/constant.js";
+import { inputKeyName, keyPreferences } from "../../shared/constant.js";
 import { isEmptyValue, mergeArrays } from "../../shared/utils.js";
-import { BadRequestError } from "../../error/bad-request-err.js";
+import { MISSING_SHIPMENT_ID, MISSING_SKU_LIST_FILE, MISSING_TSV_FILE } from "../../shared/err-const.js";
 
 export const calculateGood = async (files = {}) => {
   let {
@@ -39,14 +40,23 @@ export const calculateGood = async (files = {}) => {
   skuListFile = skuListFile ? skuListFile[0] : null;
 
   try {
-    let inputTsvData = [];
-    if (tsvFile) {
-      inputTsvData = await readAndTransformTsvFile({
-        file: tsvFile,
-      });
+    if (isEmptyValue(tsvFile)) {
+      throw new BadRequestError(MISSING_TSV_FILE);
     }
+    
+    let inputTsvData = [];
+    inputTsvData = await readAndTransformTsvFile({
+      file: tsvFile,
+    });
     const shipmentId = inputTsvData[0].shipmentId;
 
+    if(!shipmentId){
+      throw new BadRequestError(MISSING_SHIPMENT_ID);
+    }
+
+    if (isEmptyValue(skuListFile)) {
+      throw new BadRequestError(MISSING_SKU_LIST_FILE);
+    }
     const inputProductList = transformProductListInput(
       xlsxToJSON({ file: skuListFile })
     );
@@ -140,17 +150,13 @@ export const calculateGood = async (files = {}) => {
     return buffer;
   } catch (err) {
     console.log(err);
-    throw new BadRequestError(err);
+    throw new BadRequestError(err.message);
   }
 };
 
 const removeSkuKey = (skuList = []) => {
   skuList = removeObjKey(skuList, inputKeyName.elements);
-  skuList = removeObjKey(skuList, "packing");
+  skuList = removeObjKey(skuList, keyPreferences.packing);
   skuList = removeObjKey(skuList, "customizePackage");
   return skuList;
-};
-
-export const testService = () => {
-  return { result: "success" };
 };

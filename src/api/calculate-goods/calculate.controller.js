@@ -2,7 +2,7 @@ import * as calculateService from "./calculate.service.js";
 
 export async function calculateSku(req, res) {
   const { files } = req;
-  const result = calculateService.testService;
+  
   const xlsxBuffer = await calculateService.calculateGood(files);
   res.setHeader("Content-Disposition", 'attachment; filename="cogs.xlsx"');
   res.setHeader(

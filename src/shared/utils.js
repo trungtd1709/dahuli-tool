@@ -31,12 +31,6 @@ export const mergeArrays = (arr1, arr2, key) => {
     return acc;
   }, []);
 
-  // arr2.forEach(obj2 => {
-  //   if (!arr1.find(obj1 => obj1[key] === obj2[key])) {
-  //     merged.push(obj2);
-  //   }
-  // });
-
   return merged;
 };
 
@@ -46,7 +40,6 @@ export const evalCalculation = (expression) => {
 
   if (decimalPart && decimalPart.length > 4) {
     if (
-      decimalPart[decimalPart.length - 1] == "9" &&
       decimalPart[decimalPart.length - 2] == "9" &&
       decimalPart[decimalPart.length - 3] == "9" &&
       decimalPart[decimalPart.length - 4] == "9"

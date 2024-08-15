@@ -3,10 +3,11 @@ import { CustomError } from "./custom-err.js";
 
 export async function errorHandler(err, req, res, next) {
   console.error(err);
-  res.status(500).json({ result: "Fail", message: err.message });
-  // if (err instanceof CustomError) {
-  //   return res.status(err.statusCode).send(err.respond());
-  // }
+  if (err instanceof CustomError) {
+    return res
+      .status(err.statusCode)
+      .json({ result: "Fail", message: err.message });
+  }
 
   // console.error(err);
 
