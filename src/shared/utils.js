@@ -73,12 +73,16 @@ export const isEmptyValue = (value) => {
 };
 
 export const removeValueAndSplash = (formula, valueToRemove) => {
-   // Escape special characters in the value to remove (like ".")
-   const escapedValue = valueToRemove.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    
-   // Create a regex to match the pattern "/ valueToRemove"
-   const regex = new RegExp(`\\s*/\\s*${escapedValue}`, 'g');
-   
-   // Replace the matching pattern with an empty string
-   return formula.replace(regex, '');
+  // Escape special characters in the value to remove (like ".")
+  const escapedValue = valueToRemove.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // Create a regex to match the pattern "/ valueToRemove"
+  const regex = new RegExp(`\\s*/\\s*${escapedValue}`, "g");
+
+  // Replace the matching pattern with an empty string
+  let newFormula = formula.replace(regex, "");
+  if (newFormula.includes("+")) {
+    newFormula = `(${newFormula})`;
+  }
+  return newFormula;
 };

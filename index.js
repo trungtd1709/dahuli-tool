@@ -1,9 +1,7 @@
 import express from "express";
-import { calculateGood } from "./src/api/calculate-goods/calculate.service.js";
+import 'express-async-errors';
 import { apiRouter } from "./src/api/index.js";
-import path from "path";
-import XLSX from "xlsx";
-import { fileURLToPath } from "url";
+import { errorHandler } from "./src/error/err-handler.js";
 
 // import cors from 'cors';
 
@@ -16,10 +14,16 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // app.use(cors());
 
-app.get('/api/', (req, res) => {
-  res.send('Hello World!');
+app.get("/test", async (req, res) => {
+  test();
 });
+
+app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
+
+const test = () => {
+  throw new Error("Test");
+}

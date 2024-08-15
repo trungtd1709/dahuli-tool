@@ -65,7 +65,7 @@ const transformOrderItem = (obj) => {
   return newObject;
 };
 
-export const transformOrderList2Input = (rawJson = []) => {
+export const transformPrinttingFeeInput = (rawJson = []) => {
   rawJson.pop();
   const printtingFeeInput = rawJson.map((item) => {
     return transformOrderItem(item);
@@ -78,6 +78,7 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
   // remove phần tử Total
 
   let domesticShippingCostObj = {};
+  let internationalShippingCostObj = {};
   let packingLabelingCost = null;
 
   // add phí ship nội địa vào obj nếu có
@@ -112,6 +113,19 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
       };
     }
 
+    if (
+      productName.includes(keyPreferences.international) &&
+      productName.includes(shipmentId.toLowerCase())
+    ) {
+      const internationalCostUsd = `${totalCny} / ${exchangeRate}`;
+      internationalShippingCostObj = {
+        shipmentId: shipmentId,
+        totalUsd: internationalCostUsd,
+        isDomestic: false,
+        paymentCostDivisor: null,
+      };
+    }
+
     // obj phí ship nội địa của 1 sản phẩm
     if (
       !item?.[inputKeyName.quantity] &&
@@ -138,7 +152,12 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
   const elementsPrice = rawJson.map((item) => {
     return transformOrderItem(item);
   });
-  return { elementsPrice, domesticShippingCostObj, packingLabelingCost };
+  return {
+    elementsPrice,
+    domesticShippingCostObj,
+    packingLabelingCost,
+    internationalShippingCostObj,
+  };
   // return order1Input.filter((item) => item.price);
 };
 
@@ -170,7 +189,9 @@ export const transformShippingCostInput = (shippingArr = [], shipmentId) => {
     return item[inputKeyName.productName].includes(shipmentId);
   });
 
-  
+  shippingArr = shippingArr.filter((item) => {
+    return !item[inputKeyName.productName].toLowerCase().includes(keyPreferences.paymentCost);
+  });
 
   return shippingArr.map((item) => {
     return transformShippingCostItem(item, shipmentId);
@@ -180,16 +201,12 @@ export const transformShippingCostInput = (shippingArr = [], shipmentId) => {
 const transformShippingCostItem = (obj, shipmentId) => {
   const {
     [inputKeyName.productName]: name,
-    // [inputKeyName.totalUsd]: totalUsd,
-    // [inputKeyName.price]: pricePerKilo,
-    [inputKeyName.weight]: weight,
+    weight,
     shippingFormula,
     paymentCostDivisor,
   } = obj;
   const totalUsd = `(${shippingFormula} * ${weight})`;
-
   const lowerCaseShipName = name.toLowerCase();
-
   // ko chứa chữ domestic mặc định là international
   const isDomestic = lowerCaseShipName.includes(keyPreferences.domestic);
 

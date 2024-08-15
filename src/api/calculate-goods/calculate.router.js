@@ -7,11 +7,11 @@ export const calculateRouter = Router();
 calculateRouter.post(
   "/calculate/sku",
   multerUpload.fields([
-    { name: "order1", maxCount: 1 },
-    { name: "order2", maxCount: 1 },
-    { name: "order3", maxCount: 1 },
-    { name: "order4", maxCount: 1 },
-    { name: "skuList", maxCount: 1 },
+    { name: "order1File", maxCount: 1 },
+    { name: "printtingFeeFile", maxCount: 1 },
+    { name: "packingCostFile", maxCount: 1 },
+    { name: "shippingFile", maxCount: 1 },
+    { name: "skuListFile", maxCount: 1 },
     { name: "tsvFile", maxCount: 1 },
   ]),
   calculateController.calculateSku

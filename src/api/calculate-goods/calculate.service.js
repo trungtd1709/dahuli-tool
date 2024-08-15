@@ -11,7 +11,7 @@ import {
 import {
   transformCartonFeeInput,
   transformOrderList1Input,
-  transformOrderList2Input,
+  transformPrinttingFeeInput,
   transformProductListInput,
   transformShippingCostInput,
 } from "../../helper/data-input-helper/index.js";
@@ -20,61 +20,84 @@ import { readAndTransformTsvFile } from "../../helper/tsv-helper/index.js";
 import { jsonToXlsx, xlsxToJSON } from "../../helper/xlsx-helper/index.js";
 import { fileTestName, inputKeyName } from "../../shared/constant.js";
 import { isEmptyValue, mergeArrays } from "../../shared/utils.js";
+import { BadRequestError } from "../../error/bad-request-err.js";
 
 export const calculateGood = async (files = {}) => {
+  let {
+    order1File,
+    printtingFeeFile,
+    packingCostFile,
+    shippingFile,
+    skuListFile,
+    tsvFile,
+  } = files;
+  tsvFile = tsvFile ? tsvFile[0] : null;
+  order1File = order1File ? order1File[0] : null;
+  printtingFeeFile = printtingFeeFile ? printtingFeeFile[0] : null;
+  packingCostFile = packingCostFile ? packingCostFile[0] : null;
+  shippingFile = shippingFile ? shippingFile[0] : null;
+  skuListFile = skuListFile ? skuListFile[0] : null;
+
   try {
-    const inputTsvData = await readAndTransformTsvFile({
-      fileName: fileTestName.tsvFile,
-    });
-
-    const inputProductList = transformProductListInput(
-      xlsxToJSON({ fileName: fileTestName.productList })
-    );
-
+    let inputTsvData = [];
+    if (tsvFile) {
+      inputTsvData = await readAndTransformTsvFile({
+        file: tsvFile,
+      });
+    }
     const shipmentId = inputTsvData[0].shipmentId;
 
-    const order1 = transformOrderList1Input(
-      xlsxToJSON({
-        fileName: fileTestName.orderList1,
-        exchangeRateKeyName: inputKeyName.totalUsd,
-      }),
-      shipmentId
+    const inputProductList = transformProductListInput(
+      xlsxToJSON({ file: skuListFile })
     );
+
+    let order1 = {};
+    if (order1File) {
+      order1 = transformOrderList1Input(
+        xlsxToJSON({
+          file: order1File,
+          exchangeRateKeyName: inputKeyName.totalUsd,
+        }),
+        shipmentId
+      );
+    }
+
     const {
       elementsPrice = [],
       domesticShippingCostObj,
+      internationalShippingCostObj,
       packingLabelingCost,
     } = order1;
 
-    // const inputPrinttingFee = [];
+    let inputPrinttingFee = [];
+    if (printtingFeeFile) {
+      inputPrinttingFee = transformPrinttingFeeInput(
+        xlsxToJSON({
+          file: printtingFeeFile,
+          exchangeRateKeyName: inputKeyName.totalUsd,
+        })
+      );
+    }
 
-    // let inputShippingCost = transformShippingCostInput(
-    //   xlsxToJSON({
-    //     fileName: fileTestName.orderList2,
-    //     isShippingCost: true,
-    //     exchangeRateKeyName: inputKeyName.totalUsd,
-    //   }),
-    //   shipmentId
-    // );
-
-    const inputPrinttingFee = transformOrderList2Input(
-      xlsxToJSON({
-        fileName: fileTestName.orderList2,
-        exchangeRateKeyName: inputKeyName.totalUsd,
-      })
-    );
-
-    let inputShippingCost = transformShippingCostInput(
-      xlsxToJSON({
-        fileName: fileTestName.orderList4,
-        paymentCostKeyName: inputKeyName.totalUsd,
-        isShippingCost: true,
-      }),
-      shipmentId
-    );
+    let inputShippingCost = [];
+    if (shippingFile) {
+      inputShippingCost = transformShippingCostInput(
+        xlsxToJSON({
+          file: shippingFile,
+          paymentCostKeyName: inputKeyName.totalUsd,
+          exchangeRateKeyName: inputKeyName.totalUsd,
+          isShippingCost: true,
+        }),
+        shipmentId
+      );
+    }
 
     if (!isEmptyValue(domesticShippingCostObj)) {
       inputShippingCost.push(domesticShippingCostObj);
+    }
+
+    if (!isEmptyValue(internationalShippingCostObj)) {
+      inputShippingCost.push(internationalShippingCostObj);
     }
 
     let skuList = mergeArrays(
@@ -83,12 +106,15 @@ export const calculateGood = async (files = {}) => {
       inputKeyName.sku
     ).filter((item) => !_.isEmpty(item.elements));
 
-    const inputPackingCost = transformCartonFeeInput(
-      xlsxToJSON({
-        fileName: fileTestName.orderList3,
-        exchangeRateKeyName: inputKeyName.totalUsd,
-      })
-    );
+    let inputPackingCost = [];
+    if (packingCostFile) {
+      inputPackingCost = transformCartonFeeInput(
+        xlsxToJSON({
+          file: packingCostFile,
+          exchangeRateKeyName: inputKeyName.totalUsd,
+        })
+      );
+    }
 
     const elementsPriceAndPrinttingFee = [
       ...elementsPrice,
@@ -110,9 +136,11 @@ export const calculateGood = async (files = {}) => {
     skuList = removeSkuKey(skuList);
 
     const refactorSkuList = refactorSkuListFunc(skuList);
-    jsonToXlsx({ json: refactorSkuList });
+    const buffer = jsonToXlsx({ json: refactorSkuList });
+    return buffer;
   } catch (err) {
     console.log(err);
+    throw new BadRequestError(err);
   }
 };
 

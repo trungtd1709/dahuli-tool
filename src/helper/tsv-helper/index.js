@@ -9,44 +9,13 @@ import { sampleFolder } from "../../shared/constant.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-/**
- * Reads a TSV file and parses its content to JSON.
- * @param {string} filePath - The path to the TSV file.
- * @returns {Promise<Array>} The parsed data as an array of objects.
- */
-export const readTsvFile = async ({ fileName }) => {
-  const filePath = path.resolve(__dirname, `../../../${sampleFolder}/${fileName}`);
+export const readAndTransformTsvFile = async ({ file }) => {
+  // const filePath = path.resolve(__dirname, `../../../${sampleFolder}/${fileName}`);
 
   try {
     // Read the file content
-    const data = await fs.readFile(filePath, "utf8");
-
-    // Parse the TSV content using PapaParse
-    const results = await new Promise((resolve, reject) => {
-      Papa.parse(data, {
-        header: true,
-        delimiter: "\t",
-        complete: (parsedData) => {
-          resolve(parsedData.data);
-        },
-        error: (error) => {
-          reject(error);
-        },
-      });
-    });
-    return results;
-  } catch (err) {
-    console.error("Error reading or parsing TSV file:", err);
-    throw err;
-  }
-};
-
-export const readAndTransformTsvFile = async ({ fileName }) => {
-  const filePath = path.resolve(__dirname, `../../../${sampleFolder}/${fileName}`);
-
-  try {
-    // Read the file content
-    const data = await fs.readFile(filePath, "utf8");
+    const data = file.buffer.toString('utf8');
+    // const data = await fs.readFile(filePath, "utf8");
 
     // Parse the TSV content using PapaParse
     const parsedData = await new Promise((resolve, reject) => {

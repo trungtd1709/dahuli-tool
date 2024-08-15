@@ -5,6 +5,8 @@ import { fileURLToPath } from "url";
 import XLSX from "xlsx";
 import {
   cashSymbolConst,
+  inputKeyName,
+  keyPreferences,
   outputColAlphabet,
   outputKeyname,
   outputNumDecimalFormat,
@@ -17,34 +19,43 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
+
+/**
+ * Converts an XLSX file to JSON.
+ * @param {Multer.File} options.file - The uploaded file object from Multer.
+ * @returns {Array}
+ */
 export const xlsxToJSON = ({
-  fileName,
+  file,
   sheetIndex = 0,
   exchangeRateKeyName,
   paymentCostKeyName,
   isShippingCost = false, // check xem có phải file order 4 (shipping cost) ko
 }) => {
   try {
-    const filePath = path.resolve(
-      __dirname,
-      `../../../${sampleFolder}/${fileName}`
-    );
+    // const filePath = path.resolve(
+    //   __dirname,
+    //   `../../../${sampleFolder}/${fileName}`
+    // );
 
-    if (!fs.existsSync(filePath)) {
-      return [];
-    }
+    // if (!fs.existsSync(filePath)) {
+    //   return [];
+    // }
 
-    const workbook = XLSX.readFile(filePath);
+    // const workbook = XLSX.readFile(filePath);
+
+    const workbook = XLSX.read(file.buffer, { type: "buffer" });
+
     const sheetName = workbook.SheetNames[sheetIndex];
     const worksheet = workbook.Sheets[sheetName];
     let jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-    getExchangeRate({
+    addExchangeRateToJson({
       worksheet,
       exchangeRateKeyName,
       jsonData,
     });
-  
+
     const paymentCostDivisor = getPaymentCostDivisor({
       worksheet,
       paymentCostKeyName,
@@ -60,13 +71,20 @@ export const xlsxToJSON = ({
       getShippingCodeFormulas(worksheet, jsonData);
     }
 
+    jsonData = changeObjKeyName(jsonData);
+    console.log("[jsonData]: ", jsonData);
+
     return jsonData;
   } catch (err) {
     console.log("[ERR CONVERT XLSX --> JSON]:", err);
   }
 };
 
-const getExchangeRate = ({ worksheet, exchangeRateKeyName, jsonData }) => {
+const addExchangeRateToJson = ({
+  worksheet,
+  exchangeRateKeyName,
+  jsonData,
+}) => {
   if (!worksheet || !exchangeRateKeyName) {
     return;
   }
@@ -116,33 +134,57 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
     return;
   }
   const range = XLSX.utils.decode_range(worksheet["!ref"]);
-  let columnIndex = -1;
+  let paymentCostColumnIndex = -1;
+  let productNameColumnIndex = -1;
+
   for (let C = range.s.c; C <= range.e.c; ++C) {
     const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
     const cell = worksheet[cellAddress];
     if (cell && cell.v === paymentCostKeyName) {
-      columnIndex = C;
-      break;
+      paymentCostColumnIndex = C;
+    }
+    if (cell && cell.v === inputKeyName.productName) {
+      productNameColumnIndex = C;
     }
   }
 
-  if (columnIndex === -1) {
+  if (paymentCostColumnIndex === -1) {
     console.error(
       `Key name '${paymentCostKeyName}' not found in the first row.`
     );
   }
 
-  if (columnIndex >= 0) {
+  if (productNameColumnIndex === -1) {
+    console.error(
+      `Key name '${inputKeyName.productName}' not found in the first row.`
+    );
+  }
+
+  if (paymentCostColumnIndex >= 0) {
     for (let R = range.s.r + 1; R <= range.e.r; ++R) {
       // Start from the second row
-      const cellAddress = XLSX.utils.encode_cell({ r: R, c: columnIndex });
-      const cell = worksheet[cellAddress];
-      if (cell && cell.f) {
-        const formula = cell.f;
-        // định dạng formula "SUM(E2:E5)/99"
-        const paymentCostDivisor = extractDivisor(formula);
-        if (paymentCostDivisor) {
-          return paymentCostDivisor;
+      const productNameCellAddress = XLSX.utils.encode_cell({
+        r: R,
+        c: productNameColumnIndex,
+      });
+      const productNameCell = worksheet[productNameCellAddress];
+
+      if (
+        productNameCell?.v?.toLowerCase()?.includes(keyPreferences.paymentCost)
+      ) {
+        const paymentCostCellAddress = XLSX.utils.encode_cell({
+          r: R,
+          c: paymentCostColumnIndex,
+        });
+        const paymentCell = worksheet[paymentCostCellAddress];
+
+        if (paymentCell && paymentCell.f) {
+          const formula = paymentCell.f;
+          // định dạng formula "SUM(E2:E5)/99"
+          const paymentCostDivisor = extractDivisor(formula);
+          if (paymentCostDivisor) {
+            return paymentCostDivisor;
+          }
         }
       }
     }
@@ -232,6 +274,10 @@ const getShippingCodeFormulas = (
 
 export const jsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
   try {
+    if (json.length === 0) {
+      throw new Error("The JSON data is empty.");
+    }
+
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(sheetName);
 
@@ -269,17 +315,23 @@ export const jsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
     // Style cells
     addStyleToWorksheet(worksheet, firstRowNum);
 
+    const xlsxBuffer = await workbook.xlsx.writeBuffer();
+    console.log("[Convert json --> buffer success]");
+    return xlsxBuffer;
+
     // Write to file
     const fileName = "test.xlsx";
     const filePath = path.resolve(
       __dirname,
       `../../../${sampleFolder}/${fileName}`
     );
+
     await workbook.xlsx.writeFile(filePath);
 
     console.log(`XLSX file created at ${filePath}`);
   } catch (err) {
     console.error("Error creating XLSX file:", err);
+    throw err;
   }
 };
 
@@ -373,4 +425,23 @@ const addStyleToWorksheet = (worksheet, firstRowNum) => {
       }
     });
   });
+};
+
+const changeObjKeyName = (jsonData = []) => {
+  const updatedArray = jsonData.map((obj) => {
+    const newObj = {};
+
+    Object.keys(obj).forEach((key) => {
+      if (key.toLowerCase().includes("weight")) {
+        newObj["weight"] = obj[key]; // Rename the key to 'weight'
+      } else if (key.toLowerCase().includes(inputKeyName.productName)) {
+        newObj["productName"] = obj[key]; // Rename keys containing 'name' to 'name'
+      } else {
+        newObj[key] = obj[key]; // Keep other keys unchanged
+      }
+    });
+
+    return newObj;
+  });
+  return updatedArray;
 };

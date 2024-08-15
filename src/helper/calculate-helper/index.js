@@ -46,10 +46,10 @@ export const calculatePpuPrice = (skuList, goodsPrice) => {
       (item) => item?.exchangeRate == goodsPrice[0]?.exchangeRate
     );
     if (isSameExchangeRate) {
-      ppuPrice = `(${removeValueAndSplash(
+      ppuPrice = `${removeValueAndSplash(
         ppuPrice,
         exchangeRate
-      )}) / ${exchangeRate}`;
+      )} / ${exchangeRate}`;
     }
 
     return { ...good, ppuPrice: ppuPrice };
@@ -76,14 +76,14 @@ export const addPackingCost = (skuList, cartonFee) => {
 /**
  * Calculates the total price to make each object.
  * @param {Array} skuList - The array of objects.
- * @param {Array} goodsPrice - The array of element prices.
+ * @param {Array} elementsPrice - The array of element prices.
  * @returns {Array} The array of objects with their total price.
  */
-export const addCustomizeCost = (skuList, goodsPrice) => {
+export const addCustomizeCost = (skuList, elementsPrice) => {
   return skuList.map((item) => {
     const customizePackage = item?.customizePackage;
-    const customizeObj = goodsPrice.find(
-      (item) => item.name == customizePackage
+    const customizeObj = elementsPrice.find(
+      (item) => item.name?.toLowerCase() == customizePackage?.toLowerCase()
     );
     if (!_.isEmpty(customizeObj)) {
       const cnyPrice = customizeObj.price;

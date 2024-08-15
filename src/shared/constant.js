@@ -33,7 +33,6 @@ export const inputKeyName = {
   exchangeRate: "exchangeRate",
   customizePackage: "Customize Package",
   customPackageCost: "Custom Package Cost",
-  weight: "Weight (kg)",
 };
 
 export const keyPreferences = {
@@ -42,6 +41,7 @@ export const keyPreferences = {
   pickUp: "pick up",
   packing: "packing",
   labeling: "labeling",
+  paymentCost: "payment cost",
 };
 
 export const outputKeyname = {
