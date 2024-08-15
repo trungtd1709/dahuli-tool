@@ -1,5 +1,10 @@
 import { inputKeyName, keyPreferences } from "../../shared/constant.js";
-import { evalCalculation } from "../../shared/utils.js";
+import {
+  evalCalculation,
+  isEmptyValue,
+  removeSpaces,
+  removeStringAfter,
+} from "../../shared/utils.js";
 
 /**
  *
@@ -44,7 +49,7 @@ const transformOrderItem = (obj) => {
   const {
     productName: name,
     // [inputKeyName.price]: cnyPrice, // đơn vị là CNY
-    [inputKeyName.quantity]: quantity,
+    quantity,
     [inputKeyName.totalCny]: totalCny,
     [inputKeyName.domesticShippingCost]: domesticShippingCost,
     exchangeRate,
@@ -85,7 +90,7 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
   for (let [index, item] of rawJson.entries()) {
     const productName = item?.productName?.toLowerCase() ?? "";
     const totalCny = item?.[inputKeyName.totalCny].toString();
-    const quantity = item[inputKeyName.quantity];
+    const quantity = item?.quantity;
     const exchangeRate = item[inputKeyName.exchangeRate];
 
     if (
@@ -100,7 +105,7 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
 
     const prevProduct = rawJson[index - 1] ?? {};
     const prevProductName = prevProduct?.productName?.toLowerCase();
-    const prevProductQuantity = prevProduct?.[inputKeyName.quantity];
+    const prevProductQuantity = prevProduct?.quantity;
 
     if (
       productName.includes(keyPreferences.domestic) &&
@@ -129,10 +134,7 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
     }
 
     // obj phí ship nội địa của 1 sản phẩm
-    if (
-      !item?.[inputKeyName.quantity] &&
-      productName?.includes(prevProductName)
-    ) {
+    if (!item?.quantity && productName?.includes(prevProductName)) {
       const prevQuantity = prevProductQuantity.toString();
       const itemShippingFee = evalCalculation(`${totalCny} / ${prevQuantity}`);
       rawJson[index - 1][inputKeyName.domesticShippingCost] = itemShippingFee;
@@ -165,7 +167,7 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
 
 const transformCartonFee = (obj) => {
   const cnyItemPrice = evalCalculation(
-    `${obj[inputKeyName.totalCny]} / ${obj[inputKeyName.quantity]}`
+    `${obj[inputKeyName.totalCny]} / ${obj?.quantity}`
   );
 
   const itemPrice = `${cnyItemPrice} / ${obj[inputKeyName.exchangeRate]}`;
@@ -214,5 +216,34 @@ const transformShippingCostItem = (obj, shipmentId) => {
     totalUsd,
     isDomestic,
     paymentCostDivisor,
+  };
+};
+
+/**
+ *
+ * @param {Array} rawJson
+ * @returns {Array}
+ */
+export const transformShipmentListInput = (rawJson) => {
+  return rawJson.map((item) => {
+    return transformShipmentItem(item);
+  });
+};
+
+const transformShipmentItem = (obj) => {
+  let {
+    [inputKeyName.shipment]: shipment,
+    [inputKeyName.shipmentId]: shipmentId,
+  } = obj;
+
+  if (!isEmptyValue(shipment)) {
+    shipment = removeStringAfter(shipment, "-");
+    shipment = removeStringAfter(shipment, ".");
+    shipment = removeSpaces(shipment);
+  }
+
+  return {
+    shipment,
+    shipmentId,
   };
 };

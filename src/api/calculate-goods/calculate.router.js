@@ -13,6 +13,7 @@ calculateRouter.post(
     { name: "shippingFile", maxCount: 1 },
     { name: "skuListFile", maxCount: 1 },
     { name: "tsvFile", maxCount: 1 },
+    { name: "allShipmentFile", maxCount: 1 },
   ]),
   calculateController.calculateSku
 );

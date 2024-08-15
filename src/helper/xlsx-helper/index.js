@@ -13,6 +13,7 @@ import {
   sampleFolder,
 } from "../../shared/constant.js";
 import { isEmptyValue } from "../../shared/utils.js";
+import { BadRequestError } from "../../error/bad-request-err.js";
 // import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,17 +34,7 @@ export const xlsxToJSON = ({
   isShippingCost = false, // check xem có phải file order 4 (shipping cost) ko
 }) => {
   try {
-    // const filePath = path.resolve(
-    //   __dirname,
-    //   `../../../${sampleFolder}/${fileName}`
-    // );
-
-    // if (!fs.existsSync(filePath)) {
-    //   return [];
-    // }
-
-    // const workbook = XLSX.readFile(filePath);
-
+    console.log(`[CONVERTING ${file.originalName}`);
     const workbook = XLSX.read(file.buffer, { type: "buffer" });
 
     const sheetName = workbook.SheetNames[sheetIndex];
@@ -72,11 +63,10 @@ export const xlsxToJSON = ({
     }
 
     jsonData = changeObjKeyName(jsonData);
-    console.log("[jsonData]: ", jsonData);
 
     return jsonData;
   } catch (err) {
-    console.log("[ERR CONVERT XLSX --> JSON]:", err);
+    throw new BadRequestError(`[Err when convert ${file.name}]: `, err);
   }
 };
 
@@ -118,7 +108,6 @@ const addExchangeRateToJson = ({
         const match = formula.match(/\/(\d+\.\d+)/);
         if (match) {
           const exchangeRate = match[1];
-          console.log(`[Exchange Rate]: ${exchangeRate}`);
           if (exchangeRate) {
             jsonData[R - 1].exchangeRate = exchangeRate;
           }
@@ -254,9 +243,9 @@ const getShippingCodeFormulas = (
           const secondCellValue = worksheet[secondCell].v;
 
           formula = `${firstCellValue} / ${secondCellValue}`;
-          console.log("Converted formula:", formula);
+          // console.log("Converted formula:", formula);
         } else {
-          console.log("[Shipping formula]: ", formula);
+          // console.log("[Shipping formula]: ", formula);
         }
 
         // formulas.push(evalCalculation(formula));
@@ -316,19 +305,8 @@ export const jsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
     addStyleToWorksheet(worksheet, firstRowNum);
 
     const xlsxBuffer = await workbook.xlsx.writeBuffer();
-    console.log("[Convert json --> buffer success]");
+    console.log("[JSON --> BUFFER SUCCESS]");
     return xlsxBuffer;
-
-    // Write to file
-    const fileName = "test.xlsx";
-    const filePath = path.resolve(
-      __dirname,
-      `../../../${sampleFolder}/${fileName}`
-    );
-
-    await workbook.xlsx.writeFile(filePath);
-
-    console.log(`XLSX file created at ${filePath}`);
   } catch (err) {
     console.error("Error creating XLSX file:", err);
     throw err;
@@ -434,8 +412,12 @@ const changeObjKeyName = (jsonData = []) => {
     Object.keys(obj).forEach((key) => {
       if (key.toLowerCase().includes("weight")) {
         newObj["weight"] = obj[key]; // Rename the key to 'weight'
-      } else if (key.toLowerCase().includes(inputKeyName.productName.toLowerCase())) {
+      } else if (
+        key.toLowerCase().includes(inputKeyName.productName.toLowerCase())
+      ) {
         newObj["productName"] = obj[key]; // Rename keys containing 'name' to 'name'
+      } else if (key.toLowerCase().includes("qty")) {
+        newObj["quantity"] = obj[key];
       } else {
         newObj[key] = obj[key]; // Keep other keys unchanged
       }

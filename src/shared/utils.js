@@ -79,3 +79,17 @@ export const removeValueAndSplash = (formula, valueToRemove) => {
   }
   return newFormula;
 };
+
+export function removeStringAfter(str, delimiter) {
+  const delimiterIndex = str.indexOf(delimiter);
+  if (delimiterIndex !== -1) {
+    // If the delimiter is found, return the substring from the start up to the delimiter
+    return str.substring(0, delimiterIndex);
+  }
+  // If no delimiter is found, return the original string
+  return str;
+}
+
+export function removeSpaces(str) {
+  return str.replace(/\s+/g, '');
+}

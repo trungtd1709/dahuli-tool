@@ -33,7 +33,6 @@ export const readAndTransformTsvFile = async ({ file }) => {
         array: parsedData,
         searchValue: "Merchant SKU",
       }) + 1;
-    console.log(parsedData);
 
     // Transform the rest of the data
     const transformedData = parsedData.slice(startIndex).map((row) => ({
@@ -46,7 +45,7 @@ export const readAndTransformTsvFile = async ({ file }) => {
     }));
 
     const itemList = filterItemArray(transformedData);
-
+    console.log("[TSV --> JSON SUCCESS]");
     return itemList;
   } catch (err) {
     console.error("Error reading or parsing TSV file:", err);

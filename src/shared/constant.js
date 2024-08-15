@@ -33,6 +33,8 @@ export const inputKeyName = {
   exchangeRate: "exchangeRate",
   customizePackage: "Customize Package",
   customPackageCost: "Custom Package Cost",
+  shipment: "Shipment",
+  shipmentId: "Shipment ID",
 };
 
 export const keyPreferences = {

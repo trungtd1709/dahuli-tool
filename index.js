@@ -8,7 +8,6 @@ import { errorHandler } from "./src/error/err-handler.js";
 const app = express();
 const port = 3000;
 
-// calculateGood();
 app.use("/api", apiRouter);
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
