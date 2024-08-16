@@ -5,6 +5,9 @@ public/*/
 .gitlab-ci.yml
 yarn.lock
 sample-file/
+sample-file-S295/
+sample-file-S304/
+
 **/*.log
 
 *.sh
