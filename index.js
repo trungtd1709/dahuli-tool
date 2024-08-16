@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // app.use(cors());
 
 app.get("/test", async (req, res) => {
-  test();
+  res.json("hello world");
 });
 
 app.use(errorHandler);
