@@ -87,3 +87,20 @@ export const cashSymbolConst = {
   yuan: "¥",
   usd: "$",
 };
+
+export const FILE_TYPE = {
+  ORDER1: "order1",
+  SHIPPING: "shipping",
+  SHIPMENT: "shipment",
+  SKU_LIST: "sku_list",
+  TSV: "tsv",
+  // SHIPMENT: "shipment",
+};
+
+export const FILE_CHECK_KEYWORD = {
+  TSV: "tsv",
+  WEIGHT: "weight",
+  SHIPMENT_ID: "shipment id",
+  SHIPMENT: "shipment",
+  PPU_ELEMENTS: "thành phần ppu",
+};

@@ -4,6 +4,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import XLSX from "xlsx";
 import {
+  FILE_CHECK_KEYWORD,
+  FILE_TYPE,
   cashSymbolConst,
   inputKeyName,
   keyPreferences,
@@ -59,7 +61,7 @@ export const xlsxToJSON = ({
     }
 
     if (isShippingCost) {
-      getShippingCodeFormulas(worksheet, jsonData);
+      getShippingCostFormulas(worksheet, jsonData);
     }
 
     jsonData = changeObjKeyName(jsonData);
@@ -190,7 +192,7 @@ function extractDivisor(formula) {
  * Calculates the total price to make each object.
  * @returns {Array}
  */
-const getShippingCodeFormulas = (
+const getShippingCostFormulas = (
   worksheet,
   jsonData,
   shippingCostKeyName = "Price"
@@ -426,4 +428,53 @@ const changeObjKeyName = (jsonData = []) => {
     return newObj;
   });
   return updatedArray;
+};
+
+/**
+ * @param {Express.Multer.File} file
+ * @returns {Array}
+ */
+export const getFileType = (file) => {
+  if (file.originalname.includes(FILE_CHECK_KEYWORD.TSV)) {
+    return FILE_TYPE.TSV;
+  }
+
+  const workbook = XLSX.read(file.buffer, { type: "buffer" });
+
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+
+  const headers = [];
+  const range = XLSX.utils.decode_range(sheet["!ref"]);
+  const firstRow = range.s.r; // First row number
+
+  for (let col = range.s.c; col <= range.e.c; col++) {
+    const cellAddress = XLSX.utils.encode_cell({ r: firstRow, c: col });
+    const cell = sheet[cellAddress];
+    const header = cell?.v?.toLowerCase()
+      ? cell.v.toLowerCase()
+      : `UNKNOWN ${col}`;
+
+    headers.push(header);
+  }
+
+  if (headers.find((item) => item.includes(FILE_CHECK_KEYWORD.WEIGHT))) {
+    return FILE_TYPE.SHIPPING;
+  }
+
+  if (headers.find((item) => item.includes(FILE_CHECK_KEYWORD.PPU_ELEMENTS))) {
+    return FILE_TYPE.SKU_LIST;
+  }
+
+  if (
+    headers.find(
+      (item) =>
+        item.includes(FILE_CHECK_KEYWORD.SHIPMENT_ID) &&
+        item.includes(FILE_CHECK_KEYWORD.SHIPMENT)
+    )
+  ) {
+    return FILE_TYPE.SHIPMENT;
+  }
+
+  return FILE_TYPE.ORDER1;
 };

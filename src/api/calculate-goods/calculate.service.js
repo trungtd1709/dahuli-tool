@@ -13,14 +13,22 @@ import {
   transformCartonFeeInput,
   transformOrderList1Input,
   transformPrinttingFeeInput,
-  transformProductListInput,
+  transformSkuListInput,
   transformShipmentListInput,
   transformShippingCostInput,
 } from "../../helper/data-input-helper/index.js";
 import { refactorSkuListFunc } from "../../helper/data-output-helper/index.js";
-import { readAndTransformTsvFile } from "../../helper/tsv-helper/index.js";
-import { jsonToXlsx, xlsxToJSON } from "../../helper/xlsx-helper/index.js";
-import { inputKeyName, keyPreferences } from "../../shared/constant.js";
+import { getDataTsvFile } from "../../helper/tsv-helper/index.js";
+import {
+  getFileType,
+  jsonToXlsx,
+  xlsxToJSON,
+} from "../../helper/xlsx-helper/index.js";
+import {
+  FILE_TYPE,
+  inputKeyName,
+  keyPreferences,
+} from "../../shared/constant.js";
 import { isEmptyValue, mergeArrays } from "../../shared/utils.js";
 import {
   MISSING_SHIPMENT,
@@ -29,148 +37,102 @@ import {
   MISSING_TSV_FILE,
 } from "../../shared/err-const.js";
 
-export const calculateGood = async (files = {}) => {
-  let {
-    order1File,
-    printtingFeeFile,
-    packingCostFile,
-    shippingFile,
-    skuListFile,
-    tsvFile,
-    allShipmentFile,
-  } = files;
-  tsvFile = tsvFile ? tsvFile[0] : null;
-  order1File = order1File ? order1File[0] : null;
-  printtingFeeFile = printtingFeeFile ? printtingFeeFile[0] : null;
-  packingCostFile = packingCostFile ? packingCostFile[0] : null;
-  shippingFile = shippingFile ? shippingFile[0] : null;
-  skuListFile = skuListFile ? skuListFile[0] : null;
-  allShipmentFile = allShipmentFile ? allShipmentFile[0] : null;
+/**
+ * @param {Array.<Express.Multer.File>} files - An array of Multer file objects.
+ * @returns {Promise<void>}
+ */
+export const calculateGood = async (files = []) => {
+  let inputTsvData = [];
+  let inputShippingCost = [];
+  let inputPrinttingFee = [];
+  let skuList = [];
+  let elementsPrice = [];
+
+  let shipmentId;
 
   try {
-    if (isEmptyValue(tsvFile)) {
-      throw new BadRequestError(MISSING_TSV_FILE);
-    }
+    files = files.map((file) => {
+      const fileType = getFileType(file);
+      return { ...file, fileType };
+    });
 
-    let inputTsvData = [];
-    inputTsvData = await readAndTransformTsvFile({
+    const tsvFile = files.find((file) => file.fileType == FILE_TYPE.TSV);
+    inputTsvData = await getDataTsvFile({
       file: tsvFile,
     });
-    const shipmentId = inputTsvData[0].shipmentId;
+    shipmentId = inputTsvData[0].shipmentId;
 
-    if (!shipmentId) {
-      throw new BadRequestError(MISSING_SHIPMENT_ID);
+    for await (const file of files) {
+      const fileType = getFileType(file);
+
+      switch (fileType) {
+        case FILE_TYPE.SHIPPING: {
+          const inputFileShippingCost = transformShippingCostInput(
+            xlsxToJSON({
+              file: file,
+              paymentCostKeyName: inputKeyName.totalUsd,
+              exchangeRateKeyName: inputKeyName.totalUsd,
+              isShippingCost: true,
+            }),
+            shipmentId
+          );
+          inputShippingCost = [...inputShippingCost, ...inputFileShippingCost];
+          break;
+        }
+
+        case FILE_TYPE.SKU_LIST: {
+          skuList = transformSkuListInput(xlsxToJSON({ file: file }));
+          break;
+        }
+
+        case FILE_TYPE.ORDER1: {
+          // const test = xlsxToJSON({
+          //   file: file,
+          //   exchangeRateKeyName: inputKeyName.totalUsd,
+          // });
+          const order1Input = transformOrderList1Input(
+            xlsxToJSON({
+              file: file,
+              exchangeRateKeyName: inputKeyName.totalUsd,
+            }),
+            shipmentId
+          );
+          const {
+            elementsPriceArr = [],
+            domesticShippingCostArr = [],
+            internationalShippingCostArr = [],
+            packingLabelingCostArr = [],
+            inputPrinttingFeeArr = [],
+          } = order1Input;
+          elementsPrice = [...elementsPriceArr, ...elementsPrice, ...packingLabelingCostArr];
+          inputShippingCost = [
+            ...inputShippingCost,
+            ...domesticShippingCostArr,
+            ...internationalShippingCostArr,
+          ];
+          break;
+        }
+
+        default:
+      }
     }
-    let shipmentData = [];
 
-    if (!isEmptyValue(allShipmentFile)) {
-      shipmentData = transformShipmentListInput(
-        xlsxToJSON({ file: allShipmentFile })
-      );
-    }
-
-    const shipmentObj = shipmentData.find(
-      (item) => item?.shipmentId == shipmentId
+    skuList = mergeArrays(inputTsvData, skuList, inputKeyName.sku).filter(
+      (item) => !_.isEmpty(item?.elements)
     );
 
-    if (isEmptyValue(shipmentObj)) {
-      throw new BadRequestError(MISSING_SHIPMENT);
-    }
+    skuList.map((item) => {
+      return { ...item, shipmentId };
+    });
 
-    const { shipment } = shipmentObj;
-
-    if (isEmptyValue(skuListFile)) {
-      throw new BadRequestError(MISSING_SKU_LIST_FILE);
-    }
-    const inputProductList = transformProductListInput(
-      xlsxToJSON({ file: skuListFile })
-    );
-
-    let order1 = {};
-    if (order1File) {
-      order1 = transformOrderList1Input(
-        xlsxToJSON({
-          file: order1File,
-          exchangeRateKeyName: inputKeyName.totalUsd,
-        }),
-        shipmentId
-      );
-    }
-
-    const {
-      elementsPrice = [],
-      domesticShippingCostObj,
-      internationalShippingCostObj,
-      packingLabelingCost,
-    } = order1;
-
-    let inputPrinttingFee = [];
-    if (printtingFeeFile) {
-      inputPrinttingFee = transformPrinttingFeeInput(
-        xlsxToJSON({
-          file: printtingFeeFile,
-          exchangeRateKeyName: inputKeyName.totalUsd,
-        })
-      );
-    }
-
-    let inputShippingCost = [];
-    if (shippingFile) {
-      inputShippingCost = transformShippingCostInput(
-        xlsxToJSON({
-          file: shippingFile,
-          paymentCostKeyName: inputKeyName.totalUsd,
-          exchangeRateKeyName: inputKeyName.totalUsd,
-          isShippingCost: true,
-        }),
-        shipmentId
-      );
-    }
-
-    if (!isEmptyValue(domesticShippingCostObj)) {
-      inputShippingCost.push(domesticShippingCostObj);
-    }
-
-    if (!isEmptyValue(internationalShippingCostObj)) {
-      inputShippingCost.push(internationalShippingCostObj);
-    }
-
-    let skuList = mergeArrays(
-      inputTsvData,
-      inputProductList,
-      inputKeyName.sku
-    ).filter((item) => !_.isEmpty(item.elements));
-
-    let inputPackingCost = [];
-    if (packingCostFile) {
-      inputPackingCost = transformCartonFeeInput(
-        xlsxToJSON({
-          file: packingCostFile,
-          exchangeRateKeyName: inputKeyName.totalUsd,
-        })
-      );
-    }
-
-    const elementsPriceAndPrinttingFee = [
+    const elementsPriceAndPrinttingPackingFee = [
       ...elementsPrice,
       ...inputPrinttingFee,
     ];
 
-    if (packingLabelingCost) {
-      skuList = skuList.map((item) => {
-        return { ...item, packingLabelingCost };
-      });
-    }
-
-    if (shipment) {
-      skuList = skuList.map((item) => {
-        return { ...item };
-      });
-    }
-
-    skuList = calculatePpuPrice(skuList, elementsPriceAndPrinttingFee);
-    skuList = addCustomizeCost(skuList, elementsPriceAndPrinttingFee);
-    skuList = addPackingCost(skuList, inputPackingCost);
+    skuList = calculatePpuPrice(skuList, elementsPriceAndPrinttingPackingFee);
+    skuList = addCustomizeCost(skuList, elementsPriceAndPrinttingPackingFee);
+    skuList = addPackingCost(skuList, elementsPriceAndPrinttingPackingFee);
     skuList = addShippingAndPaymentCost(skuList, inputShippingCost);
     skuList = addCogsAndAmount(skuList);
     skuList = addTotalAmountAndQuantity(skuList);
@@ -178,7 +140,71 @@ export const calculateGood = async (files = {}) => {
 
     const refactorSkuList = refactorSkuListFunc(skuList);
     const xlsxBuffer = await jsonToXlsx({ json: refactorSkuList });
-    return { xlsxBuffer, shipment, shipmentId };
+    return xlsxBuffer;
+
+    // let shipmentData = [];
+
+    // if (!isEmptyValue(allShipmentFile)) {
+    //   shipmentData = transformShipmentListInput(
+    //     xlsxToJSON({ file: allShipmentFile })
+    //   );
+    // }
+
+    // const shipmentObj = shipmentData.find(
+    //   (item) => item?.shipmentId == shipmentId
+    // );
+
+    // if (isEmptyValue(shipmentObj)) {
+    //   throw new BadRequestError(MISSING_SHIPMENT);
+    // }
+
+    // const { shipment } = shipmentObj;
+
+    // if (isEmptyValue(skuListFile)) {
+    //   throw new BadRequestError(MISSING_SKU_LIST_FILE);
+    // }
+
+    // let inputPrinttingFee = [];
+    // if (printtingFeeFile) {
+    //   inputPrinttingFee = transformPrinttingFeeInput(
+    //     xlsxToJSON({
+    //       file: printtingFeeFile,
+    //       exchangeRateKeyName: inputKeyName.totalUsd,
+    //     })
+    //   );
+    // }
+
+    // let skuList = mergeArrays(
+    //   inputTsvData,
+    //   inputProductList,
+    //   inputKeyName.sku
+    // ).filter((item) => !_.isEmpty(item.elements));
+
+    // let inputPackingCost = [];
+    // if (packingCostFile) {
+    //   inputPackingCost = transformCartonFeeInput(
+    //     xlsxToJSON({
+    //       file: packingCostFile,
+    //       exchangeRateKeyName: inputKeyName.totalUsd,
+    //     })
+    //   );
+    // }
+
+    // if (packingLabelingCost) {
+    //   skuList = skuList.map((item) => {
+    //     return { ...item, packingLabelingCost };
+    //   });
+    // }
+
+    // if (shipment) {
+    //   skuList = skuList.map((item) => {
+    //     return { ...item };
+    //   });
+    // }
+
+    // const refactorSkuList = refactorSkuListFunc(skuList);
+    // const xlsxBuffer = await jsonToXlsx({ json: refactorSkuList });
+    // return { xlsxBuffer, shipment, shipmentId };
   } catch (err) {
     console.log(err);
     throw new BadRequestError(err.message);
@@ -191,3 +217,7 @@ const removeSkuKey = (skuList = []) => {
   skuList = removeObjKey(skuList, "customizePackage");
   return skuList;
 };
+
+// const filterSku = (skuList = []) => {
+//   return skuList.filter(item => item?.)
+// }

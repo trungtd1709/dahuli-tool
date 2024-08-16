@@ -13,12 +13,13 @@ import {
  * @returns {Array} The array of objects with their total price.
  */
 export const calculatePpuPrice = (skuList, goodsPrice) => {
-  const exchangeRate = goodsPrice[0].exchangeRate;
+  // const exchangeRate = goodsPrice[0].exchangeRate;
   return skuList.map((good) => {
     let ppuPrice = good.elements.reduce((acc, element) => {
       const priceObj = goodsPrice.find(
         (p) => p.name.toLowerCase() === element.name.toLowerCase()
       );
+      const exchangeRate = priceObj?.exchangeRate;
       const cnyPrice = priceObj ? priceObj.price : 0;
       const usdPrice = `${cnyPrice} / ${exchangeRate}`;
       const quantity = parseInt(element.quantity) || 1;
@@ -45,7 +46,9 @@ export const calculatePpuPrice = (skuList, goodsPrice) => {
     const isSameExchangeRate = goodsPrice.every(
       (item) => item?.exchangeRate == goodsPrice[0]?.exchangeRate
     );
+
     if (isSameExchangeRate) {
+      const exchangeRate = goodsPrice[0]?.exchangeRate;
       ppuPrice = `${removeValueAndSplash(
         ppuPrice,
         exchangeRate
@@ -62,12 +65,21 @@ export const calculatePpuPrice = (skuList, goodsPrice) => {
  * @param {Array} cartonFee - The array of element prices.
  * @returns {Array} The array of objects with their total price.
  */
-export const addPackingCost = (skuList, cartonFee) => {
+export const addPackingCost = (skuList, elementsPrice) => {
+  // trong order1 neu co packingLabelingCost thì đã có trong key packingLabelingCost
+  // tìm trong elementsPrice còn packing fee ko
   return skuList.map((item) => {
-    const packing = item?.packing;
-    const packingObj = cartonFee.find((item) => item.name == packing);
-    if (!_.isEmpty(packingObj)) {
-      return { ...item, packingLabelingCost: packingObj.price };
+    const packing = item?.packing?.toLowerCase();
+    const packingObj =
+      elementsPrice.find((item) => item.name?.toLowerCase() == packing) ?? {};
+
+    let { exchangeRate, price } = packingObj;
+    if (exchangeRate && price) {
+      price = `${price} / ${exchangeRate}`;
+    }
+
+    if (!_.isEmpty(price)) {
+      return { ...item, packingLabelingCost: price };
     }
     return item;
   });
