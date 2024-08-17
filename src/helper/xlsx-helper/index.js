@@ -18,9 +18,6 @@ import { isEmptyValue } from "../../shared/utils.js";
 import { BadRequestError } from "../../error/bad-request-err.js";
 // import { fileURLToPath } from "url";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
 
 /**
@@ -36,7 +33,7 @@ export const xlsxToJSON = ({
   isShippingCost = false, // check xem có phải file order 4 (shipping cost) ko
 }) => {
   try {
-    console.log(`[CONVERTING ${file.originalName}`);
+    console.log(`[CONVERTING ${file.originalname}`);
     const workbook = XLSX.read(file.buffer, { type: "buffer" });
 
     const sheetName = workbook.SheetNames[sheetIndex];
@@ -68,7 +65,7 @@ export const xlsxToJSON = ({
 
     return jsonData;
   } catch (err) {
-    throw new BadRequestError(`[Err when convert ${file.name}]: `, err);
+    throw new BadRequestError(`[Err when convert ${file.originalname}]: `, err);
   }
 };
 
@@ -201,41 +198,56 @@ const getShippingCostFormulas = (
     return;
   }
   const range = XLSX.utils.decode_range(worksheet["!ref"]);
-  let columnIndex = -1;
+  let priceColIndex = -1,
+    weightColIndex = -1,
+    totalCnyColIndex = -1;
   for (let C = range.s.c; C <= range.e.c; ++C) {
     const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
     const cell = worksheet[cellAddress];
-    if (cell && cell.v === shippingCostKeyName) {
-      columnIndex = C;
-      break;
+    if (cell?.v === shippingCostKeyName) {
+      priceColIndex = C;
+      // break;
+    }
+    if (cell?.v?.toLowerCase()?.includes(FILE_CHECK_KEYWORD.WEIGHT)) {
+      weightColIndex = C;
+      // break;
+    }
+    if (cell?.v?.toLowerCase()?.includes(FILE_CHECK_KEYWORD.TOTAL_CNY)) {
+      totalCnyColIndex = C;
+      // break;
     }
   }
 
-  if (columnIndex === -1) {
+  if (priceColIndex === -1) {
     console.error(
       `Key name '${shippingCostKeyName}' not found in the first row.`
     );
   }
 
-  if (columnIndex >= 0) {
+  if (priceColIndex >= 0) {
     for (let rowIndex = range.s.r + 1; rowIndex <= range.e.r; ++rowIndex) {
       if (isEmptyValue(jsonData[rowIndex - 1])) {
         return;
       }
+      const exchangeRate = jsonData[rowIndex - 1]?.exchangeRate;
+
       // Start from the second row
       const cellAddress = XLSX.utils.encode_cell({
         r: rowIndex,
-        c: columnIndex,
+        c: priceColIndex,
       });
       const cell = worksheet[cellAddress];
 
-      let formula = cell?.v ?? "";
-      if (cell && cell.f) {
-        formula = cell.f;
+      let priceFormula = cell?.v ?? "";
+      if (cell?.v) {
+        priceFormula = cell.v;
+      }
+      if (cell?.f) {
+        priceFormula = cell.f;
         const cellReferenceRegex = /^[A-Z]+\d+\/[A-Z]+\d+$/;
-        if (cellReferenceRegex.test(formula)) {
+        if (cellReferenceRegex.test(priceFormula)) {
           // Split the formula into the two cell references
-          const cellReferences = formula.split("/");
+          const cellReferences = priceFormula.split("/");
           const firstCell = cellReferences[0];
           const secondCell = cellReferences[1];
 
@@ -244,21 +256,35 @@ const getShippingCostFormulas = (
           // Get the value of the second cell
           const secondCellValue = worksheet[secondCell].v;
 
-          formula = `${firstCellValue} / ${secondCellValue}`;
+          priceFormula = `${firstCellValue} / ${secondCellValue}`;
           // console.log("Converted formula:", formula);
-        } else {
-          // console.log("[Shipping formula]: ", formula);
         }
-
         // formulas.push(evalCalculation(formula));
       }
+      if (isEmptyValue(cell?.f) && isEmptyValue(cell?.v)) {
+        const weightCellAddress = XLSX.utils.encode_cell({
+          r: rowIndex,
+          c: weightColIndex,
+        });
+        const totalCnyCellAddress = XLSX.utils.encode_cell({
+          r: rowIndex,
+          c: totalCnyColIndex,
+        });
+
+        const weightCell = worksheet[weightCellAddress];
+        const totalCnyCell = worksheet[totalCnyCellAddress];
+
+        const weight = weightCell?.v;
+        const totalCny = totalCnyCell?.f ?? totalCnyCell?.v;
+        priceFormula = `${totalCny} / ${weight} / ${exchangeRate}`;
+      }
+
       if (cell?.w?.includes(cashSymbolConst.yuan)) {
-        const exchangeRate = jsonData[rowIndex - 1]?.exchangeRate;
         if (exchangeRate) {
-          formula = `${formula} / ${exchangeRate}`;
+          priceFormula = `${priceFormula} / ${exchangeRate}`;
         }
       }
-      jsonData[rowIndex - 1].shippingFormula = formula;
+      jsonData[rowIndex - 1].shippingFormula = priceFormula;
     }
   }
 };
@@ -348,7 +374,8 @@ const addFormulaToWorksheet = ({
       ppu: item[OUTPUT_KEY_NAME.PPU],
       packingLabelingCost: item[OUTPUT_KEY_NAME.PACKING_LABELING_COST],
       domesticShippingCost: item[OUTPUT_KEY_NAME.DOMESTIC_SHIPPING_COST],
-      internationalShippingCost: item[OUTPUT_KEY_NAME.INTERNATIONAL_SHIPPING_COST],
+      internationalShippingCost:
+        item[OUTPUT_KEY_NAME.INTERNATIONAL_SHIPPING_COST],
       paymentCost: item[OUTPUT_KEY_NAME.PAYMENT_COST],
     };
 

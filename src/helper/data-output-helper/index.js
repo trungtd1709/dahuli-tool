@@ -1,4 +1,5 @@
 import { inputKeyName, OUTPUT_KEY_NAME } from "../../shared/constant.js";
+import { isEmptyValue } from "../../shared/utils.js";
 
 export const refactorSkuListFunc = (skuList) => {
   let refactorSkuList = skuList.map((item) => {
@@ -33,7 +34,9 @@ export const refactorSkuListFunc = (skuList) => {
       [OUTPUT_KEY_NAME.COGS]: cogs,
       [OUTPUT_KEY_NAME.TOTAL_UNIT]: totalQuantity,
       [OUTPUT_KEY_NAME.AMOUNT]: amount,
-      [OUTPUT_KEY_NAME.TOTAL_AMOUNT]: totalAmount,
+      [OUTPUT_KEY_NAME.TOTAL_AMOUNT]: isEmptyValue(totalAmount)
+        ? ""
+        : totalAmount,
     };
     return refactorObj;
   });

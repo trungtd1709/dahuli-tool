@@ -106,4 +106,5 @@ export const FILE_CHECK_KEYWORD = {
   SHIPMENT_ID: "shipment id",
   SHIPMENT: "shipment",
   PPU_ELEMENTS: "thành phần ppu",
+  TOTAL_CNY: "total cny",
 };
