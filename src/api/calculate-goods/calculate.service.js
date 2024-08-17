@@ -35,16 +35,8 @@ import { isEmptyValue, mergeArrays } from "../../shared/utils.js";
  * @returns {Promise<void>}
  */
 export const calculateGood = async (files = []) => {
-  let inputTsvData = [];
-  let inputShippingCost = [];
-  let inputPrinttingFee = [];
-  let skuList = [];
-  let elementsPrice = [];
-  let shipmentData = [];
-
-  let shipment, originalShipment, shipmentId;
-
   let mergeSkuList = [];
+  let totalShipmentQuantity = 0;
 
   try {
     files = files.map((file) => {
@@ -53,14 +45,23 @@ export const calculateGood = async (files = []) => {
     });
 
     const tsvFilesArr = files.filter((file) => file.fileType == FILE_TYPE.TSV);
+    if (isEmptyValue(tsvFilesArr)) {
+      throw new BadRequestError(MISSING_TSV_FILE);
+    }
+    for (const tsvFile of tsvFilesArr) {
+      const { shipmentQuantity } = await getDataTsvFile({ file: tsvFile });
+      totalShipmentQuantity += shipmentQuantity;
+    }
 
     for (const tsvFile of tsvFilesArr) {
-      // const tsvFile = files.find((file) => file.fileType == FILE_TYPE.TSV);
-      // if (!tsvFile) {
-      //   throw new BadRequestError(MISSING_TSV_FILE);
-      // }
+      let inputShippingCost = [];
+      let inputPrinttingFee = [];
+      let skuList = [];
+      let elementsPrice = [];
+      let shipmentData = [];
+      let shipment, originalShipment, shipmentId;
 
-      inputTsvData = await getDataTsvFile({
+      const { inputTsvData, shipmentQuantity } = await getDataTsvFile({
         file: tsvFile,
       });
       shipmentId = inputTsvData[0].shipmentId;
@@ -93,7 +94,8 @@ export const calculateGood = async (files = []) => {
                 isShippingCost: true,
               }),
               shipmentId,
-              shipment
+              shipment,
+              totalShipmentQuantity
             );
             inputShippingCost = [
               ...inputShippingCost,
@@ -158,11 +160,13 @@ export const calculateGood = async (files = []) => {
       skuList = addCogsAndAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
       skuList = removeSkuKey(skuList);
+
+      mergeSkuList = [...mergeSkuList, ...skuList];
     }
 
-    const refactorSkuList = refactorSkuListFunc(skuList);
+    const refactorSkuList = refactorSkuListFunc(mergeSkuList);
     const xlsxBuffer = await jsonToXlsx({ json: refactorSkuList });
-    return { xlsxBuffer, shipment, shipmentId };
+    // return { xlsxBuffer, shipment, shipmentId };
     return xlsxBuffer;
   } catch (err) {
     console.log(err);

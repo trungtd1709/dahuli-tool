@@ -1,7 +1,7 @@
 import { inputKeyName, OUTPUT_KEY_NAME } from "../../shared/constant.js";
 
 export const refactorSkuListFunc = (skuList) => {
-  return skuList.map((item) => {
+  let refactorSkuList = skuList.map((item) => {
     const {
       SKU,
       quantity,
@@ -37,4 +37,12 @@ export const refactorSkuListFunc = (skuList) => {
     };
     return refactorObj;
   });
+
+  refactorSkuList.sort((a, b) => {
+    if (a?.[OUTPUT_KEY_NAME.NOTE] < b?.[OUTPUT_KEY_NAME.NOTE]) return -1;
+    if (a?.[OUTPUT_KEY_NAME.NOTE] > b?.[OUTPUT_KEY_NAME.NOTE]) return 1;
+    return 0;
+  });
+
+  return refactorSkuList;
 };

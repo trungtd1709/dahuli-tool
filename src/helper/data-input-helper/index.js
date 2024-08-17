@@ -206,7 +206,8 @@ export const transformCartonFeeInput = (rawJson = []) => {
 export const transformShippingCostInput = (
   shippingArr = [],
   shipmentId,
-  shipment
+  shipment,
+  totalShipmentQuantity
 ) => {
   shippingArr = shippingArr.filter((item) => {
     return (
@@ -220,11 +221,21 @@ export const transformShippingCostInput = (
   });
 
   return shippingArr.map((item) => {
-    return transformShippingCostItem(item, shipmentId, shipment);
+    return transformShippingCostItem(
+      item,
+      shipmentId,
+      shipment,
+      totalShipmentQuantity
+    );
   });
 };
 
-const transformShippingCostItem = (obj, shipmentId, shipment) => {
+const transformShippingCostItem = (
+  obj,
+  shipmentId,
+  shipment,
+  totalShipmentQuantity
+) => {
   const {
     productName: name,
     weight,
@@ -242,6 +253,7 @@ const transformShippingCostItem = (obj, shipmentId, shipment) => {
     totalUsd,
     isDomestic,
     paymentCostDivisor,
+    totalShipmentQuantity
   };
 };
 

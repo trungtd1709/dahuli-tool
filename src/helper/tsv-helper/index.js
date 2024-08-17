@@ -14,7 +14,7 @@ export const getDataTsvFile = async ({ file }) => {
 
   try {
     // Read the file content
-    const data = file.buffer.toString('utf8');
+    const data = file.buffer.toString("utf8");
     // const data = await fs.readFile(filePath, "utf8");
 
     // Parse the TSV content using PapaParse
@@ -28,6 +28,7 @@ export const getDataTsvFile = async ({ file }) => {
     });
 
     const shipmentId = parsedData[0][1];
+    const shipmentQuantity = parseInt(parsedData[5][1]);
     const startIndex =
       findIndexByFirstElement({
         array: parsedData,
@@ -46,7 +47,7 @@ export const getDataTsvFile = async ({ file }) => {
 
     const itemList = filterItemArray(transformedData);
     console.log("[TSV --> JSON SUCCESS]");
-    return itemList;
+    return { inputTsvData: itemList, shipmentQuantity };
   } catch (err) {
     console.error("Error reading or parsing TSV file:", err);
     throw err;
