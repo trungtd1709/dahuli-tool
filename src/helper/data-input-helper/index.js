@@ -80,7 +80,11 @@ export const transformPrinttingFeeInput = (rawJson = []) => {
   return printtingFeeInput.filter((item) => item.price);
 };
 
-export const transformOrderList1Input = (rawJson = [], shipmentId) => {
+export const transformOrderList1Input = (
+  rawJson = [],
+  shipmentId,
+  shipment
+) => {
   rawJson.pop();
   // remove phần tử Total
 
@@ -199,9 +203,16 @@ export const transformCartonFeeInput = (rawJson = []) => {
   return cartonFeeInput.filter((item) => item.price);
 };
 
-export const transformShippingCostInput = (shippingArr = [], shipmentId) => {
+export const transformShippingCostInput = (
+  shippingArr = [],
+  shipmentId,
+  shipment
+) => {
   shippingArr = shippingArr.filter((item) => {
-    return item.productName.includes(shipmentId);
+    return (
+      item.productName.includes(shipmentId) ||
+      item.productName.includes(shipment)
+    );
   });
 
   shippingArr = shippingArr.filter((item) => {
@@ -209,11 +220,11 @@ export const transformShippingCostInput = (shippingArr = [], shipmentId) => {
   });
 
   return shippingArr.map((item) => {
-    return transformShippingCostItem(item, shipmentId);
+    return transformShippingCostItem(item, shipmentId, shipment);
   });
 };
 
-const transformShippingCostItem = (obj, shipmentId) => {
+const transformShippingCostItem = (obj, shipmentId, shipment) => {
   const {
     productName: name,
     weight,
@@ -227,6 +238,7 @@ const transformShippingCostItem = (obj, shipmentId) => {
 
   return {
     shipmentId,
+    shipment,
     totalUsd,
     isDomestic,
     paymentCostDivisor,

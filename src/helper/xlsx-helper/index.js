@@ -9,8 +9,8 @@ import {
   cashSymbolConst,
   inputKeyName,
   keyPreferences,
-  outputColAlphabet,
-  outputKeyname,
+  OUTPUT_COL_ALPHABET,
+  OUTPUT_KEY_NAME,
   outputNumDecimalFormat,
   sampleFolder,
 } from "../../shared/constant.js";
@@ -329,27 +329,27 @@ const addFormulaToWorksheet = ({
     const rowNumber = index + 2; // Starting from row 2, assuming row 1 has headers
 
     const cellAddresses = {
-      ppu: `${outputColAlphabet.ppu}${rowNumber}`,
-      customPackageCost: `${outputColAlphabet.customPackageCost}${rowNumber}`,
-      packingLabelingCost: `${outputColAlphabet.packingLabelingCost}${rowNumber}`,
-      domesticShippingCost: `${outputColAlphabet.domesticShippingCost}${rowNumber}`,
-      internationalShippingCost: `${outputColAlphabet.internationalShippingCost}${rowNumber}`,
-      paymentCost: `${outputColAlphabet.paymentCost}${rowNumber}`,
-      cogs: `${outputColAlphabet.cogs}${rowNumber}`,
-      amount: `${outputColAlphabet.amount}${rowNumber}`,
-      totalAmount: `${outputColAlphabet.totalAmount}${firstRowNum}`,
+      ppu: `${OUTPUT_COL_ALPHABET.PPU}${rowNumber}`,
+      customPackageCost: `${OUTPUT_COL_ALPHABET.CUSTOM_PACKAGE_COST}${rowNumber}`,
+      packingLabelingCost: `${OUTPUT_COL_ALPHABET.PACKING_LABELING_COST}${rowNumber}`,
+      domesticShippingCost: `${OUTPUT_COL_ALPHABET.DOMESTIC_SHIPPING_COST}${rowNumber}`,
+      internationalShippingCost: `${OUTPUT_COL_ALPHABET.INTERNATIONAL_SHIPPING_COST}${rowNumber}`,
+      paymentCost: `${OUTPUT_COL_ALPHABET.PAYMENT_COST}${rowNumber}`,
+      cogs: `${OUTPUT_COL_ALPHABET.COGS}${rowNumber}`,
+      amount: `${OUTPUT_COL_ALPHABET.AMOUNT}${rowNumber}`,
+      totalAmount: `${OUTPUT_COL_ALPHABET.TOTAL_AMOUNT}${firstRowNum}`,
     };
 
     const formulas = {
-      cogs: `SUM(${outputColAlphabet.ppu}${rowNumber}:${outputColAlphabet.paymentCost}${rowNumber})`,
-      amount: `${outputColAlphabet.cogs}${rowNumber} * ${outputColAlphabet.quantity}${rowNumber}`,
-      totalAmount: `SUM(${outputColAlphabet.amount}${firstRowNum}:${outputColAlphabet.amount}${lastRowNum})`,
-      customPackageCost: item[outputKeyname.customPackageCost],
-      ppu: item[outputKeyname.ppu],
-      packingLabelingCost: item[outputKeyname.packingLabelingCost],
-      domesticShippingCost: item[outputKeyname.domesticShippingCost],
-      internationalShippingCost: item[outputKeyname.internationalShippingCost],
-      paymentCost: item[outputKeyname.paymentCost],
+      cogs: `SUM(${OUTPUT_COL_ALPHABET.PPU}${rowNumber}:${OUTPUT_COL_ALPHABET.PAYMENT_COST}${rowNumber})`,
+      amount: `${OUTPUT_COL_ALPHABET.COGS}${rowNumber} * ${OUTPUT_COL_ALPHABET.QUANTITY}${rowNumber}`,
+      totalAmount: `SUM(${OUTPUT_COL_ALPHABET.AMOUNT}${firstRowNum}:${OUTPUT_COL_ALPHABET.AMOUNT}${lastRowNum})`,
+      customPackageCost: item[OUTPUT_KEY_NAME.CUSTOM_PACKAGE_COST],
+      ppu: item[OUTPUT_KEY_NAME.PPU],
+      packingLabelingCost: item[OUTPUT_KEY_NAME.PACKING_LABELING_COST],
+      domesticShippingCost: item[OUTPUT_KEY_NAME.DOMESTIC_SHIPPING_COST],
+      internationalShippingCost: item[OUTPUT_KEY_NAME.INTERNATIONAL_SHIPPING_COST],
+      paymentCost: item[OUTPUT_KEY_NAME.PAYMENT_COST],
     };
 
     // Apply formulas to the worksheet
@@ -364,19 +364,19 @@ const addFormulaToWorksheet = ({
  */
 const addNumberFormatToWorksheet = (worksheet) => {
   const columnsToFormat = {
-    ppu: "4digits",
-    customPackageCost: "4digits",
-    packingLabelingCost: "4digits",
-    domesticShippingCost: "4digits",
-    internationalShippingCost: "4digits",
-    paymentCost: "4digits",
-    cogs: "4digits",
-    amount: "2digits",
-    totalAmount: "2digits",
+    PPU: "4digits",
+    CUSTOM_PACKAGE_COST: "4digits",
+    PACKING_LABELING_COST: "4digits",
+    DOMESTIC_SHIPPING_COST: "4digits",
+    INTERNATIONAL_SHIPPING_COST: "4digits",
+    PAYMENT_COST: "4digits",
+    COGS: "4digits",
+    AMOUNT: "2digits",
+    TOTAL_AMOUNT: "2digits",
   };
 
   Object.entries(columnsToFormat).forEach(([key, format]) => {
-    worksheet.getColumn(outputColAlphabet[key]).numFmt =
+    worksheet.getColumn(OUTPUT_COL_ALPHABET[key]).numFmt =
       outputNumDecimalFormat[format];
   });
 };
@@ -458,7 +458,10 @@ export const getFileType = (file) => {
     headers.push(header);
   }
 
-  if (headers.find((item) => item.includes(FILE_CHECK_KEYWORD.WEIGHT))) {
+  if (
+    headers.find((item) => item.includes(FILE_CHECK_KEYWORD.WEIGHT)) &&
+    headers.find((item) => item.includes(FILE_CHECK_KEYWORD.PRICE))
+  ) {
     return FILE_TYPE.SHIPPING;
   }
 
@@ -467,11 +470,8 @@ export const getFileType = (file) => {
   }
 
   if (
-    headers.find(
-      (item) =>
-        item.includes(FILE_CHECK_KEYWORD.SHIPMENT_ID) &&
-        item.includes(FILE_CHECK_KEYWORD.SHIPMENT)
-    )
+    headers.find((item) => item.includes(FILE_CHECK_KEYWORD.SHIPMENT_ID)) &&
+    headers.find((item) => item.includes(FILE_CHECK_KEYWORD.SHIPMENT))
   ) {
     return FILE_TYPE.SHIPMENT;
   }

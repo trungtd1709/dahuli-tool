@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { inputKeyName, outputColAlphabet } from "../../shared/constant.js";
+import { inputKeyName, OUTPUT_COL_ALPHABET } from "../../shared/constant.js";
 import {
   evalCalculation,
   isEmptyValue,
@@ -124,7 +124,7 @@ export const addShippingAndPaymentCost = (
   skuList = [],
   shippingCostArr = []
 ) => {
-  const shipmentId = skuList[0].shipmentId;
+  const {shipment, shipmentId} = skuList[0];
 
   const domesticShippingCostObj = shippingCostArr.find(
     ({ shipmentId: id, isDomestic }) => id === shipmentId && isDomestic
@@ -137,7 +137,7 @@ export const addShippingAndPaymentCost = (
   const shipmentInternationalCost = internationalShippingCostObj?.totalUsd ?? 0;
 
   const dataFirstRow = 2; // trong excel row đầu tiên index = 2
-  const totalUnitCell = `${outputColAlphabet.totalUnit}${dataFirstRow}`;
+  const totalUnitCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${dataFirstRow}`;
 
   const itemDomesticShippingCostFormula = domesticShippingCostObj
     ? `${shipmentDomesticCost} / ${totalUnitCell}`
@@ -154,8 +154,8 @@ export const addShippingAndPaymentCost = (
   return skuList.map((item, index) => {
     // first row trong excel phải + 2
     const rowIndex = index + 2;
-    const domesticShippingCostCell = `${outputColAlphabet.domesticShippingCost}${rowIndex}`;
-    const internationalShippingCostCell = `${outputColAlphabet.internationalShippingCost}${rowIndex}`;
+    const domesticShippingCostCell = `${OUTPUT_COL_ALPHABET.DOMESTIC_SHIPPING_COST}${rowIndex}`;
+    const internationalShippingCostCell = `${OUTPUT_COL_ALPHABET.INTERNATIONAL_SHIPPING_COST}${rowIndex}`;
 
     const itemPaymentCostFormula = isEmptyValue(paymentCostDivisor)
       ? ""

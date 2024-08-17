@@ -47,7 +47,9 @@ export const calculateGood = async (files = []) => {
   let inputPrinttingFee = [];
   let skuList = [];
   let elementsPrice = [];
+  let shipmentData = [];
 
+  let shipment;
   let shipmentId;
 
   try {
@@ -57,10 +59,28 @@ export const calculateGood = async (files = []) => {
     });
 
     const tsvFile = files.find((file) => file.fileType == FILE_TYPE.TSV);
+    if (!tsvFile) {
+      throw new BadRequestError(MISSING_TSV_FILE);
+    }
+
     inputTsvData = await getDataTsvFile({
       file: tsvFile,
     });
     shipmentId = inputTsvData[0].shipmentId;
+
+    const shipmentFile = files.find(
+      (file) => file.fileType == FILE_TYPE.SHIPMENT
+    );
+
+    if (!isEmptyValue(shipmentFile)) {
+      shipmentData = transformShipmentListInput(
+        xlsxToJSON({ file: shipmentFile })
+      );
+      const shipmentObj = shipmentData.find(
+        (item) => item?.shipmentId == shipmentId
+      );
+      shipment = shipmentObj?.shipment;
+    }
 
     for await (const file of files) {
       const fileType = getFileType(file);
@@ -74,7 +94,7 @@ export const calculateGood = async (files = []) => {
               exchangeRateKeyName: inputKeyName.totalUsd,
               isShippingCost: true,
             }),
-            shipmentId
+            shipmentId,
           );
           inputShippingCost = [...inputShippingCost, ...inputFileShippingCost];
           break;
@@ -86,16 +106,12 @@ export const calculateGood = async (files = []) => {
         }
 
         case FILE_TYPE.ORDER1: {
-          // const test = xlsxToJSON({
-          //   file: file,
-          //   exchangeRateKeyName: inputKeyName.totalUsd,
-          // });
           const order1Input = transformOrderList1Input(
             xlsxToJSON({
               file: file,
               exchangeRateKeyName: inputKeyName.totalUsd,
             }),
-            shipmentId
+            shipmentId,
           );
           const {
             elementsPriceArr = [],
@@ -104,7 +120,11 @@ export const calculateGood = async (files = []) => {
             packingLabelingCostArr = [],
             inputPrinttingFeeArr = [],
           } = order1Input;
-          elementsPrice = [...elementsPriceArr, ...elementsPrice, ...packingLabelingCostArr];
+          elementsPrice = [
+            ...elementsPriceArr,
+            ...elementsPrice,
+            ...packingLabelingCostArr,
+          ];
           inputShippingCost = [
             ...inputShippingCost,
             ...domesticShippingCostArr,
@@ -112,6 +132,17 @@ export const calculateGood = async (files = []) => {
           ];
           break;
         }
+
+        // case FILE_TYPE.SHIPMENT: {
+        //   shipmentData = transformShipmentListInput(
+        //     xlsxToJSON({ file: allShipmentFile })
+        //   );
+        //   const shipmentObj = shipmentData.find(
+        //     (item) => item?.shipmentId == shipmentId
+        //   );
+        //   shipment = shipmentObj?.shipment;
+        //   break;
+        // }
 
         default:
       }
@@ -121,8 +152,8 @@ export const calculateGood = async (files = []) => {
       (item) => !_.isEmpty(item?.elements)
     );
 
-    skuList.map((item) => {
-      return { ...item, shipmentId };
+    skuList = skuList.map((item) => {
+      return { ...item, shipmentId, shipment };
     });
 
     const elementsPriceAndPrinttingPackingFee = [
@@ -140,71 +171,8 @@ export const calculateGood = async (files = []) => {
 
     const refactorSkuList = refactorSkuListFunc(skuList);
     const xlsxBuffer = await jsonToXlsx({ json: refactorSkuList });
+    return { xlsxBuffer, shipment, shipmentId };
     return xlsxBuffer;
-
-    // let shipmentData = [];
-
-    // if (!isEmptyValue(allShipmentFile)) {
-    //   shipmentData = transformShipmentListInput(
-    //     xlsxToJSON({ file: allShipmentFile })
-    //   );
-    // }
-
-    // const shipmentObj = shipmentData.find(
-    //   (item) => item?.shipmentId == shipmentId
-    // );
-
-    // if (isEmptyValue(shipmentObj)) {
-    //   throw new BadRequestError(MISSING_SHIPMENT);
-    // }
-
-    // const { shipment } = shipmentObj;
-
-    // if (isEmptyValue(skuListFile)) {
-    //   throw new BadRequestError(MISSING_SKU_LIST_FILE);
-    // }
-
-    // let inputPrinttingFee = [];
-    // if (printtingFeeFile) {
-    //   inputPrinttingFee = transformPrinttingFeeInput(
-    //     xlsxToJSON({
-    //       file: printtingFeeFile,
-    //       exchangeRateKeyName: inputKeyName.totalUsd,
-    //     })
-    //   );
-    // }
-
-    // let skuList = mergeArrays(
-    //   inputTsvData,
-    //   inputProductList,
-    //   inputKeyName.sku
-    // ).filter((item) => !_.isEmpty(item.elements));
-
-    // let inputPackingCost = [];
-    // if (packingCostFile) {
-    //   inputPackingCost = transformCartonFeeInput(
-    //     xlsxToJSON({
-    //       file: packingCostFile,
-    //       exchangeRateKeyName: inputKeyName.totalUsd,
-    //     })
-    //   );
-    // }
-
-    // if (packingLabelingCost) {
-    //   skuList = skuList.map((item) => {
-    //     return { ...item, packingLabelingCost };
-    //   });
-    // }
-
-    // if (shipment) {
-    //   skuList = skuList.map((item) => {
-    //     return { ...item };
-    //   });
-    // }
-
-    // const refactorSkuList = refactorSkuListFunc(skuList);
-    // const xlsxBuffer = await jsonToXlsx({ json: refactorSkuList });
-    // return { xlsxBuffer, shipment, shipmentId };
   } catch (err) {
     console.log(err);
     throw new BadRequestError(err.message);
