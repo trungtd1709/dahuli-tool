@@ -258,18 +258,21 @@ export const transformShipmentListInput = (rawJson) => {
 
 const transformShipmentItem = (obj) => {
   let {
-    [inputKeyName.shipment]: shipment,
+    [inputKeyName.shipment]: originalShipment,
     [inputKeyName.shipmentId]: shipmentId,
   } = obj;
 
-  if (!isEmptyValue(shipment)) {
+  let shipment = originalShipment;
+
+  if (!isEmptyValue(originalShipment)) {
     shipment = removeStringAfter(shipment, "-");
     shipment = removeStringAfter(shipment, ".");
     shipment = removeSpaces(shipment);
   }
 
   return {
-    shipment,
+    originalShipment: originalShipment,
+    shipment: shipment,
     shipmentId,
   };
 };

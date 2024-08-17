@@ -16,14 +16,14 @@ export const refactorSkuListFunc = (skuList) => {
       amount,
       totalAmount,
       totalQuantity,
-      shipment,
+      originalShipment,
     } = item;
 
     const refactorObj = {
       [OUTPUT_KEY_NAME.SKU]: SKU,
       [OUTPUT_KEY_NAME.SHIPMENT_ID]: shipmentId,
       [OUTPUT_KEY_NAME.QUANTITY]: quantity,
-      [OUTPUT_KEY_NAME.NOTE]: shipment,
+      [OUTPUT_KEY_NAME.NOTE]: originalShipment,
       [OUTPUT_KEY_NAME.PPU]: ppuPrice,
       [OUTPUT_KEY_NAME.CUSTOM_PACKAGE_COST]: customPackageCost,
       [OUTPUT_KEY_NAME.PACKING_LABELING_COST]: packingLabelingCost,

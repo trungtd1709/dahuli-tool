@@ -10,12 +10,10 @@ import {
   removeObjKey,
 } from "../../helper/calculate-helper/index.js";
 import {
-  transformCartonFeeInput,
   transformOrderList1Input,
-  transformPrinttingFeeInput,
-  transformSkuListInput,
   transformShipmentListInput,
   transformShippingCostInput,
+  transformSkuListInput,
 } from "../../helper/data-input-helper/index.js";
 import { refactorSkuListFunc } from "../../helper/data-output-helper/index.js";
 import { getDataTsvFile } from "../../helper/tsv-helper/index.js";
@@ -29,13 +27,8 @@ import {
   inputKeyName,
   keyPreferences,
 } from "../../shared/constant.js";
+import { MISSING_TSV_FILE } from "../../shared/err-const.js";
 import { isEmptyValue, mergeArrays } from "../../shared/utils.js";
-import {
-  MISSING_SHIPMENT,
-  MISSING_SHIPMENT_ID,
-  MISSING_SKU_LIST_FILE,
-  MISSING_TSV_FILE,
-} from "../../shared/err-const.js";
 
 /**
  * @param {Array.<Express.Multer.File>} files - An array of Multer file objects.
@@ -49,8 +42,9 @@ export const calculateGood = async (files = []) => {
   let elementsPrice = [];
   let shipmentData = [];
 
-  let shipment;
-  let shipmentId;
+  let shipment, originalShipment, shipmentId;
+
+  let mergeSkuList = [];
 
   try {
     files = files.map((file) => {
@@ -58,116 +52,113 @@ export const calculateGood = async (files = []) => {
       return { ...file, fileType };
     });
 
-    const tsvFile = files.find((file) => file.fileType == FILE_TYPE.TSV);
-    if (!tsvFile) {
-      throw new BadRequestError(MISSING_TSV_FILE);
-    }
+    const tsvFilesArr = files.filter((file) => file.fileType == FILE_TYPE.TSV);
 
-    inputTsvData = await getDataTsvFile({
-      file: tsvFile,
-    });
-    shipmentId = inputTsvData[0].shipmentId;
+    for (const tsvFile of tsvFilesArr) {
+      // const tsvFile = files.find((file) => file.fileType == FILE_TYPE.TSV);
+      // if (!tsvFile) {
+      //   throw new BadRequestError(MISSING_TSV_FILE);
+      // }
 
-    const shipmentFile = files.find(
-      (file) => file.fileType == FILE_TYPE.SHIPMENT
-    );
+      inputTsvData = await getDataTsvFile({
+        file: tsvFile,
+      });
+      shipmentId = inputTsvData[0].shipmentId;
 
-    if (!isEmptyValue(shipmentFile)) {
-      shipmentData = transformShipmentListInput(
-        xlsxToJSON({ file: shipmentFile })
+      const shipmentFile = files.find(
+        (file) => file.fileType == FILE_TYPE.SHIPMENT
       );
-      const shipmentObj = shipmentData.find(
-        (item) => item?.shipmentId == shipmentId
-      );
-      shipment = shipmentObj?.shipment;
-    }
 
-    for await (const file of files) {
-      const fileType = getFileType(file);
-
-      switch (fileType) {
-        case FILE_TYPE.SHIPPING: {
-          const inputFileShippingCost = transformShippingCostInput(
-            xlsxToJSON({
-              file: file,
-              paymentCostKeyName: inputKeyName.totalUsd,
-              exchangeRateKeyName: inputKeyName.totalUsd,
-              isShippingCost: true,
-            }),
-            shipmentId,
-          );
-          inputShippingCost = [...inputShippingCost, ...inputFileShippingCost];
-          break;
-        }
-
-        case FILE_TYPE.SKU_LIST: {
-          skuList = transformSkuListInput(xlsxToJSON({ file: file }));
-          break;
-        }
-
-        case FILE_TYPE.ORDER1: {
-          const order1Input = transformOrderList1Input(
-            xlsxToJSON({
-              file: file,
-              exchangeRateKeyName: inputKeyName.totalUsd,
-            }),
-            shipmentId,
-          );
-          const {
-            elementsPriceArr = [],
-            domesticShippingCostArr = [],
-            internationalShippingCostArr = [],
-            packingLabelingCostArr = [],
-            inputPrinttingFeeArr = [],
-          } = order1Input;
-          elementsPrice = [
-            ...elementsPriceArr,
-            ...elementsPrice,
-            ...packingLabelingCostArr,
-          ];
-          inputShippingCost = [
-            ...inputShippingCost,
-            ...domesticShippingCostArr,
-            ...internationalShippingCostArr,
-          ];
-          break;
-        }
-
-        // case FILE_TYPE.SHIPMENT: {
-        //   shipmentData = transformShipmentListInput(
-        //     xlsxToJSON({ file: allShipmentFile })
-        //   );
-        //   const shipmentObj = shipmentData.find(
-        //     (item) => item?.shipmentId == shipmentId
-        //   );
-        //   shipment = shipmentObj?.shipment;
-        //   break;
-        // }
-
-        default:
+      if (!isEmptyValue(shipmentFile)) {
+        shipmentData = transformShipmentListInput(
+          xlsxToJSON({ file: shipmentFile })
+        );
+        const shipmentObj = shipmentData.find(
+          (item) => item?.shipmentId == shipmentId
+        );
+        shipment = shipmentObj?.shipment;
+        originalShipment = shipmentObj?.originalShipment;
       }
+
+      for await (const file of files) {
+        const fileType = getFileType(file);
+
+        switch (fileType) {
+          case FILE_TYPE.SHIPPING: {
+            const inputFileShippingCost = transformShippingCostInput(
+              xlsxToJSON({
+                file: file,
+                paymentCostKeyName: inputKeyName.totalUsd,
+                exchangeRateKeyName: inputKeyName.totalUsd,
+                isShippingCost: true,
+              }),
+              shipmentId,
+              shipment
+            );
+            inputShippingCost = [
+              ...inputShippingCost,
+              ...inputFileShippingCost,
+            ];
+            break;
+          }
+
+          case FILE_TYPE.SKU_LIST: {
+            skuList = transformSkuListInput(xlsxToJSON({ file: file }));
+            break;
+          }
+
+          case FILE_TYPE.ORDER1: {
+            const order1Input = transformOrderList1Input(
+              xlsxToJSON({
+                file: file,
+                exchangeRateKeyName: inputKeyName.totalUsd,
+              }),
+              shipmentId
+            );
+            const {
+              elementsPriceArr = [],
+              domesticShippingCostArr = [],
+              internationalShippingCostArr = [],
+              packingLabelingCostArr = [],
+              inputPrinttingFeeArr = [],
+            } = order1Input;
+            elementsPrice = [
+              ...elementsPriceArr,
+              ...elementsPrice,
+              ...packingLabelingCostArr,
+            ];
+            inputShippingCost = [
+              ...inputShippingCost,
+              ...domesticShippingCostArr,
+              ...internationalShippingCostArr,
+            ];
+            break;
+          }
+          default:
+        }
+      }
+
+      skuList = mergeArrays(inputTsvData, skuList, inputKeyName.sku).filter(
+        (item) => !_.isEmpty(item?.elements)
+      );
+
+      skuList = skuList.map((item) => {
+        return { ...item, shipmentId, originalShipment: originalShipment };
+      });
+
+      const elementsPriceAndPrinttingPackingFee = [
+        ...elementsPrice,
+        ...inputPrinttingFee,
+      ];
+
+      skuList = calculatePpuPrice(skuList, elementsPriceAndPrinttingPackingFee);
+      skuList = addCustomizeCost(skuList, elementsPriceAndPrinttingPackingFee);
+      skuList = addPackingCost(skuList, elementsPriceAndPrinttingPackingFee);
+      skuList = addShippingAndPaymentCost(skuList, inputShippingCost);
+      skuList = addCogsAndAmount(skuList);
+      skuList = addTotalAmountAndQuantity(skuList);
+      skuList = removeSkuKey(skuList);
     }
-
-    skuList = mergeArrays(inputTsvData, skuList, inputKeyName.sku).filter(
-      (item) => !_.isEmpty(item?.elements)
-    );
-
-    skuList = skuList.map((item) => {
-      return { ...item, shipmentId, shipment };
-    });
-
-    const elementsPriceAndPrinttingPackingFee = [
-      ...elementsPrice,
-      ...inputPrinttingFee,
-    ];
-
-    skuList = calculatePpuPrice(skuList, elementsPriceAndPrinttingPackingFee);
-    skuList = addCustomizeCost(skuList, elementsPriceAndPrinttingPackingFee);
-    skuList = addPackingCost(skuList, elementsPriceAndPrinttingPackingFee);
-    skuList = addShippingAndPaymentCost(skuList, inputShippingCost);
-    skuList = addCogsAndAmount(skuList);
-    skuList = addTotalAmountAndQuantity(skuList);
-    skuList = removeSkuKey(skuList);
 
     const refactorSkuList = refactorSkuListFunc(skuList);
     const xlsxBuffer = await jsonToXlsx({ json: refactorSkuList });
