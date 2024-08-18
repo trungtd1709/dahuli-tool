@@ -124,7 +124,7 @@ export const addShippingAndPaymentCost = (
   skuList = [],
   shippingCostArr = []
 ) => {
-  const {shipment, shipmentId} = skuList[0];
+  const { shipmentId } = skuList[0];
 
   const domesticShippingCostObj = shippingCostArr.find(
     ({ shipmentId: id, isDomestic }) => id === shipmentId && isDomestic
@@ -132,16 +132,22 @@ export const addShippingAndPaymentCost = (
   const internationalShippingCostObj = shippingCostArr.find(
     ({ shipmentId: id, isDomestic }) => id === shipmentId && isDomestic == false
   );
-  
-  const totalShipmentQuantityDomestic = domesticShippingCostObj?.totalShipmentQuantity;
-  const totalShipmentQuantityInternational = internationalShippingCostObj?.totalShipmentQuantity;
+
+  const totalShipmentQuantityDomestic =
+    domesticShippingCostObj?.totalShipmentQuantity;
+  const totalShipmentQuantityInternational =
+    internationalShippingCostObj?.totalShipmentQuantity;
 
   const shipmentDomesticCost = domesticShippingCostObj?.totalUsd ?? 0;
   const shipmentInternationalCost = internationalShippingCostObj?.totalUsd ?? 0;
 
   const dataFirstRow = 2; // trong excel row đầu tiên index = 2
-  const totalUnitCellDomestic = totalShipmentQuantityDomestic ?? `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${dataFirstRow}`;
-  const totalUnitCellInternational = totalShipmentQuantityInternational ?? `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${dataFirstRow}`;
+  const totalUnitCellDomestic =
+    totalShipmentQuantityDomestic ??
+    `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${dataFirstRow}`;
+  const totalUnitCellInternational =
+    totalShipmentQuantityInternational ??
+    `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${dataFirstRow}`;
 
   const itemDomesticShippingCostFormula = domesticShippingCostObj
     ? `${shipmentDomesticCost} / ${totalUnitCellDomestic}`

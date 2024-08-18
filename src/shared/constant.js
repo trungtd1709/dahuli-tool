@@ -91,7 +91,7 @@ export const cashSymbolConst = {
 };
 
 export const FILE_TYPE = {
-  ORDER1: "order1",
+  ORDER_1: "order1",
   SHIPPING: "shipping",
   SHIPMENT: "shipment",
   SKU_LIST: "sku_list",

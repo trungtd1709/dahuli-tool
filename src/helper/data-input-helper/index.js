@@ -83,7 +83,6 @@ export const transformPrinttingFeeInput = (rawJson = []) => {
 export const transformOrderList1Input = (
   rawJson = [],
   shipmentId,
-  shipment
 ) => {
   rawJson.pop();
   // remove phần tử Total

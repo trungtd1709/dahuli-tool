@@ -503,5 +503,5 @@ export const getFileType = (file) => {
     return FILE_TYPE.SHIPMENT;
   }
 
-  return FILE_TYPE.ORDER1;
+  return FILE_TYPE.ORDER_1;
 };
