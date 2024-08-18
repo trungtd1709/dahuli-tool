@@ -2,7 +2,7 @@ import fs from "fs/promises";
 import path from "path";
 import Papa from "papaparse";
 import { fileURLToPath } from "url";
-import { findIndexByFirstElement } from "../../shared/utils.js";
+import { findIndexByFirstElement, now } from "../../shared/utils.js";
 import _ from "lodash";
 import { sampleFolder } from "../../shared/constant.js";
 
@@ -46,7 +46,7 @@ export const getDataTsvFile = async ({ file }) => {
     }));
 
     const itemList = filterItemArray(transformedData);
-    console.log("[TSV --> JSON SUCCESS]");
+    console.log(`${now()}: [TSV --> JSON SUCCESS]`);
     return { inputTsvData: itemList, shipmentQuantity };
   } catch (err) {
     console.error("Error reading or parsing TSV file:", err);

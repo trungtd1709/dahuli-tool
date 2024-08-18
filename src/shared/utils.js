@@ -93,3 +93,8 @@ export function removeStringAfter(str, delimiter) {
 export function removeSpaces(str) {
   return str.replace(/\s+/g, '');
 }
+
+export const now = () => {
+  let today = dayjs();
+  return today.format("YYYY-MM-DD HH:mm:ss").toString();
+};

@@ -32,7 +32,7 @@ import {
   MISSING_SKU_LIST_FILE,
   MISSING_TSV_FILE,
 } from "../../shared/err-const.js";
-import { isEmptyValue, mergeArrays } from "../../shared/utils.js";
+import { isEmptyValue, mergeArrays, now } from "../../shared/utils.js";
 
 /**
  * @param {Array.<Express.Multer.File>} files - An array of Multer file objects.
@@ -256,7 +256,7 @@ export const calculateGood = async (files = []) => {
     // return { xlsxBuffer, shipment, shipmentId };
     return xlsxBuffer;
   } catch (err) {
-    console.log(err);
+    console.log(`${now()}: [${err}]`);
     throw new BadRequestError(err.message);
   }
 };

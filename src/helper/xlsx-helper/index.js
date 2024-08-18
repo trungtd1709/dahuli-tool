@@ -14,7 +14,7 @@ import {
   outputNumDecimalFormat,
   sampleFolder,
 } from "../../shared/constant.js";
-import { isEmptyValue } from "../../shared/utils.js";
+import { isEmptyValue, now } from "../../shared/utils.js";
 import { BadRequestError } from "../../error/bad-request-err.js";
 // import { fileURLToPath } from "url";
 
@@ -33,7 +33,7 @@ export const xlsxToJSON = ({
   isShippingCost = false, // check xem có phải file order 4 (shipping cost) ko
 }) => {
   try {
-    console.log(`[CONVERTING ${file.originalname}`);
+    console.log(`${now()}: [CONVERTING ${file.originalname}`);
     const workbook = XLSX.read(file.buffer, { type: "buffer" });
 
     const sheetName = workbook.SheetNames[sheetIndex];
@@ -333,7 +333,7 @@ export const jsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
     addStyleToWorksheet(worksheet, firstRowNum);
 
     const xlsxBuffer = await workbook.xlsx.writeBuffer();
-    console.log("[JSON --> BUFFER SUCCESS]");
+    console.log(`${now()}: [JSON --> BUFFER SUCCESS]`);
     return xlsxBuffer;
   } catch (err) {
     console.error("Error creating XLSX file:", err);
