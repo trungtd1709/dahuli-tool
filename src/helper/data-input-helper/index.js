@@ -1,4 +1,8 @@
-import { inputKeyName, keyPreferences } from "../../shared/constant.js";
+import {
+  CHECK_KEYWORD,
+  inputKeyName,
+  KEY_PREFERENCES,
+} from "../../shared/constant.js";
 import {
   evalCalculation,
   isEmptyValue,
@@ -80,12 +84,12 @@ export const transformPrinttingFeeInput = (rawJson = []) => {
   return printtingFeeInput.filter((item) => item.price);
 };
 
-export const transformOrderList1Input = (
-  rawJson = [],
-  shipmentId,
-) => {
-  rawJson.pop();
+export const transformOrderList1Input = (rawJson = [], shipmentId) => {
+  // rawJson.pop();
   // remove phần tử Total
+  rawJson = rawJson.filter(
+    (item) => item?.productName?.toLowerCase() != CHECK_KEYWORD.TOTAL
+  );
 
   let domesticShippingCostArr = [];
   let internationalShippingCostArr = [];
@@ -100,8 +104,8 @@ export const transformOrderList1Input = (
     const exchangeRate = item[inputKeyName.exchangeRate];
 
     if (
-      productName.includes(keyPreferences.packing) &&
-      productName.includes(keyPreferences.labeling)
+      productName.includes(KEY_PREFERENCES.packing) &&
+      productName.includes(KEY_PREFERENCES.labeling)
     ) {
       const packingLabelingCostYuan = evalCalculation(
         `${totalCny} / ${quantity}`
@@ -121,7 +125,7 @@ export const transformOrderList1Input = (
 
     // phí tính cột riêng
     if (
-      productName.includes(keyPreferences.domestic) &&
+      productName.includes(KEY_PREFERENCES.domestic) &&
       productName.includes(shipmentId.toLowerCase())
     ) {
       const domesticCostUsd = `${totalCny} / ${exchangeRate}`;
@@ -135,7 +139,7 @@ export const transformOrderList1Input = (
     }
 
     if (
-      productName.includes(keyPreferences.international) &&
+      productName.includes(KEY_PREFERENCES.international) &&
       productName.includes(shipmentId.toLowerCase())
     ) {
       const internationalCostUsd = `${totalCny} / ${exchangeRate}`;
@@ -216,7 +220,9 @@ export const transformShippingCostInput = (
   });
 
   shippingArr = shippingArr.filter((item) => {
-    return !item.productName.toLowerCase().includes(keyPreferences.paymentCost);
+    return !item.productName
+      .toLowerCase()
+      .includes(KEY_PREFERENCES.paymentCost);
   });
 
   return shippingArr.map((item) => {
@@ -244,7 +250,7 @@ const transformShippingCostItem = (
   const totalUsd = `(${shippingFormula} * ${weight})`;
   const lowerCaseShipName = name.toLowerCase();
   // ko chứa chữ domestic mặc định là international
-  const isDomestic = lowerCaseShipName.includes(keyPreferences.domestic);
+  const isDomestic = lowerCaseShipName.includes(KEY_PREFERENCES.domestic);
 
   return {
     shipmentId,
@@ -252,7 +258,7 @@ const transformShippingCostItem = (
     totalUsd,
     isDomestic,
     paymentCostDivisor,
-    totalShipmentQuantity
+    totalShipmentQuantity,
   };
 };
 

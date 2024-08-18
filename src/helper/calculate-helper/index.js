@@ -47,7 +47,7 @@ export const calculatePpuPrice = (skuList, goodsPrice) => {
       (item) => item?.exchangeRate == goodsPrice[0]?.exchangeRate
     );
 
-    if (isSameExchangeRate) {
+    if (isSameExchangeRate && goodsPrice[0]?.exchangeRate) {
       const exchangeRate = goodsPrice[0]?.exchangeRate;
       ppuPrice = `${removeValueAndSplash(
         ppuPrice,

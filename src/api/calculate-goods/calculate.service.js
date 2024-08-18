@@ -25,7 +25,7 @@ import {
 import {
   FILE_TYPE,
   inputKeyName,
-  keyPreferences,
+  KEY_PREFERENCES,
 } from "../../shared/constant.js";
 import {
   MISSING_ORDER_1_FILE,
@@ -88,18 +88,20 @@ export const calculateGood = async (files = []) => {
       });
     }
 
-    // const order1Files = files.filter(
-    //   (file) => file.fileType == FILE_TYPE.ORDER_1
-    // );
-    // if (isEmptyValue(order1Files)) {
-    //   throw new BadRequestError(MISSING_ORDER_1_FILE);
-    // }
+    const order1Files = files.filter(
+      (file) => file.fileType == FILE_TYPE.ORDER_1
+    );
+    if (isEmptyValue(order1Files)) {
+      throw new BadRequestError(MISSING_ORDER_1_FILE);
+    }
 
-    // order1Files.forEach((order1File) => {
-    //   const rawOrder1Data = xlsxToJSON({ file: order1File });
-    //   rawJsonOrder1 = [...rawJsonOrder1, ...rawOrder1Data];
-    //   // raw skulist json
-    // });
+    for (const order1File of order1Files) {
+      const rawOrder1Data = xlsxToJSON({
+        file: order1File,
+        exchangeRateKeyName: inputKeyName.totalUsd,
+      });
+      rawJsonOrder1 = [...rawJsonOrder1, ...rawOrder1Data];
+    }
 
     let inputTsvDataArr = [];
     for (const tsvFile of tsvFilesArr) {
@@ -122,7 +124,6 @@ export const calculateGood = async (files = []) => {
 
     for (const inputTsvData of inputTsvDataArr) {
       let inputShippingCost = [];
-      let inputPrinttingFee = [];
       let skuList = totalSkuList;
       let elementsPrice = [];
       // let shipmentData = [];
@@ -147,85 +148,61 @@ export const calculateGood = async (files = []) => {
         shipment,
         totalShipmentQuantity
       );
-      for await (const file of files) {
-        const fileType = getFileType(file);
-        switch (fileType) {
-          // case FILE_TYPE.SHIPPING: {
-          //   const inputFileShippingCost = transformShippingCostInput(
-          //     xlsxToJSON({
-          //       file: file,
-          //       paymentCostKeyName: inputKeyName.totalUsd,
-          //       exchangeRateKeyName: inputKeyName.totalUsd,
-          //       isShippingCost: true,
-          //     }),
-          // shipmentId,
-          // shipment,
-          // totalShipmentQuantity
-          //   );
-          //   inputShippingCost = [
-          //     ...inputShippingCost,
-          //     ...inputFileShippingCost,
-          //   ];
-          //   break;
-          // }
 
-          // case FILE_TYPE.SKU_LIST: {
-          //   skuList = transformSkuListInput(xlsxToJSON({ file: file }));
-          //   break;
-          // }
+      // for await (const file of files) {
+      //   const fileType = getFileType(file);
+      //   switch (fileType) {
+      //     case FILE_TYPE.ORDER_1: {
+      //       const order1Input = transformOrderList1Input(
+      //         xlsxToJSON({
+      //           file: file,
+      //           exchangeRateKeyName: inputKeyName.totalUsd,
+      //         }),
+      //         shipmentId
+      //       );
+      //       const {
+      //         elementsPriceArr = [],
+      //         domesticShippingCostArr = [],
+      //         internationalShippingCostArr = [],
+      //         packingLabelingCostArr = [],
+      //       } = order1Input;
+      //       elementsPrice = [
+      //         ...elementsPriceArr,
+      //         ...elementsPrice,
+      //         ...packingLabelingCostArr,
+      //       ];
+      //       inputShippingCost = [
+      //         ...inputShippingCost,
+      //         ...domesticShippingCostArr,
+      //         ...internationalShippingCostArr,
+      //       ];
+      //       break;
+      //     }
+      //     default:
+      //   }
+      // }
 
-          case FILE_TYPE.ORDER_1: {
-            const order1Input = transformOrderList1Input(
-              xlsxToJSON({
-                file: file,
-                exchangeRateKeyName: inputKeyName.totalUsd,
-              }),
-              shipmentId
-            );
-            const {
-              elementsPriceArr = [],
-              domesticShippingCostArr = [],
-              internationalShippingCostArr = [],
-              packingLabelingCostArr = [],
-              inputPrinttingFeeArr = [],
-            } = order1Input;
-            elementsPrice = [
-              ...elementsPriceArr,
-              ...elementsPrice,
-              ...packingLabelingCostArr,
-            ];
-            inputShippingCost = [
-              ...inputShippingCost,
-              ...domesticShippingCostArr,
-              ...internationalShippingCostArr,
-            ];
-            break;
-          }
-          default:
-        }
-      }
-
-      // const totalOrder1Data = transformOrderList1Input(
-      //   rawJsonOrder1,
-      //   shipmentId
-      // );
-      // const {
-      //   elementsPriceArr = [],
-      //   domesticShippingCostArr = [],
-      //   internationalShippingCostArr = [],
-      //   packingLabelingCostArr = [],
-      //   inputPrinttingFeeArr = [],
-      // } = totalOrder1Data;
-      // elementsPrice = [
-      //   ...elementsPriceArr,
-      //   ...elementsPrice,
-      //   ...packingLabelingCostArr,
-      // ];
-      // inputShippingCost = [
-      //   ...inputShippingCost,
-      //   ...domesticShippingCostArr,
-      //   ...internationalShippingCostArr,
-      // ];
+      const totalOrder1Data = transformOrderList1Input(
+        rawJsonOrder1,
+        shipmentId
+      );
+      const {
+        elementsPriceArr = [],
+        domesticShippingCostArr = [],
+        internationalShippingCostArr = [],
+        packingLabelingCostArr = [],
+        inputPrinttingFeeArr = [],
+      } = totalOrder1Data;
+      elementsPrice = [
+        ...elementsPriceArr,
+        ...elementsPrice,
+        ...packingLabelingCostArr,
+      ];
+      inputShippingCost = [
+        ...inputShippingCost,
+        ...domesticShippingCostArr,
+        ...internationalShippingCostArr,
+      ];
 
       skuList = mergeArrays(inputTsvData, skuList, inputKeyName.sku).filter(
         (item) => !_.isEmpty(item?.elements)
@@ -235,14 +212,11 @@ export const calculateGood = async (files = []) => {
         return { ...item, shipmentId, originalShipment: originalShipment };
       });
 
-      const elementsPriceAndPrinttingPackingFee = [
-        ...elementsPrice,
-        ...inputPrinttingFee,
-      ];
+      const elementsPriceAndPackingFee = [...elementsPrice];
 
-      skuList = calculatePpuPrice(skuList, elementsPriceAndPrinttingPackingFee);
-      skuList = addCustomizeCost(skuList, elementsPriceAndPrinttingPackingFee);
-      skuList = addPackingCost(skuList, elementsPriceAndPrinttingPackingFee);
+      skuList = calculatePpuPrice(skuList, elementsPriceAndPackingFee);
+      skuList = addCustomizeCost(skuList, elementsPriceAndPackingFee);
+      skuList = addPackingCost(skuList, elementsPriceAndPackingFee);
       skuList = addShippingAndPaymentCost(skuList, inputShippingCost);
       skuList = addCogsAndAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
@@ -263,7 +237,7 @@ export const calculateGood = async (files = []) => {
 
 const removeSkuKey = (skuList = []) => {
   skuList = removeObjKey(skuList, inputKeyName.elements);
-  skuList = removeObjKey(skuList, keyPreferences.packing);
+  skuList = removeObjKey(skuList, KEY_PREFERENCES.packing);
   skuList = removeObjKey(skuList, "customizePackage");
   return skuList;
 };

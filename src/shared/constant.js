@@ -37,13 +37,14 @@ export const inputKeyName = {
   shipmentId: "Shipment ID",
 };
 
-export const keyPreferences = {
+export const KEY_PREFERENCES = {
   international: "internation",
   domestic: "domestic",
   pickUp: "pick up",
   packing: "packing",
   labeling: "labeling",
   paymentCost: "payment cost",
+  total: "total",
 };
 
 export const OUTPUT_KEY_NAME = {
@@ -99,7 +100,7 @@ export const FILE_TYPE = {
   // SHIPMENT: "shipment",
 };
 
-export const FILE_CHECK_KEYWORD = {
+export const CHECK_KEYWORD = {
   TSV: "tsv",
   WEIGHT: "weight",
   PRICE: "price",
@@ -107,4 +108,5 @@ export const FILE_CHECK_KEYWORD = {
   SHIPMENT: "shipment",
   PPU_ELEMENTS: "thành phần ppu",
   TOTAL_CNY: "total cny",
+  TOTAL: "total",
 };

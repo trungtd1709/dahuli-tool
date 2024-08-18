@@ -4,11 +4,11 @@ import path from "path";
 import { fileURLToPath } from "url";
 import XLSX from "xlsx";
 import {
-  FILE_CHECK_KEYWORD,
+  CHECK_KEYWORD,
   FILE_TYPE,
   cashSymbolConst,
   inputKeyName,
-  keyPreferences,
+  KEY_PREFERENCES,
   OUTPUT_COL_ALPHABET,
   OUTPUT_KEY_NAME,
   outputNumDecimalFormat,
@@ -158,7 +158,7 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
       const productNameCell = worksheet[productNameCellAddress];
 
       if (
-        productNameCell?.v?.toLowerCase()?.includes(keyPreferences.paymentCost)
+        productNameCell?.v?.toLowerCase()?.includes(KEY_PREFERENCES.paymentCost)
       ) {
         const paymentCostCellAddress = XLSX.utils.encode_cell({
           r: R,
@@ -208,11 +208,11 @@ const getShippingCostFormulas = (
       priceColIndex = C;
       // break;
     }
-    if (cell?.v?.toLowerCase()?.includes(FILE_CHECK_KEYWORD.WEIGHT)) {
+    if (cell?.v?.toLowerCase()?.includes(CHECK_KEYWORD.WEIGHT)) {
       weightColIndex = C;
       // break;
     }
-    if (cell?.v?.toLowerCase()?.includes(FILE_CHECK_KEYWORD.TOTAL_CNY)) {
+    if (cell?.v?.toLowerCase()?.includes(CHECK_KEYWORD.TOTAL_CNY)) {
       totalCnyColIndex = C;
       // break;
     }
@@ -462,7 +462,7 @@ const changeObjKeyName = (jsonData = []) => {
  * @returns {Array}
  */
 export const getFileType = (file) => {
-  if (file.originalname.includes(FILE_CHECK_KEYWORD.TSV)) {
+  if (file.originalname.includes(CHECK_KEYWORD.TSV)) {
     return FILE_TYPE.TSV;
   }
 
@@ -486,19 +486,19 @@ export const getFileType = (file) => {
   }
 
   if (
-    headers.find((item) => item.includes(FILE_CHECK_KEYWORD.WEIGHT)) &&
-    headers.find((item) => item.includes(FILE_CHECK_KEYWORD.PRICE))
+    headers.find((item) => item.includes(CHECK_KEYWORD.WEIGHT)) &&
+    headers.find((item) => item.includes(CHECK_KEYWORD.PRICE))
   ) {
     return FILE_TYPE.SHIPPING;
   }
 
-  if (headers.find((item) => item.includes(FILE_CHECK_KEYWORD.PPU_ELEMENTS))) {
+  if (headers.find((item) => item.includes(CHECK_KEYWORD.PPU_ELEMENTS))) {
     return FILE_TYPE.SKU_LIST;
   }
 
   if (
-    headers.find((item) => item.includes(FILE_CHECK_KEYWORD.SHIPMENT_ID)) &&
-    headers.find((item) => item.includes(FILE_CHECK_KEYWORD.SHIPMENT))
+    headers.find((item) => item.includes(CHECK_KEYWORD.SHIPMENT_ID)) &&
+    headers.find((item) => item.includes(CHECK_KEYWORD.SHIPMENT))
   ) {
     return FILE_TYPE.SHIPMENT;
   }
