@@ -93,10 +93,60 @@ export function removeStringAfter(str, delimiter) {
 }
 
 export function removeSpaces(str) {
-  return str.replace(/\s+/g, '');
+  return str.replace(/\s+/g, "");
 }
 
 export const now = () => {
   let today = dayjs();
   return today.format("YYYY-MM-DD HH:mm:ss").toString();
 };
+
+/**
+ * @param {string} formula
+ * @returns {string}
+ */
+export function simplifyFormula(formula) {
+  const formulaParts = splitByPlus(formula) ?? [];
+  const countMap = {};
+
+  formulaParts.forEach((value) => {
+    if (countMap[value]) {
+      countMap[value]++;
+    } else {
+      countMap[value] = 1;
+    }
+  });
+
+  const countResult = Object.keys(countMap).map((key) => ({
+    value: key,
+    quantity: countMap[key],
+  }));
+
+  const isAllQuantityOne = countResult.every((item) => item.quantity === 1);
+
+  if (isAllQuantityOne) {
+    return formula;
+  } else {
+    const formattedFormula = countResult.reduce((acc, item) => {
+      const {value, quantity} = item;
+      const itemValue = quantity == 1 ? value : `${value} * ${quantity}`;
+       
+      if (isEmptyValue(acc)) {
+        return itemValue;
+      }
+      return `${acc} + ${itemValue}`;
+    }, "");
+    return formattedFormula;
+  }
+}
+
+/**
+ * @param {string} formula
+ * @returns {Array}
+ */
+export function splitByPlus(string) {
+  // Use the split method to split by "+" and exclude "+" in the resulting array
+  const parts = string.split("+").map((part) => part.trim());
+
+  return parts;
+}

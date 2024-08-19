@@ -4,6 +4,7 @@ import {
   evalCalculation,
   isEmptyValue,
   removeValueAndSplash,
+  simplifyFormula,
 } from "../../shared/utils.js";
 
 /**
@@ -43,6 +44,8 @@ export const calculatePpuPrice = (skuList, goodsPrice) => {
       return `${acc} + ${totalGoodsPrice}`;
     }, "");
 
+    ppuPrice = simplifyFormula(ppuPrice);
+    
     const isSameExchangeRate = goodsPrice.every(
       (item) => item?.exchangeRate == goodsPrice[0]?.exchangeRate
     );
