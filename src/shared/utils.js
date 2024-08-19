@@ -150,3 +150,16 @@ export function splitByPlus(string) {
 
   return parts;
 }
+
+export function removeStringOnce(baseString, stringToRemove) {
+  // Escape any special characters in stringToRemove, including "*"
+  const escapedStringToRemove = stringToRemove.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+
+  // Create a regular expression that matches stringToRemove with optional surrounding whitespace
+  const regex = new RegExp(`${escapedStringToRemove}\\s*`, 'i');
+
+  // Replace only the first occurrence
+  const result = baseString.replace(regex, '');
+
+  return result.trim(); // Trim to remove any leading/trailing whitespace
+}

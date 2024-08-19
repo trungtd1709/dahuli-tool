@@ -44,7 +44,6 @@ export const calculateGood = async (files = []) => {
   let totalSkuList = [];
   let rawInputShippingCost = [];
   let rawJsonOrder1 = [];
-  let totalOrder1Data = {};
   let shipmentData = [];
 
   try {
@@ -53,55 +52,11 @@ export const calculateGood = async (files = []) => {
       return { ...file, fileType };
     });
 
-    const tsvFilesArr = files.filter((file) => file.fileType == FILE_TYPE.TSV);
-    if (isEmptyValue(tsvFilesArr)) {
-      throw new BadRequestError(MISSING_TSV_FILE);
-    }
-
-    const skuListFiles = files.filter(
-      (file) => file.fileType == FILE_TYPE.SKU_LIST
-    );
-    if (isEmptyValue(skuListFiles)) {
-      throw new BadRequestError(MISSING_SKU_LIST_FILE);
-    }
-
-    skuListFiles.forEach((skuListFile) => {
-      const rawSkuListData = xlsxToJSON({ file: skuListFile });
-      totalSkuList = [...totalSkuList, ...rawSkuListData];
-      // raw skulist json
-    });
-    totalSkuList = transformSkuListInput(totalSkuList);
-
-    const shippingListFiles = files.filter(
-      (file) => file.fileType == FILE_TYPE.SHIPPING
-    );
-
-    if (!isEmptyValue(shippingListFiles)) {
-      shippingListFiles.forEach((shippingFile) => {
-        const rawJson = xlsxToJSON({
-          file: shippingFile,
-          paymentCostKeyName: inputKeyName.totalUsd,
-          exchangeRateKeyName: inputKeyName.totalUsd,
-          isShippingCost: true,
-        });
-        rawInputShippingCost = [...rawInputShippingCost, ...rawJson];
-      });
-    }
-
-    const order1Files = files.filter(
-      (file) => file.fileType == FILE_TYPE.ORDER_1
-    );
-    if (isEmptyValue(order1Files)) {
-      throw new BadRequestError(MISSING_ORDER_1_FILE);
-    }
-
-    for (const order1File of order1Files) {
-      const rawOrder1Data = xlsxToJSON({
-        file: order1File,
-        exchangeRateKeyName: inputKeyName.totalUsd,
-      });
-      rawJsonOrder1 = [...rawJsonOrder1, ...rawOrder1Data];
-    }
+    const tsvFilesArr = getTsvFilesArr(files);
+    totalSkuList = getTotalSkuList(files);
+    rawInputShippingCost = getRawInputShippingCost(files);
+    rawJsonOrder1 = getRawOrder1Data(files);
+    shipmentData = getShipmentData(files);
 
     // tổng các loại sku
     let totalSkuType = 0;
@@ -121,26 +76,11 @@ export const calculateGood = async (files = []) => {
       totalSkuType += thisTsvSkuList.length;
     }
 
-    const shipmentFile = files.find(
-      (file) => file.fileType == FILE_TYPE.SHIPMENT
-    );
-
-    if (!isEmptyValue(shipmentFile)) {
-      shipmentData = transformShipmentListInput(
-        xlsxToJSON({ file: shipmentFile })
-      );
-    }
-
     for (const inputTsvData of inputTsvDataArr) {
       let inputShippingCost = [];
       let skuList = totalSkuList;
       let elementsPrice = [];
-      // let shipmentData = [];
       let shipment, originalShipment, shipmentId;
-
-      // const { inputTsvData } = await getDataTsvFile({
-      //   file: tsvFile,
-      // });
       shipmentId = inputTsvData[0].shipmentId;
 
       if (!isEmptyValue(shipmentData)) {
@@ -167,7 +107,6 @@ export const calculateGood = async (files = []) => {
         domesticShippingCostArr = [],
         internationalShippingCostArr = [],
         packingLabelingCostArr = [],
-        inputPrinttingFeeArr = [],
       } = totalOrder1Data;
       elementsPrice = [
         ...elementsPriceArr,
@@ -203,14 +142,6 @@ export const calculateGood = async (files = []) => {
       mergeSkuList = [...mergeSkuList, ...skuList];
     }
 
-    // mergeSkuList = calculatePpuPrice(mergeSkuList, elementsPriceAndPackingFee);
-    // mergeSkuList = addCustomizeCost(mergeSkuList, elementsPriceAndPackingFee);
-    // mergeSkuList = addPackingCost(mergeSkuList, elementsPriceAndPackingFee);
-    // mergeSkuList = addShippingAndPaymentCost(mergeSkuList, inputShippingCost);
-    // mergeSkuList = addCogsAndAmount(mergeSkuList);
-    // mergeSkuList = addTotalAmountAndQuantity(mergeSkuList);
-    // mergeSkuList = removeSkuKey(mergeSkuList);
-
     const refactorSkuList = refactorSkuListFunc(mergeSkuList);
     const xlsxBuffer = await jsonToXlsx({ json: refactorSkuList });
     // return { xlsxBuffer, shipment, shipmentId };
@@ -228,6 +159,83 @@ const removeSkuKey = (skuList = []) => {
   return skuList;
 };
 
-// const filterSku = (skuList = []) => {
-//   return skuList.filter(item => item?.)
-// }
+const getRawInputShippingCost = (files = []) => {
+  let rawInputShippingCost = [];
+  const shippingListFiles = files.filter(
+    (file) => file.fileType == FILE_TYPE.SHIPPING
+  );
+
+  if (!isEmptyValue(shippingListFiles)) {
+    shippingListFiles.forEach((shippingFile) => {
+      const rawJson = xlsxToJSON({
+        file: shippingFile,
+        paymentCostKeyName: inputKeyName.totalUsd,
+        exchangeRateKeyName: inputKeyName.totalUsd,
+        isShippingFile: true,
+      });
+      rawInputShippingCost = [...rawInputShippingCost, ...rawJson];
+    });
+  }
+  return rawInputShippingCost;
+};
+
+const getTotalSkuList = (files = []) => {
+  let totalSkuList = [];
+  const skuListFiles = files.filter(
+    (file) => file.fileType == FILE_TYPE.SKU_LIST
+  );
+  if (isEmptyValue(skuListFiles)) {
+    throw new BadRequestError(MISSING_SKU_LIST_FILE);
+  }
+
+  skuListFiles.forEach((skuListFile) => {
+    const rawSkuListData = xlsxToJSON({ file: skuListFile });
+    totalSkuList = [...totalSkuList, ...rawSkuListData];
+    // raw skulist json
+  });
+  totalSkuList = transformSkuListInput(totalSkuList);
+
+  return totalSkuList;
+};
+
+const getRawOrder1Data = (files = []) => {
+  let rawJsonOrder1 = [];
+  const order1Files = files.filter(
+    (file) => file.fileType == FILE_TYPE.ORDER_1
+  );
+  if (isEmptyValue(order1Files)) {
+    throw new BadRequestError(MISSING_ORDER_1_FILE);
+  }
+
+  for (const order1File of order1Files) {
+    const rawOrder1Data = xlsxToJSON({
+      file: order1File,
+      exchangeRateKeyName: inputKeyName.totalUsd,
+    });
+    rawJsonOrder1 = [...rawJsonOrder1, ...rawOrder1Data];
+  }
+  return rawJsonOrder1;
+};
+
+const getShipmentData = (files = []) => {
+  let shipmentData = [];
+  const shipmentFile = files.find(
+    (file) => file.fileType == FILE_TYPE.SHIPMENT
+  );
+
+  if (!isEmptyValue(shipmentFile)) {
+    shipmentData = transformShipmentListInput(
+      xlsxToJSON({ file: shipmentFile })
+    );
+  }
+
+  return shipmentData;
+};
+
+const getTsvFilesArr = (files = []) => {
+  const tsvFilesArr = files.filter((file) => file.fileType == FILE_TYPE.TSV);
+  if (isEmptyValue(tsvFilesArr)) {
+    throw new BadRequestError(MISSING_TSV_FILE);
+  }
+  return tsvFilesArr;
+};

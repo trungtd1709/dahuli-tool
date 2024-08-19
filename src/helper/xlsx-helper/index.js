@@ -14,7 +14,7 @@ import {
   outputNumDecimalFormat,
   sampleFolder,
 } from "../../shared/constant.js";
-import { isEmptyValue, now } from "../../shared/utils.js";
+import { isEmptyValue, now, removeStringOnce } from "../../shared/utils.js";
 import { BadRequestError } from "../../error/bad-request-err.js";
 // import { fileURLToPath } from "url";
 
@@ -30,7 +30,7 @@ export const xlsxToJSON = ({
   sheetIndex = 0,
   exchangeRateKeyName,
   paymentCostKeyName,
-  isShippingCost = false, // check xem có phải file order 4 (shipping cost) ko
+  isShippingFile = false, // check xem có phải file order 4 (shipping cost) ko
 }) => {
   try {
     console.log(`${now()}: [CONVERTING ${file.originalname}`);
@@ -57,7 +57,7 @@ export const xlsxToJSON = ({
       });
     }
 
-    if (isShippingCost) {
+    if (isShippingFile) {
       getShippingCostFormulas(worksheet, jsonData);
     }
 
@@ -65,7 +65,7 @@ export const xlsxToJSON = ({
 
     return jsonData;
   } catch (err) {
-    throw new BadRequestError(`[Err when convert ${file.originalname}]: `, err);
+    throw new BadRequestError(`[Err when convert ${file.originalname}]: ${err.message}`);
   }
 };
 
@@ -275,8 +275,14 @@ const getShippingCostFormulas = (
         const totalCnyCell = worksheet[totalCnyCellAddress];
 
         const weight = weightCell?.v;
-        const totalCny = totalCnyCell?.f ?? totalCnyCell?.v;
-        priceFormula = `${totalCny} / ${weight} / ${exchangeRate}`;
+        const totalCny = totalCnyCell?.f?.trim() ?? totalCnyCell?.v;
+        const multipleWeighString = `*${weight}`;
+        if (weight && totalCny && totalCny?.includes(multipleWeighString)) {
+          priceFormula = removeStringOnce(totalCny, multipleWeighString);
+          priceFormula = `${priceFormula} / ${exchangeRate}`;
+        } else {
+          priceFormula = `${totalCny} / ${weight} / ${exchangeRate}`;
+        }
       }
 
       if (cell?.w?.includes(cashSymbolConst.yuan)) {
