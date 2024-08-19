@@ -103,6 +103,8 @@ export const calculateGood = async (files = []) => {
       rawJsonOrder1 = [...rawJsonOrder1, ...rawOrder1Data];
     }
 
+    // tổng các loại sku
+    let totalSkuType = 0;
     let inputTsvDataArr = [];
     for (const tsvFile of tsvFilesArr) {
       const { shipmentQuantity, inputTsvData } = await getDataTsvFile({
@@ -110,6 +112,13 @@ export const calculateGood = async (files = []) => {
       });
       totalShipmentQuantity += shipmentQuantity;
       inputTsvDataArr.push(inputTsvData);
+
+      const thisTsvSkuList = mergeArrays(
+        inputTsvData,
+        totalSkuList,
+        inputKeyName.sku
+      ).filter((item) => !_.isEmpty(item?.elements));
+      totalSkuType += thisTsvSkuList.length;
     }
 
     const shipmentFile = files.find(
@@ -149,39 +158,6 @@ export const calculateGood = async (files = []) => {
         totalShipmentQuantity
       );
 
-      // for await (const file of files) {
-      //   const fileType = getFileType(file);
-      //   switch (fileType) {
-      //     case FILE_TYPE.ORDER_1: {
-      //       const order1Input = transformOrderList1Input(
-      //         xlsxToJSON({
-      //           file: file,
-      //           exchangeRateKeyName: inputKeyName.totalUsd,
-      //         }),
-      //         shipmentId
-      //       );
-      //       const {
-      //         elementsPriceArr = [],
-      //         domesticShippingCostArr = [],
-      //         internationalShippingCostArr = [],
-      //         packingLabelingCostArr = [],
-      //       } = order1Input;
-      //       elementsPrice = [
-      //         ...elementsPriceArr,
-      //         ...elementsPrice,
-      //         ...packingLabelingCostArr,
-      //       ];
-      //       inputShippingCost = [
-      //         ...inputShippingCost,
-      //         ...domesticShippingCostArr,
-      //         ...internationalShippingCostArr,
-      //       ];
-      //       break;
-      //     }
-      //     default:
-      //   }
-      // }
-
       const totalOrder1Data = transformOrderList1Input(
         rawJsonOrder1,
         shipmentId
@@ -212,18 +188,28 @@ export const calculateGood = async (files = []) => {
         return { ...item, shipmentId, originalShipment: originalShipment };
       });
 
-      const elementsPriceAndPackingFee = [...elementsPrice];
-
-      skuList = calculatePpuPrice(skuList, elementsPriceAndPackingFee);
-      skuList = addCustomizeCost(skuList, elementsPriceAndPackingFee);
-      skuList = addPackingCost(skuList, elementsPriceAndPackingFee);
-      skuList = addShippingAndPaymentCost(skuList, inputShippingCost);
+      skuList = calculatePpuPrice(skuList, elementsPrice);
+      skuList = addCustomizeCost(skuList, elementsPrice);
+      skuList = addPackingCost(skuList, elementsPrice);
+      skuList = addShippingAndPaymentCost(
+        skuList,
+        inputShippingCost,
+        totalSkuType
+      );
       skuList = addCogsAndAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
       skuList = removeSkuKey(skuList);
 
       mergeSkuList = [...mergeSkuList, ...skuList];
     }
+
+    // mergeSkuList = calculatePpuPrice(mergeSkuList, elementsPriceAndPackingFee);
+    // mergeSkuList = addCustomizeCost(mergeSkuList, elementsPriceAndPackingFee);
+    // mergeSkuList = addPackingCost(mergeSkuList, elementsPriceAndPackingFee);
+    // mergeSkuList = addShippingAndPaymentCost(mergeSkuList, inputShippingCost);
+    // mergeSkuList = addCogsAndAmount(mergeSkuList);
+    // mergeSkuList = addTotalAmountAndQuantity(mergeSkuList);
+    // mergeSkuList = removeSkuKey(mergeSkuList);
 
     const refactorSkuList = refactorSkuListFunc(mergeSkuList);
     const xlsxBuffer = await jsonToXlsx({ json: refactorSkuList });

@@ -45,7 +45,7 @@ export const calculatePpuPrice = (skuList, goodsPrice) => {
     }, "");
 
     ppuPrice = simplifyFormula(ppuPrice);
-    
+
     const isSameExchangeRate = goodsPrice.every(
       (item) => item?.exchangeRate == goodsPrice[0]?.exchangeRate
     );
@@ -58,7 +58,7 @@ export const calculatePpuPrice = (skuList, goodsPrice) => {
       )} / ${exchangeRate}`;
     }
 
-    return { ...good, ppuPrice: ppuPrice };
+    return { ...good, ppuPrice };
   });
 };
 
@@ -125,7 +125,8 @@ export const removeObjKey = (skuList, keyName) => {
  */
 export const addShippingAndPaymentCost = (
   skuList = [],
-  shippingCostArr = []
+  shippingCostArr = [],
+  totalSkuType
 ) => {
   const { shipmentId } = skuList[0];
 
@@ -136,15 +137,23 @@ export const addShippingAndPaymentCost = (
     ({ shipmentId: id, isDomestic }) => id === shipmentId && isDomestic == false
   );
 
+  const dataFirstRow = 2; // trong excel row đầu tiên index = 2
+  const totalUnitColAlphabet = OUTPUT_COL_ALPHABET.TOTAL_UNIT;
+  const totalShipmentQuantityFormula = `SUM(${totalUnitColAlphabet}${dataFirstRow}:${totalUnitColAlphabet}${totalSkuType + 1})`;
+  // + 1 row bù cho row column name
+
   const totalShipmentQuantityDomestic =
-    domesticShippingCostObj?.totalShipmentQuantity;
+    domesticShippingCostObj?.totalShipmentQuantity && totalSkuType
+      ? totalShipmentQuantityFormula
+      : null;
   const totalShipmentQuantityInternational =
-    internationalShippingCostObj?.totalShipmentQuantity;
+    internationalShippingCostObj?.totalShipmentQuantity && totalSkuType
+      ? totalShipmentQuantityFormula
+      : null;
 
   const shipmentDomesticCost = domesticShippingCostObj?.totalUsd ?? 0;
   const shipmentInternationalCost = internationalShippingCostObj?.totalUsd ?? 0;
 
-  const dataFirstRow = 2; // trong excel row đầu tiên index = 2
   const totalUnitCellDomestic =
     totalShipmentQuantityDomestic ??
     `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${dataFirstRow}`;
