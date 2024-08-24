@@ -13,6 +13,8 @@ import {
   OUTPUT_KEY_NAME,
   outputNumDecimalFormat,
   sampleFolder,
+  SHIPMENT_OUTPUT_COL_ALPHABET,
+  SHIPMENT_OUTPUT_KEY_NAME,
 } from "../../shared/constant.js";
 import { isEmptyValue, now, removeStringOnce } from "../../shared/utils.js";
 import { BadRequestError } from "../../error/bad-request-err.js";
@@ -65,7 +67,9 @@ export const xlsxToJSON = ({
 
     return jsonData;
   } catch (err) {
-    throw new BadRequestError(`[Err when convert ${file.originalname}]: ${err.message}`);
+    throw new BadRequestError(
+      `[Err when convert ${file.originalname}]: ${err.message}`
+    );
   }
 };
 
@@ -251,9 +255,7 @@ const getShippingCostFormulas = (
           const firstCell = cellReferences[0];
           const secondCell = cellReferences[1];
 
-          // Get the value of the first cell
           const firstCellValue = worksheet[firstCell].v;
-          // Get the value of the second cell
           const secondCellValue = worksheet[secondCell].v;
 
           priceFormula = `${firstCellValue} / ${secondCellValue}`;
@@ -285,17 +287,20 @@ const getShippingCostFormulas = (
         }
       }
 
+      let priceShippingFormulaYuan;
       if (cell?.w?.includes(cashSymbolConst.yuan)) {
+        priceShippingFormulaYuan = priceFormula;
         if (exchangeRate) {
           priceFormula = `${priceFormula} / ${exchangeRate}`;
         }
       }
-      jsonData[rowIndex - 1].shippingFormula = priceFormula;
+      jsonData[rowIndex - 1].priceShippingFormulaUsd = priceFormula;
+      jsonData[rowIndex - 1].priceShippingFormulaYuan = priceShippingFormulaYuan;
     }
   }
 };
 
-export const jsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
+export const cogsJsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
   try {
     if (json.length === 0) {
       throw new Error("The JSON data is empty.");
@@ -331,11 +336,7 @@ export const jsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
       firstRowNum,
       lastRowNum,
     });
-
-    // add number format
     addNumberFormatToWorksheet(worksheet);
-
-    // Style cells
     addStyleToWorksheet(worksheet, firstRowNum);
 
     const xlsxBuffer = await workbook.xlsx.writeBuffer();
@@ -510,4 +511,64 @@ export const getFileType = (file) => {
   }
 
   return FILE_TYPE.ORDER_1;
+};
+
+export async function createExcelBuffer(jsonData) {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Sheet 1");
+
+  const columns = Object.keys(jsonData[0]).map((key) => ({
+    header: key,
+    key,
+    width: 20,
+  }));
+  worksheet.columns = columns;
+
+  jsonData.forEach((item) => worksheet.addRow(item));
+  jsonData.forEach((item, index) => {
+    const rowNumber = index + 2;
+
+    // const { totalUsd, totalCny } = item;
+    const totalUsdFormula = item[SHIPMENT_OUTPUT_KEY_NAME.TOTAL_USD];
+    const totalCnyFormula = item[SHIPMENT_OUTPUT_KEY_NAME.TOTAL_CNY];
+    const cnyPriceFormula = item[SHIPMENT_OUTPUT_KEY_NAME.CNY_PRICE];
+    const usdPriceFormula = item[SHIPMENT_OUTPUT_KEY_NAME.USD_PRICE];
+
+    const totalUsdCellAdd = `${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${rowNumber}`;
+    const totalCnyCellAdd = `${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}${rowNumber}`;
+    const cnyPriceCellAdd = `${SHIPMENT_OUTPUT_COL_ALPHABET.CNY_PRICE}${rowNumber}`;
+    const usdPriceCellAdd = `${SHIPMENT_OUTPUT_COL_ALPHABET.USD_PRICE}${rowNumber}`;
+
+    setCellFormula(worksheet, totalCnyCellAdd, totalCnyFormula);
+    setCellFormula(worksheet, totalUsdCellAdd, totalUsdFormula);
+    setCellFormula(worksheet, cnyPriceCellAdd, cnyPriceFormula);
+    setCellFormula(worksheet, usdPriceCellAdd, usdPriceFormula);
+  });
+  addStyleToShipment(worksheet);
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return buffer;
+}
+
+const addStyleToShipment = (worksheet, firstRowNum = 2) => {
+  worksheet.eachRow((row, rowNumber) => {
+    row.eachCell((cell, colNumber) => {
+      if (rowNumber == 1) {
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: "FF00FF00" },
+        };
+        cell.font = { bold: true };
+      }
+
+      const isNumber = typeof cell.value === "number";
+      const isFormula =
+        cell.value && typeof cell.value === "object" && cell.value.formula;
+
+      if (isNumber || isFormula) {
+        cell.alignment = { vertical: "middle", horizontal: "center" };
+      }
+    });
+  });
 };

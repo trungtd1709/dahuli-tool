@@ -19,13 +19,16 @@ import { refactorSkuListFunc } from "../../helper/data-output-helper/index.js";
 import { getDataTsvFile } from "../../helper/tsv-helper/index.js";
 import {
   getFileType,
-  jsonToXlsx,
+  cogsJsonToXlsx,
   xlsxToJSON,
+  createExcelBuffer,
 } from "../../helper/xlsx-helper/index.js";
 import {
   FILE_TYPE,
   inputKeyName,
   KEY_PREFERENCES,
+  SHIPMENT_OUTPUT_COL_ALPHABET,
+  SHIPMENT_OUTPUT_KEY_NAME,
 } from "../../shared/constant.js";
 import {
   MISSING_ORDER_1_FILE,
@@ -33,10 +36,11 @@ import {
   MISSING_TSV_FILE,
 } from "../../shared/err-const.js";
 import { isEmptyValue, mergeArrays, now } from "../../shared/utils.js";
+import JSZip from "jszip";
 
 /**
  * @param {Array.<Express.Multer.File>} files - An array of Multer file objects.
- * @returns {Promise<void>}
+ * @returns {Promise<>}
  */
 export const calculateGood = async (files = []) => {
   let mergeSkuList = [];
@@ -45,6 +49,9 @@ export const calculateGood = async (files = []) => {
   let rawInputShippingCost = [];
   let rawJsonOrder1 = [];
   let shipmentData = [];
+
+  let shipment;
+  const zip = new JSZip();
 
   try {
     files = files.map((file) => {
@@ -80,7 +87,8 @@ export const calculateGood = async (files = []) => {
       let inputShippingCost = [];
       let skuList = totalSkuList;
       let elementsPrice = [];
-      let shipment, originalShipment, shipmentId;
+      shipment = "";
+      let originalShipment, shipmentId;
       shipmentId = inputTsvData[0].shipmentId;
 
       if (!isEmptyValue(shipmentData)) {
@@ -137,15 +145,87 @@ export const calculateGood = async (files = []) => {
       );
       skuList = addCogsAndAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
+
+      let allElements = skuList
+        .map((sku) => {
+          let { elements = [], quantity } = sku;
+          elements = elements.map((element) => {
+            const elementQuantity = element?.quantity ?? 0;
+            const totalElementQuantity = elementQuantity * quantity;
+            return { ...element, quantity: totalElementQuantity };
+          });
+          return elements;
+        })
+        .flat();
+
+      allElements = Object.values(
+        allElements.reduce((accumulator, current) => {
+          if (accumulator[current.name]) {
+            accumulator[current.name].quantity += current.quantity;
+          } else {
+            accumulator[current.name] = { ...current };
+          }
+          return accumulator;
+        }, {})
+      );
+
+      allElements = allElements.map((element) => {
+        const { quantity, usdPrice, cnyPrice } = element;
+        const totalUsd = `${usdPrice} * ${quantity}`;
+        const totalCny = `${cnyPrice} * ${quantity}`;
+        return { ...element, totalCny, totalUsd };
+      });
+
+      inputShippingCost.forEach((item) => {
+        const { isDomestic, shipment } = item;
+        const totalShipmentUsd = item?.totalUsd;
+        const totalShipmentCny = item?.totalCny;
+
+        let shipmentSkuQuantity = 0;
+        skuList.forEach((item) => {
+          const { quantity = 0 } = item;
+          shipmentSkuQuantity += quantity;
+        });
+
+        const totalCny = `${totalShipmentCny} / ${totalShipmentQuantity} * ${shipmentSkuQuantity}`;
+        const totalUsd = `${totalShipmentUsd} / ${totalShipmentQuantity} * ${shipmentSkuQuantity}`;
+
+        const shippingName = `${
+          isDomestic ? "Domestic" : "International"
+        } shipping cost ${shipment}`;
+        let shippingElement = {
+          name: shippingName,
+          // totalCny,
+          // totalUsd,
+        };
+        if (totalShipmentCny) {
+          shippingElement.totalCny = totalCny;
+        }
+        if (totalShipmentUsd) {
+          shippingElement.totalUsd = totalUsd;
+        }
+        allElements.push(shippingElement);
+      });
+
+      const totalElement = {};
+
       skuList = removeSkuKey(skuList);
+
+      allElements = refactorAllElements(allElements);
+      const shipmentResultFileBuffer = await createExcelBuffer(allElements);
+      zip.file(`Shipment - ${originalShipment}.xlsx`, shipmentResultFileBuffer);
 
       mergeSkuList = [...mergeSkuList, ...skuList];
     }
 
     const refactorSkuList = refactorSkuListFunc(mergeSkuList);
-    const xlsxBuffer = await jsonToXlsx({ json: refactorSkuList });
-    // return { xlsxBuffer, shipment, shipmentId };
+    const cogsXlsxBuffer = await cogsJsonToXlsx({ json: refactorSkuList });
+    zip.file(`${shipment}-cogs.xlsx`, cogsXlsxBuffer);
+
+    const zipFile = zip.generateAsync({ type: "nodebuffer" });
+    return zipFile;
     return xlsxBuffer;
+    return { xlsxBuffer, shipment, shipmentId };
   } catch (err) {
     console.log(`${now()}: [${err}]`);
     throw new BadRequestError(err.message);
@@ -238,4 +318,20 @@ const getTsvFilesArr = (files = []) => {
     throw new BadRequestError(MISSING_TSV_FILE);
   }
   return tsvFilesArr;
+};
+
+const refactorAllElements = (allElements = []) => {
+  return allElements.map((element, index) => {
+    const { name, quantity, cnyPrice, usdPrice, totalCny, totalUsd } = element;
+    return {
+      [SHIPMENT_OUTPUT_KEY_NAME.NO]: index + 1,
+      [SHIPMENT_OUTPUT_KEY_NAME.PRODUCT_NAME]: name,
+      [SHIPMENT_OUTPUT_KEY_NAME.IMAGE]: "",
+      [SHIPMENT_OUTPUT_KEY_NAME.QUANTITY]: quantity,
+      [SHIPMENT_OUTPUT_KEY_NAME.CNY_PRICE]: cnyPrice,
+      [SHIPMENT_OUTPUT_KEY_NAME.USD_PRICE]: usdPrice,
+      [SHIPMENT_OUTPUT_KEY_NAME.TOTAL_CNY]: totalCny,
+      [SHIPMENT_OUTPUT_KEY_NAME.TOTAL_USD]: totalUsd,
+    };
+  });
 };

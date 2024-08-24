@@ -25,6 +25,9 @@ export const calculatePpuPrice = (skuList, goodsPrice) => {
       const usdPrice = `${cnyPrice} / ${exchangeRate}`;
       const quantity = parseInt(element.quantity) || 1;
 
+      element.cnyPrice = cnyPrice;
+      element.usdPrice = usdPrice;
+
       let totalGoodsPrice = usdPrice;
       if (quantity > 1) {
         totalGoodsPrice = `${usdPrice} * ${quantity}`;

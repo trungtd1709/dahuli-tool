@@ -110,3 +110,25 @@ export const CHECK_KEYWORD = {
   TOTAL_CNY: "total cny",
   TOTAL: "total",
 };
+
+export const SHIPMENT_OUTPUT_KEY_NAME = {
+  NO: "No",
+  PRODUCT_NAME: "Product name",
+  IMAGE: "Image",
+  QUANTITY: "Quantity",
+  CNY_PRICE: "Price CNY",
+  USD_PRICE: "Price USD",
+  TOTAL_CNY: "Total CNY",
+  TOTAL_USD: "Total USD",
+};
+
+export const SHIPMENT_OUTPUT_COL_ALPHABET = {
+  NO: "A",
+  PRODUCT_NAME: "B",
+  IMAGE: "C",
+  QUANTITY: "D",
+  CNY_PRICE: "E",
+  USD_PRICE: "F",
+  TOTAL_CNY: "G",
+  TOTAL_USD: "H",
+};
