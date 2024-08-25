@@ -198,12 +198,8 @@ export const calculateGood = async (files = []) => {
           // totalCny,
           // totalUsd,
         };
-        if (totalShipmentCny) {
-          shippingElement.totalCny = totalCny;
-        }
-        if (totalShipmentUsd) {
-          shippingElement.totalUsd = totalUsd;
-        }
+        shippingElement.totalCny = totalShipmentCny ? totalCny : "";
+        shippingElement.totalUsd = totalShipmentUsd ? totalUsd : "";
         allElements.push(shippingElement);
       });
 

@@ -16,7 +16,12 @@ import {
   SHIPMENT_OUTPUT_COL_ALPHABET,
   SHIPMENT_OUTPUT_KEY_NAME,
 } from "../../shared/constant.js";
-import { isEmptyValue, now, removeStringOnce } from "../../shared/utils.js";
+import {
+  isEmptyValue,
+  now,
+  removeStringOnce,
+  removeWhitespace,
+} from "../../shared/utils.js";
 import { BadRequestError } from "../../error/bad-request-err.js";
 // import { fileURLToPath } from "url";
 
@@ -287,15 +292,20 @@ const getShippingCostFormulas = (
         }
       }
 
-      let priceShippingFormulaYuan;
       if (cell?.w?.includes(cashSymbolConst.yuan)) {
-        priceShippingFormulaYuan = priceFormula;
         if (exchangeRate) {
           priceFormula = `${priceFormula} / ${exchangeRate}`;
         }
       }
+
+      if (priceFormula?.includes(exchangeRate)) {
+        const priceShippingFormulaYuan = removeWhitespace(
+          priceFormula
+        )?.replace(`/${exchangeRate}`, "");
+        jsonData[rowIndex - 1].priceShippingFormulaYuan =
+          priceShippingFormulaYuan;
+      }
       jsonData[rowIndex - 1].priceShippingFormulaUsd = priceFormula;
-      jsonData[rowIndex - 1].priceShippingFormulaYuan = priceShippingFormulaYuan;
     }
   }
 };

@@ -163,3 +163,7 @@ export function removeStringOnce(baseString, stringToRemove) {
 
   return result.trim(); // Trim to remove any leading/trailing whitespace
 }
+
+export const removeWhitespace = (string) => {
+  return string?.replace(/\s+/g, "");
+}

@@ -245,10 +245,12 @@ const transformShippingCostItem = (
     productName: name,
     weight,
     priceShippingFormulaUsd,
+    priceShippingFormulaYuan,
     paymentCostDivisor,
     exchangeRate
   } = obj;
   const totalUsd = `(${priceShippingFormulaUsd} * ${weight})`;
+  const totalCny = `(${priceShippingFormulaYuan} * ${weight})`;
   const lowerCaseShipName = name.toLowerCase();
   // ko chứa chữ domestic mặc định là international
   const isDomestic = lowerCaseShipName.includes(KEY_PREFERENCES.domestic);
@@ -257,6 +259,7 @@ const transformShippingCostItem = (
     shipmentId,
     shipment,
     totalUsd,
+    totalCny,
     weight,
     isDomestic,
     paymentCostDivisor,
