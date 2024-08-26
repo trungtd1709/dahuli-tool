@@ -582,3 +582,7 @@ const addStyleToShipment = (worksheet, firstRowNum = 2) => {
     });
   });
 };
+
+const addNumberFormatToShipment = () => {
+
+}

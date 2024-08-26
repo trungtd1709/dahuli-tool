@@ -99,7 +99,7 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
   // add phí ship nội địa vào obj nếu có
   for (let [index, item] of rawJson.entries()) {
     const productName = item?.productName?.toLowerCase() ?? "";
-    const totalCny = item?.[inputKeyName.totalCny].toString();
+    const totalCny = item?.[inputKeyName.totalCny]?.toString();
     const quantity = item?.quantity;
     const exchangeRate = item[inputKeyName.exchangeRate];
 
@@ -165,10 +165,10 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
   // rawJson = rawJson.filter((item) => item?.[inputKeyName.price]);
   rawJson = rawJson.filter((obj) => {
     return (
-      !obj.productName.toLowerCase().includes("domestic") &&
+      !obj.productName?.toLowerCase()?.includes("domestic") &&
       !(
-        obj.productName.toLowerCase().includes("labeling") &&
-        obj.productName.toLowerCase().includes("packing")
+        obj.productName?.toLowerCase()?.includes("labeling") &&
+        obj.productName?.toLowerCase()?.includes("packing")
       )
     );
   });
@@ -247,10 +247,17 @@ const transformShippingCostItem = (
     priceShippingFormulaUsd,
     priceShippingFormulaYuan,
     paymentCostDivisor,
-    exchangeRate
+    exchangeRate,
   } = obj;
-  const totalUsd = `(${priceShippingFormulaUsd} * ${weight})`;
-  const totalCny = `(${priceShippingFormulaYuan} * ${weight})`;
+  let totalUsd = "";
+  let totalCny = "";
+
+  if (priceShippingFormulaUsd && weight) {
+    totalUsd = `(${priceShippingFormulaUsd} * ${weight})`;
+  }
+  if (priceShippingFormulaYuan && weight) {
+    totalCny = `(${priceShippingFormulaYuan} * ${weight})`;
+  }
   const lowerCaseShipName = name.toLowerCase();
   // ko chứa chữ domestic mặc định là international
   const isDomestic = lowerCaseShipName.includes(KEY_PREFERENCES.domestic);

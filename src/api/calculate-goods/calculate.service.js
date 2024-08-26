@@ -223,7 +223,7 @@ export const calculateGood = async (files = []) => {
     return xlsxBuffer;
     return { xlsxBuffer, shipment, shipmentId };
   } catch (err) {
-    console.log(`${now()}: [${err}]`);
+    console.log(`${now()}: [${err.stack}]`);
     throw new BadRequestError(err.message);
   }
 };
