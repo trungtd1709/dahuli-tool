@@ -290,6 +290,9 @@ const getRawOrder1Data = (files = []) => {
     });
     rawJsonOrder1 = [...rawJsonOrder1, ...rawOrder1Data];
   }
+  rawJsonOrder1 = rawJsonOrder1.filter((item) => {
+    return !isEmptyValue(item?.productName);
+  });
   return rawJsonOrder1;
 };
 
