@@ -103,13 +103,17 @@ export const addCustomizeCost = (skuList, elementsPrice) => {
     const customizeObj = elementsPrice.find(
       (item) => item.name?.toLowerCase() == customizePackage?.toLowerCase()
     );
+
+    let customPackageCost = "0";
+    let cnyCustomPackageCost = "";
+
     if (!_.isEmpty(customizeObj)) {
-      const cnyPrice = customizeObj.price;
+      cnyCustomPackageCost = customizeObj.price;
       const exchangeRate = customizeObj?.exchangeRate;
-      const usdPrice = `${cnyPrice} / ${exchangeRate}`;
-      return { ...item, [inputKeyName.customPackageCost]: usdPrice };
+      const usdPrice = `${cnyCustomPackageCost} / ${exchangeRate}`;
+      customPackageCost = usdPrice;
     }
-    return { ...item, [inputKeyName.customPackageCost]: "0" };
+    return { ...item, customPackageCost, cnyCustomPackageCost };
   });
 };
 
@@ -142,7 +146,9 @@ export const addShippingAndPaymentCost = (
 
   const dataFirstRow = 2; // trong excel row đầu tiên index = 2
   const totalUnitColAlphabet = OUTPUT_COL_ALPHABET.TOTAL_UNIT;
-  const totalShipmentQuantityFormula = `SUM(${totalUnitColAlphabet}${dataFirstRow}:${totalUnitColAlphabet}${totalSkuType + 1})`;
+  const totalShipmentQuantityFormula = `SUM(${totalUnitColAlphabet}${dataFirstRow}:${totalUnitColAlphabet}${
+    totalSkuType + 1
+  })`;
   // + 1 row bù cho row column name
 
   const totalShipmentQuantityDomestic =
@@ -204,7 +210,7 @@ export const addCogsAndAmount = (skuList = []) => {
   return skuList.map((item) => {
     const {
       ppuPrice = "0",
-      [inputKeyName.customPackageCost]: customPackageCost = "0",
+      customPackageCost = "0",
       packingLabelingCost = "0",
       domesticShippingCost = "0",
       internationalShippingCost = "0",

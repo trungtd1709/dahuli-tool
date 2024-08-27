@@ -58,6 +58,7 @@ const transformOrderItem = (obj) => {
     [inputKeyName.domesticShippingCost]: domesticShippingCost,
     packingLabelingCost,
     exchangeRate,
+    order = "",
   } = obj;
 
   const itemPriceCny = evalCalculation(`${totalCny} / ${quantity}`);
@@ -71,6 +72,7 @@ const transformOrderItem = (obj) => {
     ...(domesticShippingCost && {
       [inputKeyName.domesticShippingCost]: domesticShippingCost,
     }),
+    order,
   };
 
   return newObject;
@@ -239,7 +241,7 @@ const transformShippingCostItem = (
   obj,
   shipmentId,
   shipment,
-  totalShipmentQuantity
+  totalShipmentQuantity,
 ) => {
   const {
     productName: name,
@@ -248,6 +250,7 @@ const transformShippingCostItem = (
     priceShippingFormulaYuan,
     paymentCostDivisor,
     exchangeRate,
+    order = "",
   } = obj;
   let totalUsd = "";
   let totalCny = "";
@@ -271,6 +274,7 @@ const transformShippingCostItem = (
     isDomestic,
     paymentCostDivisor,
     totalShipmentQuantity,
+    order,
   };
 };
 

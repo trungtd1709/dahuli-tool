@@ -120,6 +120,8 @@ export const SHIPMENT_OUTPUT_KEY_NAME = {
   USD_PRICE: "Price USD",
   TOTAL_CNY: "Total CNY",
   TOTAL_USD: "Total USD",
+  ORDER: "Order",
+  NOTE: "Note",
 };
 
 export const SHIPMENT_OUTPUT_COL_ALPHABET = {
@@ -131,4 +133,6 @@ export const SHIPMENT_OUTPUT_COL_ALPHABET = {
   USD_PRICE: "F",
   TOTAL_CNY: "G",
   TOTAL_USD: "H",
+  ORDER: "I",
+  ORDER: "J",
 };

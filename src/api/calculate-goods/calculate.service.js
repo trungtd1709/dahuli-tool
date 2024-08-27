@@ -56,7 +56,8 @@ export const calculateGood = async (files = []) => {
   try {
     files = files.map((file) => {
       const fileType = getFileType(file);
-      return { ...file, fileType };
+      const order = file.originalname.split("-")[0];
+      return { ...file, fileType, order };
     });
 
     const tsvFilesArr = getTsvFilesArr(files);
@@ -125,7 +126,9 @@ export const calculateGood = async (files = []) => {
         ...inputShippingCost,
         ...domesticShippingCostArr,
         ...internationalShippingCostArr,
-      ];
+      ].sort((a, b) => {
+        return b?.isDomestic - a?.isDomestic;
+      });
 
       skuList = mergeArrays(inputTsvData, skuList, inputKeyName.sku).filter(
         (item) => !_.isEmpty(item?.elements)
@@ -148,7 +151,22 @@ export const calculateGood = async (files = []) => {
 
       let allElements = skuList
         .map((sku) => {
+          const {
+            customizePackage = "",
+            customPackageCost = "",
+            cnyCustomPackageCost = "",
+          } = sku;
           let { elements = [], quantity } = sku;
+
+          if (!isEmptyValue(customizePackage)) {
+            const customizePackageObj = {
+              name: customizePackage,
+              quantity: 1,
+              cnyPrice: cnyCustomPackageCost,
+              usdPrice: customPackageCost,
+            };
+            elements.push(customizePackageObj);
+          }
           elements = elements.map((element) => {
             const elementQuantity = element?.quantity ?? 0;
             const totalElementQuantity = elementQuantity * quantity;
@@ -177,7 +195,7 @@ export const calculateGood = async (files = []) => {
       });
 
       inputShippingCost.forEach((item) => {
-        const { isDomestic, shipment } = item;
+        const { isDomestic, order = "" } = item;
         const totalShipmentUsd = item?.totalUsd;
         const totalShipmentCny = item?.totalCny;
 
@@ -192,21 +210,17 @@ export const calculateGood = async (files = []) => {
 
         const shippingName = `${
           isDomestic ? "Domestic" : "International"
-        } shipping cost ${shipment}`;
+        } shipping cost ${originalShipment}`;
         let shippingElement = {
           name: shippingName,
-          // totalCny,
-          // totalUsd,
+          order,
         };
         shippingElement.totalCny = totalShipmentCny ? totalCny : "";
         shippingElement.totalUsd = totalShipmentUsd ? totalUsd : "";
         allElements.push(shippingElement);
       });
 
-      const totalElement = {};
-
       skuList = removeSkuKey(skuList);
-
       allElements = refactorAllElements(allElements);
       const shipmentResultFileBuffer = await createExcelBuffer(allElements);
       zip.file(`Shipment - ${originalShipment}.xlsx`, shipmentResultFileBuffer);
@@ -220,8 +234,6 @@ export const calculateGood = async (files = []) => {
 
     const zipFile = zip.generateAsync({ type: "nodebuffer" });
     return zipFile;
-    return xlsxBuffer;
-    return { xlsxBuffer, shipment, shipmentId };
   } catch (err) {
     console.log(`${now()}: [${err.stack}]`);
     throw new BadRequestError(err.message);
@@ -243,11 +255,14 @@ const getRawInputShippingCost = (files = []) => {
 
   if (!isEmptyValue(shippingListFiles)) {
     shippingListFiles.forEach((shippingFile) => {
+      const { order } = shippingFile;
       const rawJson = xlsxToJSON({
         file: shippingFile,
         paymentCostKeyName: inputKeyName.totalUsd,
         exchangeRateKeyName: inputKeyName.totalUsd,
         isShippingFile: true,
+      }).map((item) => {
+        return { ...item, order };
       });
       rawInputShippingCost = [...rawInputShippingCost, ...rawJson];
     });
@@ -284,9 +299,12 @@ const getRawOrder1Data = (files = []) => {
   }
 
   for (const order1File of order1Files) {
+    const { order } = order1File;
     const rawOrder1Data = xlsxToJSON({
       file: order1File,
       exchangeRateKeyName: inputKeyName.totalUsd,
+    }).map((item) => {
+      return { ...item, order };
     });
     rawJsonOrder1 = [...rawJsonOrder1, ...rawOrder1Data];
   }
@@ -321,7 +339,15 @@ const getTsvFilesArr = (files = []) => {
 
 const refactorAllElements = (allElements = []) => {
   return allElements.map((element, index) => {
-    const { name, quantity, cnyPrice, usdPrice, totalCny, totalUsd } = element;
+    const {
+      name,
+      quantity,
+      cnyPrice,
+      usdPrice,
+      totalCny,
+      totalUsd,
+      order = "",
+    } = element;
     return {
       [SHIPMENT_OUTPUT_KEY_NAME.NO]: index + 1,
       [SHIPMENT_OUTPUT_KEY_NAME.PRODUCT_NAME]: name,
@@ -331,6 +357,8 @@ const refactorAllElements = (allElements = []) => {
       [SHIPMENT_OUTPUT_KEY_NAME.USD_PRICE]: usdPrice,
       [SHIPMENT_OUTPUT_KEY_NAME.TOTAL_CNY]: totalCny,
       [SHIPMENT_OUTPUT_KEY_NAME.TOTAL_USD]: totalUsd,
+      [SHIPMENT_OUTPUT_KEY_NAME.ORDER]: order,
+      [SHIPMENT_OUTPUT_KEY_NAME.NOTE]: "",
     };
   });
 };

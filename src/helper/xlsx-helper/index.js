@@ -282,10 +282,11 @@ const getShippingCostFormulas = (
         const totalCnyCell = worksheet[totalCnyCellAddress];
 
         const weight = weightCell?.v;
-        const totalCny = totalCnyCell?.f?.trim() ?? totalCnyCell?.v;
-        const multipleWeighString = `*${weight}`;
-        if (weight && totalCny && totalCny?.includes(multipleWeighString)) {
-          priceFormula = removeStringOnce(totalCny, multipleWeighString);
+        const totalCny = totalCnyCell?.f ?? totalCnyCell?.v;
+        // const multipleWeighString = `*${weight}`;
+        const multipleWeightStringPattern = new RegExp(`\\*\\s*${weight}`); // Matches "*" followed by any whitespace and then weight
+        if (weight && totalCny && multipleWeightStringPattern.test(totalCny)) {
+          priceFormula = totalCny.replace(multipleWeightStringPattern, "");
           priceFormula = `${priceFormula} / ${exchangeRate}`;
         } else {
           priceFormula = `${totalCny} / ${weight} / ${exchangeRate}`;
@@ -298,10 +299,12 @@ const getShippingCostFormulas = (
         }
       }
 
+      // check xem có / exchange rate ko, để xem là USD hay tệ
       if (priceFormula?.includes(exchangeRate)) {
-        const priceShippingFormulaYuan = removeWhitespace(
-          priceFormula
-        )?.replace(`/${exchangeRate}`, "");
+        const priceShippingFormulaYuan = priceFormula.replace(
+          new RegExp(`/\\s*${exchangeRate}`),
+          ""
+        );
         jsonData[rowIndex - 1].priceShippingFormulaYuan =
           priceShippingFormulaYuan;
       }
@@ -523,7 +526,7 @@ export const getFileType = (file) => {
   return FILE_TYPE.ORDER_1;
 };
 
-export async function createExcelBuffer(jsonData) {
+export async function createExcelBuffer(jsonData = []) {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Sheet 1");
 
@@ -535,6 +538,7 @@ export async function createExcelBuffer(jsonData) {
   worksheet.columns = columns;
 
   jsonData.forEach((item) => worksheet.addRow(item));
+  worksheet.addRow({ [SHIPMENT_OUTPUT_KEY_NAME.PRODUCT_NAME]: "TOTAL" });
   jsonData.forEach((item, index) => {
     const rowNumber = index + 2;
 
@@ -554,6 +558,27 @@ export async function createExcelBuffer(jsonData) {
     setCellFormula(worksheet, cnyPriceCellAdd, cnyPriceFormula);
     setCellFormula(worksheet, usdPriceCellAdd, usdPriceFormula);
   });
+
+  const lastRowIndex = jsonData.length + 1;
+  const sumQuantityFormula = `SUM(${
+    SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY
+  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${lastRowIndex})`;
+  const sumTotalCnyFormula = `SUM(${
+    SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY
+  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}${lastRowIndex})`;
+  const sumTotalUsdFormula = `SUM(${
+    SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD
+  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${lastRowIndex})`;
+
+  const totalRowIndex = lastRowIndex + 1;
+  const totalQuantityCellAdd = `${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${totalRowIndex}`;
+  const totalTotalCnyCellAdd = `${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}${totalRowIndex}`;
+  const totalTotalUsdCellAdd = `${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${totalRowIndex}`;
+
+  setCellFormula(worksheet, totalQuantityCellAdd, sumQuantityFormula);
+  setCellFormula(worksheet, totalTotalCnyCellAdd, sumTotalCnyFormula);
+  setCellFormula(worksheet, totalTotalUsdCellAdd, sumTotalUsdFormula);
+
   addStyleToShipment(worksheet);
 
   const buffer = await workbook.xlsx.writeBuffer();
@@ -583,6 +608,4 @@ const addStyleToShipment = (worksheet, firstRowNum = 2) => {
   });
 };
 
-const addNumberFormatToShipment = () => {
-
-}
+const addNumberFormatToShipment = () => {};

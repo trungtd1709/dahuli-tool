@@ -161,7 +161,7 @@ export function removeStringOnce(baseString, stringToRemove) {
   // Replace only the first occurrence
   const result = baseString.replace(regex, '');
 
-  return result.trim(); // Trim to remove any leading/trailing whitespace
+  return result; // Trim to remove any leading/trailing whitespace
 }
 
 export const removeWhitespace = (string) => {
