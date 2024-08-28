@@ -148,84 +148,17 @@ export const calculateGood = async (files = []) => {
       );
       skuList = addCogsAndAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
+      skuList = removeSkuKey(skuList);
+      mergeSkuList = [...mergeSkuList, ...skuList];
 
-      let allElements = skuList
-        .map((sku) => {
-          const {
-            customizePackage = "",
-            customPackageCost = "",
-            cnyCustomPackageCost = "",
-          } = sku;
-          let { elements = [], quantity } = sku;
-
-          if (!isEmptyValue(customizePackage)) {
-            const customizePackageObj = {
-              name: customizePackage,
-              quantity: 1,
-              cnyPrice: cnyCustomPackageCost,
-              usdPrice: customPackageCost,
-            };
-            elements.push(customizePackageObj);
-          }
-          elements = elements.map((element) => {
-            const elementQuantity = element?.quantity ?? 0;
-            const totalElementQuantity = elementQuantity * quantity;
-            return { ...element, quantity: totalElementQuantity };
-          });
-          return elements;
-        })
-        .flat();
-
-      allElements = Object.values(
-        allElements.reduce((accumulator, current) => {
-          if (accumulator[current.name]) {
-            accumulator[current.name].quantity += current.quantity;
-          } else {
-            accumulator[current.name] = { ...current };
-          }
-          return accumulator;
-        }, {})
+      await addShipmentResultFileToZip(
+        skuList,
+        inputShippingCost,
+        originalShipment,
+        totalShipmentQuantity,
+        zip
       );
 
-      allElements = allElements.map((element) => {
-        const { quantity, usdPrice, cnyPrice } = element;
-        const totalUsd = `${usdPrice} * ${quantity}`;
-        const totalCny = `${cnyPrice} * ${quantity}`;
-        return { ...element, totalCny, totalUsd };
-      });
-
-      inputShippingCost.forEach((item) => {
-        const { isDomestic, order = "" } = item;
-        const totalShipmentUsd = item?.totalUsd;
-        const totalShipmentCny = item?.totalCny;
-
-        let shipmentSkuQuantity = 0;
-        skuList.forEach((item) => {
-          const { quantity = 0 } = item;
-          shipmentSkuQuantity += quantity;
-        });
-
-        const totalCny = `${totalShipmentCny} / ${totalShipmentQuantity} * ${shipmentSkuQuantity}`;
-        const totalUsd = `${totalShipmentUsd} / ${totalShipmentQuantity} * ${shipmentSkuQuantity}`;
-
-        const shippingName = `${
-          isDomestic ? "Domestic" : "International"
-        } shipping cost ${originalShipment}`;
-        let shippingElement = {
-          name: shippingName,
-          order,
-        };
-        shippingElement.totalCny = totalShipmentCny ? totalCny : "";
-        shippingElement.totalUsd = totalShipmentUsd ? totalUsd : "";
-        allElements.push(shippingElement);
-      });
-
-      skuList = removeSkuKey(skuList);
-      allElements = refactorAllElements(allElements);
-      const shipmentResultFileBuffer = await createExcelBuffer(allElements);
-      zip.file(`Shipment - ${originalShipment}.xlsx`, shipmentResultFileBuffer);
-
-      mergeSkuList = [...mergeSkuList, ...skuList];
     }
 
     const refactorSkuList = refactorSkuListFunc(mergeSkuList);
@@ -238,6 +171,91 @@ export const calculateGood = async (files = []) => {
     console.log(`${now()}: [${err.stack}]`);
     throw new BadRequestError(err.message);
   }
+};
+
+const addShipmentResultFileToZip = async (
+  skuList,
+  inputShippingCost,
+  originalShipment,
+  totalShipmentQuantity,
+  zip
+) => {
+  let allElements = skuList
+    .map((sku) => {
+      const {
+        customizePackage = "",
+        customPackageCost = "",
+        cnyCustomPackageCost = "",
+      } = sku;
+      let { elements = [], quantity } = sku;
+
+      if (!isEmptyValue(customizePackage)) {
+        const customizePackageObj = {
+          name: customizePackage,
+          quantity: 1,
+          cnyPrice: cnyCustomPackageCost,
+          usdPrice: customPackageCost,
+        };
+        elements = [...elements, customizePackageObj];
+      }
+      elements = elements.map((element) => {
+        const elementQuantity = element?.quantity ?? 0;
+        const totalElementQuantity = elementQuantity * quantity;
+        return { ...element, quantity: totalElementQuantity };
+      });
+      return elements;
+    })
+    .flat();
+
+  allElements = Object.values(
+    allElements.reduce((accumulator, current) => {
+      if (accumulator[current.name]) {
+        accumulator[current.name].quantity += current.quantity;
+      } else {
+        accumulator[current.name] = { ...current };
+      }
+      return accumulator;
+    }, {})
+  );
+
+  allElements = allElements.map((element) => {
+    const { quantity, usdPrice, cnyPrice } = element;
+    const totalUsd = `${usdPrice} * ${quantity}`;
+    const totalCny = `${cnyPrice} * ${quantity}`;
+    return { ...element, totalCny, totalUsd };
+  });
+
+  inputShippingCost.forEach((item) => {
+    const { isDomestic, order = "" } = item;
+    const totalShipmentUsd = item?.totalUsd;
+    const totalShipmentCny = item?.totalCny;
+
+    let shipmentSkuQuantity = 0;
+    skuList.forEach((item) => {
+      const { quantity = 0 } = item;
+      shipmentSkuQuantity += quantity;
+    });
+
+    const totalCny = `${totalShipmentCny} / ${totalShipmentQuantity} * ${shipmentSkuQuantity}`;
+    const totalUsd = `${totalShipmentUsd} / ${totalShipmentQuantity} * ${shipmentSkuQuantity}`;
+
+    const shippingName = `${
+      isDomestic ? "Domestic" : "International"
+    } shipping cost ${originalShipment}`;
+    let shippingElement = {
+      name: shippingName,
+      order,
+    };
+    shippingElement.totalCny = totalShipmentCny ? totalCny : "";
+    shippingElement.totalUsd = totalShipmentUsd ? totalUsd : "";
+    allElements.push(shippingElement);
+  });
+
+  skuList = removeSkuKey(skuList);
+  allElements = refactorAllElements(allElements);
+  const shipmentResultFileBuffer = await createExcelBuffer(allElements);
+  zip.file(`Shipment - ${originalShipment}.xlsx`, shipmentResultFileBuffer);
+  return;
 };
 
 const removeSkuKey = (skuList = []) => {

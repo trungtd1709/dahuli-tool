@@ -8,7 +8,7 @@ export const refactorSkuListFunc = (skuList) => {
       quantity,
       shipmentId,
       ppuPrice,
-      [inputKeyName.customPackageCost]: customPackageCost,
+      customPackageCost,
       packingLabelingCost,
       domesticShippingCost,
       internationalShippingCost,
