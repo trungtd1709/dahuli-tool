@@ -1,4 +1,4 @@
-import { inputKeyName, OUTPUT_KEY_NAME } from "../../shared/constant.js";
+import { inputKeyName, OUTPUT_KEY_NAME, SHIPMENT_OUTPUT_KEY_NAME } from "../../shared/constant.js";
 import { isEmptyValue } from "../../shared/utils.js";
 
 export const refactorSkuListFunc = (skuList) => {
@@ -48,4 +48,30 @@ export const refactorSkuListFunc = (skuList) => {
   });
 
   return refactorSkuList;
+};
+
+export const refactorElements = (allElements = []) => {
+  return allElements.map((element, index) => {
+    const {
+      name,
+      quantity,
+      cnyPrice,
+      usdPrice,
+      totalCny,
+      totalUsd,
+      order = "",
+    } = element;
+    return {
+      [SHIPMENT_OUTPUT_KEY_NAME.NO]: index + 1,
+      [SHIPMENT_OUTPUT_KEY_NAME.PRODUCT_NAME]: name,
+      [SHIPMENT_OUTPUT_KEY_NAME.IMAGE]: "",
+      [SHIPMENT_OUTPUT_KEY_NAME.QUANTITY]: quantity,
+      [SHIPMENT_OUTPUT_KEY_NAME.CNY_PRICE]: cnyPrice,
+      [SHIPMENT_OUTPUT_KEY_NAME.USD_PRICE]: usdPrice,
+      [SHIPMENT_OUTPUT_KEY_NAME.TOTAL_CNY]: totalCny,
+      [SHIPMENT_OUTPUT_KEY_NAME.TOTAL_USD]: totalUsd,
+      [SHIPMENT_OUTPUT_KEY_NAME.ORDER]: order,
+      [SHIPMENT_OUTPUT_KEY_NAME.NOTE]: "",
+    };
+  });
 };

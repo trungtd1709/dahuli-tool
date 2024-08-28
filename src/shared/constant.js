@@ -45,6 +45,7 @@ export const KEY_PREFERENCES = {
   labeling: "labeling",
   paymentCost: "payment cost",
   total: "total",
+  shippingCost: "shipping cost"
 };
 
 export const OUTPUT_KEY_NAME = {
@@ -134,5 +135,5 @@ export const SHIPMENT_OUTPUT_COL_ALPHABET = {
   TOTAL_CNY: "G",
   TOTAL_USD: "H",
   ORDER: "I",
-  ORDER: "J",
+  NOTE: "J",
 };

@@ -1,3 +1,4 @@
+import JSZip from "jszip";
 import _ from "lodash";
 import { BadRequestError } from "../../error/bad-request-err.js";
 import {
@@ -15,20 +16,22 @@ import {
   transformShippingCostInput,
   transformSkuListInput,
 } from "../../helper/data-input-helper/index.js";
-import { refactorSkuListFunc } from "../../helper/data-output-helper/index.js";
+import {
+  refactorElements,
+  refactorSkuListFunc,
+} from "../../helper/data-output-helper/index.js";
 import { getDataTsvFile } from "../../helper/tsv-helper/index.js";
 import {
-  getFileType,
   cogsJsonToXlsx,
+  createShipmentExcelBuffer,
+  getFileType,
   xlsxToJSON,
-  createExcelBuffer,
 } from "../../helper/xlsx-helper/index.js";
 import {
   FILE_TYPE,
-  inputKeyName,
   KEY_PREFERENCES,
-  SHIPMENT_OUTPUT_COL_ALPHABET,
-  SHIPMENT_OUTPUT_KEY_NAME,
+  OUTPUT_KEY_NAME,
+  inputKeyName,
 } from "../../shared/constant.js";
 import {
   MISSING_ORDER_1_FILE,
@@ -36,7 +39,6 @@ import {
   MISSING_TSV_FILE,
 } from "../../shared/err-const.js";
 import { isEmptyValue, mergeArrays, now } from "../../shared/utils.js";
-import JSZip from "jszip";
 
 /**
  * @param {Array.<Express.Multer.File>} files - An array of Multer file objects.
@@ -154,6 +156,7 @@ export const calculateGood = async (files = []) => {
         inputShippingCost,
         originalShipment,
         totalShipmentQuantity,
+        elementsPrice,
         zip
       );
 
@@ -178,6 +181,7 @@ const addShipmentResultFileToZip = async (
   inputShippingCost,
   originalShipment,
   totalShipmentQuantity,
+  elementsPrice = [],
   zip
 ) => {
   let allElements = skuList
@@ -219,10 +223,17 @@ const addShipmentResultFileToZip = async (
   );
 
   allElements = allElements.map((element) => {
-    const { quantity, usdPrice, cnyPrice } = element;
+    const { name, quantity, usdPrice, cnyPrice } = element;
+    const elementPriceObj = elementsPrice.find(
+      (item) => item?.name?.toLowerCase() == name?.toLowerCase()
+    );
+    let order = "";
+    if (!isEmptyValue(elementPriceObj)) {
+      order = elementPriceObj?.order;
+    }
     const totalUsd = `${usdPrice} * ${quantity}`;
     const totalCny = `${cnyPrice} * ${quantity}`;
-    return { ...element, totalCny, totalUsd };
+    return { ...element, totalCny, totalUsd, order };
   });
 
   inputShippingCost.forEach((item) => {
@@ -240,8 +251,10 @@ const addShipmentResultFileToZip = async (
     const totalUsd = `${totalShipmentUsd} / ${totalShipmentQuantity} * ${shipmentSkuQuantity}`;
 
     const shippingName = `${
-      isDomestic ? "Domestic" : "International"
-    } shipping cost ${originalShipment}`;
+      isDomestic
+        ? OUTPUT_KEY_NAME.DOMESTIC_SHIPPING_COST
+        : OUTPUT_KEY_NAME.INTERNATIONAL_SHIPPING_COST
+    } ${originalShipment}`;
     let shippingElement = {
       name: shippingName,
       order,
@@ -252,8 +265,8 @@ const addShipmentResultFileToZip = async (
   });
 
   skuList = removeSkuKey(skuList);
-  allElements = refactorAllElements(allElements);
-  const shipmentResultFileBuffer = await createExcelBuffer(allElements);
+  allElements = refactorElements(allElements);
+  const shipmentResultFileBuffer = await createShipmentExcelBuffer(allElements);
   zip.file(`Shipment - ${originalShipment}.xlsx`, shipmentResultFileBuffer);
   return;
 };
@@ -353,30 +366,4 @@ const getTsvFilesArr = (files = []) => {
     throw new BadRequestError(MISSING_TSV_FILE);
   }
   return tsvFilesArr;
-};
-
-const refactorAllElements = (allElements = []) => {
-  return allElements.map((element, index) => {
-    const {
-      name,
-      quantity,
-      cnyPrice,
-      usdPrice,
-      totalCny,
-      totalUsd,
-      order = "",
-    } = element;
-    return {
-      [SHIPMENT_OUTPUT_KEY_NAME.NO]: index + 1,
-      [SHIPMENT_OUTPUT_KEY_NAME.PRODUCT_NAME]: name,
-      [SHIPMENT_OUTPUT_KEY_NAME.IMAGE]: "",
-      [SHIPMENT_OUTPUT_KEY_NAME.QUANTITY]: quantity,
-      [SHIPMENT_OUTPUT_KEY_NAME.CNY_PRICE]: cnyPrice,
-      [SHIPMENT_OUTPUT_KEY_NAME.USD_PRICE]: usdPrice,
-      [SHIPMENT_OUTPUT_KEY_NAME.TOTAL_CNY]: totalCny,
-      [SHIPMENT_OUTPUT_KEY_NAME.TOTAL_USD]: totalUsd,
-      [SHIPMENT_OUTPUT_KEY_NAME.ORDER]: order,
-      [SHIPMENT_OUTPUT_KEY_NAME.NOTE]: "",
-    };
-  });
 };

@@ -1,32 +1,24 @@
 import ExcelJS from "exceljs";
-import fs from "fs";
-import path from "path";
-import { fileURLToPath } from "url";
 import XLSX from "xlsx";
+import { BadRequestError } from "../../error/bad-request-err.js";
 import {
   CHECK_KEYWORD,
   FILE_TYPE,
-  cashSymbolConst,
-  inputKeyName,
   KEY_PREFERENCES,
   OUTPUT_COL_ALPHABET,
   OUTPUT_KEY_NAME,
-  outputNumDecimalFormat,
-  sampleFolder,
   SHIPMENT_OUTPUT_COL_ALPHABET,
   SHIPMENT_OUTPUT_KEY_NAME,
+  cashSymbolConst,
+  inputKeyName,
+  outputNumDecimalFormat
 } from "../../shared/constant.js";
 import {
   isEmptyValue,
-  now,
-  removeStringOnce,
-  removeWhitespace,
+  now
 } from "../../shared/utils.js";
-import { BadRequestError } from "../../error/bad-request-err.js";
-// import { fileURLToPath } from "url";
 
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
-
 /**
  * Converts an XLSX file to JSON.
  * @param {Multer.File} options.file - The uploaded file object from Multer.
@@ -526,7 +518,7 @@ export const getFileType = (file) => {
   return FILE_TYPE.ORDER_1;
 };
 
-export async function createExcelBuffer(jsonData = []) {
+export async function createShipmentExcelBuffer(jsonData = []) {
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Sheet 1");
 
@@ -580,6 +572,7 @@ export async function createExcelBuffer(jsonData = []) {
   setCellFormula(worksheet, totalTotalUsdCellAdd, sumTotalUsdFormula);
 
   addStyleToShipment(worksheet);
+  addNumberFormatToShipment(worksheet);
 
   const buffer = await workbook.xlsx.writeBuffer();
   return buffer;
@@ -608,4 +601,19 @@ const addStyleToShipment = (worksheet, firstRowNum = 2) => {
   });
 };
 
-const addNumberFormatToShipment = () => {};
+/**
+ * @param {ExcelJS.Worksheet} worksheet
+ */
+const addNumberFormatToShipment = (worksheet) => {
+  const columnsToFormat = {
+    CNY_PRICE: "4digits",
+    USD_PRICE: "4digits",
+    TOTAL_CNY: "4digits",
+    TOTAL_USD: "4digits",
+  };
+
+  Object.entries(columnsToFormat).forEach(([key, format]) => {
+    worksheet.getColumn(SHIPMENT_OUTPUT_COL_ALPHABET[key]).numFmt =
+      outputNumDecimalFormat[format];
+  });
+};
