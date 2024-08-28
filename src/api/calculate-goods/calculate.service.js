@@ -148,8 +148,6 @@ export const calculateGood = async (files = []) => {
       );
       skuList = addCogsAndAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
-      skuList = removeSkuKey(skuList);
-      mergeSkuList = [...mergeSkuList, ...skuList];
 
       await addShipmentResultFileToZip(
         skuList,
@@ -159,6 +157,8 @@ export const calculateGood = async (files = []) => {
         zip
       );
 
+      skuList = removeSkuKey(skuList);
+      mergeSkuList = [...mergeSkuList, ...skuList];
     }
 
     const refactorSkuList = refactorSkuListFunc(mergeSkuList);

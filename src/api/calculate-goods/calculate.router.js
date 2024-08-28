@@ -6,15 +6,6 @@ export const calculateRouter = Router();
 
 calculateRouter.post(
   "/calculate/sku",
-  multerUpload.array("files", 15),
-  // multerUpload.fields([
-  //   { name: "order1File", maxCount: 1 },
-  //   { name: "printtingFeeFile", maxCount: 1 },
-  //   { name: "packingCostFile", maxCount: 1 },
-  //   { name: "shippingFile", maxCount: 1 },
-  //   { name: "skuListFile", maxCount: 1 },
-  //   { name: "tsvFile", maxCount: 1 },
-  //   { name: "allShipmentFile", maxCount: 1 },
-  // ]),
+  multerUpload.array("files", 20),
   calculateController.calculateSku
 );
