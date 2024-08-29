@@ -662,6 +662,11 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
   const worksheet = workbook.getWorksheet(1);
 
   let productNameColumnIndex = null;
+  let quantityColumnIndex = null;
+  let quantityColumnLetter = null;
+
+  let lastRowIndex;
+  const firstRowIndex = "2";
 
   const headerRow = worksheet.getRow(1);
 
@@ -676,6 +681,18 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
     ) {
       productNameColumnIndex = colNumber;
     }
+
+    if (
+      cell.value &&
+      cell.value
+        .toString()
+        .trim()
+        .toLowerCase()
+        .includes(KEY_PREFERENCES.QTY.toLowerCase())
+    ) {
+      quantityColumnIndex = colNumber;
+      quantityColumnLetter = columnIndexToLetter(quantityColumnIndex);
+    }
   });
 
   worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
@@ -686,9 +703,15 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
       rowData[headers[colNumber]] = cell.value;
     });
     jsonData.push(rowData);
+
+    lastRowIndex = rowNumber;
   });
 
   const shipmentKeys = Object.keys(shipmentObjAddToOrder).sort() ?? [];
+
+  const shipmentStartColIndex = headerRow.cellCount + 1;
+  const shipmentLastColIndex = headerRow.cellCount + shipmentKeys.length;
+  const inStockColIndex = shipmentLastColIndex + 1;
 
   shipmentKeys.forEach((shipmentKey, index) => {
     const newColIndex = headerRow.cellCount + 1;
@@ -698,19 +721,56 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber === 1) return; // Skip header row
 
-      const rowProductName =row.getCell(productNameColumnIndex).value.toLowerCase();
+      const rowProductName = row
+        .getCell(productNameColumnIndex)
+        .value.toLowerCase();
       const shipmentDatas = shipmentObjAddToOrder[shipmentKey] ?? [];
 
       const productObj = shipmentDatas.find((shipmentData) => {
         return shipmentData?.name?.toLowerCase() == rowProductName;
-      })
+      });
 
-      if(!isEmptyValue(productObj)){
+      if (!isEmptyValue(productObj)) {
         row.getCell(newColIndex).value = productObj?.quantity;
       }
     });
   });
 
+  const shipmentStartColLetter = columnIndexToLetter(shipmentStartColIndex);
+  const shipmentLastColLetter = columnIndexToLetter(shipmentLastColIndex);
+
+  worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    const formula = `${quantityColumnLetter}${rowNumber} - SUM(${shipmentStartColLetter}${rowNumber}:${shipmentLastColLetter}${rowNumber})`;
+    const cell = row.getCell(inStockColIndex);
+
+    if (cell) {
+      cell.value = { formula };
+    }
+  });
+  headerRow.getCell(inStockColIndex).value = "In stock";
+
+  for (let i = shipmentStartColIndex; i <= inStockColIndex; i++) {
+    const shipmentColLetter = columnIndexToLetter(i);
+    const shipmentTotalCellAddress = `${shipmentColLetter}${lastRowIndex}`;
+    const totalFormula = `SUM(${shipmentColLetter}${firstRowIndex}:${shipmentColLetter}${
+      lastRowIndex - 1
+    })`;
+    setCellFormula(worksheet, shipmentTotalCellAddress, totalFormula);
+  }
+
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
   return modifiedBuffer;
+}
+
+function columnIndexToLetter(columnIndex) {
+  let columnLetter = "";
+  let tempIndex = columnIndex;
+
+  while (tempIndex > 0) {
+    let remainder = (tempIndex - 1) % 26;
+    columnLetter = String.fromCharCode(remainder + 65) + columnLetter;
+    tempIndex = Math.floor((tempIndex - 1) / 26);
+  }
+
+  return columnLetter;
 }

@@ -45,7 +45,8 @@ export const KEY_PREFERENCES = {
   labeling: "labeling",
   paymentCost: "payment cost",
   total: "total",
-  shippingCost: "shipping cost"
+  shippingCost: "shipping cost",
+  QTY: "Qty"
 };
 
 export const OUTPUT_KEY_NAME = {
