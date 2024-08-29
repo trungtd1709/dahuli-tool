@@ -665,6 +665,9 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
   let quantityColumnIndex = null;
   let quantityColumnLetter = null;
 
+  let totalUsdColumnIndex = null;
+  let totalUsdColumnLetter = null;
+
   let lastRowIndex;
   const firstRowIndex = "2";
 
@@ -692,6 +695,11 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
     ) {
       quantityColumnIndex = colNumber;
       quantityColumnLetter = columnIndexToLetter(quantityColumnIndex);
+    }
+
+    if (cell.value && cell.value.toString().trim() == inputKeyName.totalUsd) {
+      totalUsdColumnIndex = colNumber;
+      totalUsdColumnLetter = columnIndexToLetter(totalUsdColumnIndex);
     }
   });
 
@@ -758,8 +766,60 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
     setCellFormula(worksheet, shipmentTotalCellAddress, totalFormula);
   }
 
+  // const costShipmentStartIndex = headerRow.cellCount + 2;
+  // const costShipmentLastColIndex =
+  //   headerRow.cellCount + 1 + shipmentKeys.length;
+
+  shipmentKeys.forEach((shipmentKey, index) => {
+    const newColIndex = headerRow.cellCount + 1;
+    headerRow.getCell(newColIndex).value = `Cost ${shipmentKey}`;
+
+    // Add data for each row under the new column
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      if (rowNumber === 1) return;
+
+      const shipmentQuantityColLetter = findColumnIndexByKeyName(
+        worksheet,
+        shipmentKey
+      );
+      const totalShipmentQuantityColLetter = `${quantityColumnLetter}${rowNumber}`;
+
+      const totalShipmentQuantityCellAddress = `${totalShipmentQuantityColLetter}${rowNumber}`;
+      const totalUsdCellAddress = `${totalUsdColumnLetter}${rowNumber}`;
+      const shipmentQuantityCellAddress = `${shipmentQuantityColLetter}${rowNumber}`;
+
+      const costFormula = `${shipmentQuantityCellAddress} * ${totalUsdCellAddress} / ${totalShipmentQuantityCellAddress}`;
+
+      const shipmentCostCell = row.getCell(newColIndex);
+      if (shipmentCostCell) {
+        shipmentCostCell.value = { formula: costFormula };
+      }
+    });
+  });
+
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
   return modifiedBuffer;
+}
+
+function findColumnIndexByKeyName(worksheet, keyName) {
+  let columnIndex = null;
+
+  // Assume the header is in the first row
+  const headerRow = worksheet.getRow(1);
+
+  // Iterate through each cell in the header row
+  headerRow.eachCell((cell, colNumber) => {
+    if (cell.value && cell.value.toString().trim() === keyName) {
+      columnIndex = colNumber;
+    }
+  });
+
+  // If the column was not found, throw an error or return null
+  if (columnIndex === null) {
+    throw new Error(`Column with header "${keyName}" not found.`);
+  }
+
+  return columnIndex;
 }
 
 function columnIndexToLetter(columnIndex) {
