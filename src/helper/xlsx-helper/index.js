@@ -692,7 +692,7 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
 
   shipmentKeys.forEach((shipmentKey, index) => {
     const newColIndex = headerRow.cellCount + 1;
-    headerRow.getCell(newColIndex).value = `Số lượng ${shipmentKey}`;
+    headerRow.getCell(newColIndex).value = shipmentKey;
 
     // Add data for each row under the new column
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
