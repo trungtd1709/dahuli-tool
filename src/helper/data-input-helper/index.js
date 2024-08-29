@@ -127,7 +127,7 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
 
     // phí tính cột riêng
     if (
-      productName.includes(KEY_PREFERENCES.domestic) &&
+      productName.includes(KEY_PREFERENCES.DOMESTIC) &&
       productName.includes(shipmentId.toLowerCase())
     ) {
       const domesticCostUsd = `${totalCny} / ${exchangeRate}`;
@@ -141,7 +141,7 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
     }
 
     if (
-      productName.includes(KEY_PREFERENCES.international) &&
+      productName.includes(KEY_PREFERENCES.INTERNATIONAL) &&
       productName.includes(shipmentId.toLowerCase())
     ) {
       const internationalCostUsd = `${totalCny} / ${exchangeRate}`;
@@ -263,7 +263,7 @@ const transformShippingCostItem = (
   }
   const lowerCaseShipName = name.toLowerCase();
   // ko chứa chữ domestic mặc định là international
-  const isDomestic = lowerCaseShipName.includes(KEY_PREFERENCES.domestic);
+  const isDomestic = lowerCaseShipName.includes(KEY_PREFERENCES.DOMESTIC);
 
   return {
     shipmentId,

@@ -11,12 +11,9 @@ import {
   SHIPMENT_OUTPUT_KEY_NAME,
   cashSymbolConst,
   inputKeyName,
-  outputNumDecimalFormat
+  outputNumDecimalFormat,
 } from "../../shared/constant.js";
-import {
-  isEmptyValue,
-  now
-} from "../../shared/utils.js";
+import { isEmptyValue, now } from "../../shared/utils.js";
 
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
 /**
@@ -617,3 +614,103 @@ const addNumberFormatToShipment = (worksheet) => {
       outputNumDecimalFormat[format];
   });
 };
+
+async function readExcelToRawJson(file) {
+  // Create a new workbook
+  const workbook = new ExcelJS.Workbook();
+
+  // Read the uploaded file buffer
+  await workbook.xlsx.load(file.buffer);
+
+  // Get the first worksheet
+  const worksheet = workbook.getWorksheet(1);
+
+  // Initialize an array to hold the data
+  const jsonArray = [];
+
+  // Get the headers from the first row
+  const headers = [];
+  worksheet.getRow(1).eachCell((cell, colNumber) => {
+    headers[colNumber] = cell.text.trim();
+  });
+
+  // Iterate over all the rows (starting from the second row)
+  worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber === 1) return; // skip header row
+
+    const rowData = {};
+    row.eachCell((cell, colNumber) => {
+      rowData[headers[colNumber]] = cell.value;
+    });
+
+    jsonArray.push(rowData);
+  });
+
+  worksheet.eachRow((row, rowNumber) => {
+    // Add data to new columns (e.g., Column D)
+    // This example adds two new columns after the existing columns
+    row.getCell(row.cellCount + 1).value = `New Col 1 Row ${rowNumber}`;
+    row.getCell(row.cellCount + 2).value = `New Col 2 Row ${rowNumber}`;
+  });
+
+  // return jsonArray;
+}
+
+export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(file.buffer);
+  const worksheet = workbook.getWorksheet(1);
+
+  let productNameColumnIndex = null;
+
+  const headerRow = worksheet.getRow(1);
+
+  const headers = [];
+  const jsonData = [];
+  headerRow.eachCell((cell, colNumber) => {
+    headers[colNumber] = cell.text.trim();
+    if (
+      cell.value &&
+      cell.value.toString().trim().toLowerCase() ===
+        inputKeyName.productName.toLowerCase()
+    ) {
+      productNameColumnIndex = colNumber;
+    }
+  });
+
+  worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber === 1) return; // Skip header row
+
+    const rowData = {};
+    row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      rowData[headers[colNumber]] = cell.value;
+    });
+    jsonData.push(rowData);
+  });
+
+  const shipmentKeys = Object.keys(shipmentObjAddToOrder).sort() ?? [];
+
+  shipmentKeys.forEach((shipmentKey, index) => {
+    const newColIndex = headerRow.cellCount + 1;
+    headerRow.getCell(newColIndex).value = shipmentKey;
+
+    // Add data for each row under the new column
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header row
+
+      const rowProductName =row.getCell(productNameColumnIndex).value.toLowerCase();
+      const shipmentDatas = shipmentObjAddToOrder[shipmentKey] ?? [];
+
+      const productObj = shipmentDatas.find((shipmentData) => {
+        return shipmentData?.name?.toLowerCase() == rowProductName;
+      })
+
+      if(!isEmptyValue(productObj)){
+        row.getCell(newColIndex).value = productObj?.quantity;
+      }
+    });
+  });
+
+  const modifiedBuffer = await workbook.xlsx.writeBuffer();
+  return modifiedBuffer;
+}

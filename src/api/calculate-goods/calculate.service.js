@@ -25,6 +25,7 @@ import {
   cogsJsonToXlsx,
   createShipmentExcelBuffer,
   getFileType,
+  modifyExcelFile,
   xlsxToJSON,
 } from "../../helper/xlsx-helper/index.js";
 import {
@@ -85,6 +86,8 @@ export const calculateGood = async (files = []) => {
       ).filter((item) => !_.isEmpty(item?.elements));
       totalSkuType += thisTsvSkuList.length;
     }
+
+    let shipmentObjAddToOrder = {};
 
     for (const inputTsvData of inputTsvDataArr) {
       let inputShippingCost = [];
@@ -151,7 +154,7 @@ export const calculateGood = async (files = []) => {
       skuList = addCogsAndAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
 
-      await addShipmentResultFileToZip(
+      const allElements = await addShipmentResultFileToZip(
         skuList,
         inputShippingCost,
         originalShipment,
@@ -160,13 +163,26 @@ export const calculateGood = async (files = []) => {
         zip
       );
 
+      shipmentObjAddToOrder[originalShipment] = allElements;
+
       skuList = removeSkuKey(skuList);
       mergeSkuList = [...mergeSkuList, ...skuList];
     }
 
+    console.log(shipmentObjAddToOrder);
+
     const refactorSkuList = refactorSkuListFunc(mergeSkuList);
     const cogsXlsxBuffer = await cogsJsonToXlsx({ json: refactorSkuList });
     zip.file(`${shipment}-cogs.xlsx`, cogsXlsxBuffer);
+
+    const order1Files = files.filter(
+      (file) => file.fileType == FILE_TYPE.ORDER_1
+    );
+
+    for (const order1File of order1Files) {
+      const newOrderBuffer = await modifyExcelFile(order1File, shipmentObjAddToOrder);
+      zip.file(order1File.originalname, newOrderBuffer);
+    }
 
     const zipFile = zip.generateAsync({ type: "nodebuffer" });
     return zipFile;
@@ -265,10 +281,12 @@ const addShipmentResultFileToZip = async (
   });
 
   skuList = removeSkuKey(skuList);
-  allElements = refactorElements(allElements);
-  const shipmentResultFileBuffer = await createShipmentExcelBuffer(allElements);
+  const refactorAllElements = refactorElements(allElements);
+  const shipmentResultFileBuffer = await createShipmentExcelBuffer(
+    refactorAllElements
+  );
   zip.file(`Shipment - ${originalShipment}.xlsx`, shipmentResultFileBuffer);
-  return;
+  return allElements;
 };
 
 const removeSkuKey = (skuList = []) => {

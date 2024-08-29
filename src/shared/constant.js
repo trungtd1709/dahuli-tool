@@ -38,8 +38,8 @@ export const inputKeyName = {
 };
 
 export const KEY_PREFERENCES = {
-  international: "internation",
-  domestic: "domestic",
+  INTERNATIONAL: "internation",
+  DOMESTIC: "domestic",
   pickUp: "pick up",
   packing: "packing",
   labeling: "labeling",
