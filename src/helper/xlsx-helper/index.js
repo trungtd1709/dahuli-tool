@@ -11,7 +11,7 @@ import {
   SHIPMENT_OUTPUT_KEY_NAME,
   cashSymbolConst,
   inputKeyName,
-  outputNumDecimalFormat,
+  OUTPUT_NUM_DECIMAL_FORMAT,
 } from "../../shared/constant.js";
 import { isEmptyValue, now } from "../../shared/utils.js";
 
@@ -413,7 +413,7 @@ const addNumberFormatToWorksheet = (worksheet) => {
 
   Object.entries(columnsToFormat).forEach(([key, format]) => {
     worksheet.getColumn(OUTPUT_COL_ALPHABET[key]).numFmt =
-      outputNumDecimalFormat[format];
+      OUTPUT_NUM_DECIMAL_FORMAT[format];
   });
 };
 
@@ -611,7 +611,7 @@ const addNumberFormatToShipment = (worksheet) => {
 
   Object.entries(columnsToFormat).forEach(([key, format]) => {
     worksheet.getColumn(SHIPMENT_OUTPUT_COL_ALPHABET[key]).numFmt =
-      outputNumDecimalFormat[format];
+      OUTPUT_NUM_DECIMAL_FORMAT[format];
   });
 };
 
@@ -757,6 +757,9 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
   });
   headerRow.getCell(inStockColIndex).value = "In stock";
 
+  headerRow.getCell(inStockColIndex + 1).value = "";
+
+  // set giá trị cho hàng total
   for (let i = shipmentStartColIndex; i <= inStockColIndex; i++) {
     const shipmentColLetter = columnIndexToLetter(i);
     const shipmentTotalCellAddress = `${shipmentColLetter}${lastRowIndex}`;
@@ -766,29 +769,33 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
     setCellFormula(worksheet, shipmentTotalCellAddress, totalFormula);
   }
 
-  // const costShipmentStartIndex = headerRow.cellCount + 2;
-  // const costShipmentLastColIndex =
-  //   headerRow.cellCount + 1 + shipmentKeys.length;
-
   shipmentKeys.forEach((shipmentKey, index) => {
     const newColIndex = headerRow.cellCount + 1;
+    const newColLetter = columnIndexToLetter(newColIndex);
+    worksheet.getColumn(newColLetter).numFmt =
+      OUTPUT_NUM_DECIMAL_FORMAT["2digits"];
     headerRow.getCell(newColIndex).value = `Cost ${shipmentKey}`;
 
     // Add data for each row under the new column
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber === 1) return;
 
-      const shipmentQuantityColLetter = findColumnIndexByKeyName(
-        worksheet,
-        shipmentKey
+      const shipmentQuantityColLetter = columnIndexToLetter(
+        findColumnIndexByKeyName(worksheet, shipmentKey)
       );
-      const totalShipmentQuantityColLetter = `${quantityColumnLetter}${rowNumber}`;
+      const totalShipmentQuantityColLetter = quantityColumnLetter;
 
       const totalShipmentQuantityCellAddress = `${totalShipmentQuantityColLetter}${rowNumber}`;
       const totalUsdCellAddress = `${totalUsdColumnLetter}${rowNumber}`;
       const shipmentQuantityCellAddress = `${shipmentQuantityColLetter}${rowNumber}`;
 
-      const costFormula = `${shipmentQuantityCellAddress} * ${totalUsdCellAddress} / ${totalShipmentQuantityCellAddress}`;
+      let costFormula = `${shipmentQuantityCellAddress} * ${totalUsdCellAddress} / ${totalShipmentQuantityCellAddress}`;
+
+      if (rowNumber === lastRowIndex) {
+        costFormula = `SUM(${newColLetter}2:${newColLetter}${
+          lastRowIndex - 1
+        })`;
+      }
 
       const shipmentCostCell = row.getCell(newColIndex);
       if (shipmentCostCell) {

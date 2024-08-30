@@ -83,7 +83,7 @@ export const OUTPUT_COL_ALPHABET = {
   TOTAL_AMOUNT: "N",
 };
 
-export const outputNumDecimalFormat = {
+export const OUTPUT_NUM_DECIMAL_FORMAT = {
   "4digits": "0.0000",
   "2digits": "0.00",
 };
