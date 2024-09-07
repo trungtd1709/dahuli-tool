@@ -716,6 +716,53 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
   const shipmentStartColLetter = columnIndexToLetter(shipmentStartColIndex);
   const shipmentLastColLetter = columnIndexToLetter(shipmentLastColIndex);
 
+  // add in stock value
+  for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
+    const row = worksheet.getRow(rowNumber);
+    const totalShipmentQuantityLetter = oldInStockIndex
+      ? columnIndexToLetter(oldInStockIndex)
+      : quantityColumnLetter;
+
+    const formula = `${totalShipmentQuantityLetter}${rowNumber} - SUM(${shipmentStartColLetter}${rowNumber}:${shipmentLastColLetter}${rowNumber})`;
+    const cell = row.getCell(inStockColIndex);
+
+    // Perform async operation
+    if (oldInStockIndex) {
+      await checkNegative(
+        worksheet,
+        totalShipmentQuantityLetter,
+        rowNumber,
+        shipmentStartColIndex,
+        shipmentLastColIndex
+      );
+    }
+
+    if (cell) {
+      cell.value = { formula };
+    }
+  }
+  // worksheet.eachRow({ includeEmpty: false }, async (row, rowNumber) => {
+  //   const totalShipmentQuantityLetter = oldInStockIndex
+  //     ? columnIndexToLetter(oldInStockIndex)
+  //     : quantityColumnLetter;
+  //   const formula = `${totalShipmentQuantityLetter}${rowNumber} - SUM(${shipmentStartColLetter}${rowNumber}:${shipmentLastColLetter}${rowNumber})`;
+  //   const cell = row.getCell(inStockColIndex);
+
+  //   if (oldInStockIndex) {
+  //     await checkNegative(
+  //       worksheet,
+  //       totalShipmentQuantityLetter,
+  //       rowNumber,
+  //       shipmentStartColIndex,
+  //       shipmentLastColIndex
+  //     );
+  //   }
+
+  //   if (cell) {
+  //     cell.value = { formula };
+  //   }
+  // });
+
   headerRow.getCell(inStockColIndex).value = SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK;
 
   headerRow.getCell(inStockColIndex + 1).value = "";
@@ -766,27 +813,6 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
     });
   });
 
-   // add in stock value
-   worksheet.eachRow({ includeEmpty: false }, async (row, rowNumber) => {
-    const totalShipmentQuantityLetter = oldInStockIndex
-      ? columnIndexToLetter(oldInStockIndex)
-      : quantityColumnLetter;
-    const formula = `${totalShipmentQuantityLetter}${rowNumber} - SUM(${shipmentStartColLetter}${rowNumber}:${shipmentLastColLetter}${rowNumber})`;
-    const cell = row.getCell(inStockColIndex);
-
-    // const formulaResult = await calculateFormula(
-    //   worksheet,
-    //   totalShipmentQuantityLetter,
-    //   rowNumber,
-    //   shipmentStartColIndex,
-    //   shipmentLastColIndex
-    // );
-
-    if (cell) {
-      cell.value = { formula };
-    }
-  });
-
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
   return modifiedBuffer;
 }
@@ -825,7 +851,7 @@ function columnIndexToLetter(columnIndex) {
   return columnLetter;
 }
 
-async function calculateFormula(
+async function checkNegative(
   worksheet,
   totalShipmentQuantityColLetter,
   rowNumber,
@@ -836,7 +862,18 @@ async function calculateFormula(
   const totalShipmentCell = worksheet.getCell(
     `${totalShipmentQuantityColLetter}${rowNumber}`
   );
-  const totalShipmentQuantity = totalShipmentCell.value;
+  const rawTotalShipmentQuantity = parseFloat(
+    totalShipmentCell.value?.result ?? totalShipmentCell.value
+  );
+
+  if (
+    isNaN(rawTotalShipmentQuantity) ||
+    isEmptyValue(rawTotalShipmentQuantity)
+  ) {
+    return;
+  }
+
+  const totalShipmentQuantity = rawTotalShipmentQuantity;
 
   // Step 2: Get the values in the shipment range
   let shipmentSum = 0;
@@ -848,18 +885,23 @@ async function calculateFormula(
     const cellLetter = columnIndexToLetter(colIndex); // Convert column index to letter
     const cellAddress = `${cellLetter}${rowNumber}`;
     const cell = worksheet.getCell(cellAddress);
-    console.log(cell.value);
     const parseCellValue = parseFloat(cell.value);
-    const cellValue = isEmptyValue(parseCellValue) || isNaN(parseCellValue) ? parseCellValue : 0;
+    const cellValue =
+      isEmptyValue(parseCellValue) || isNaN(parseCellValue)
+        ? 0
+        : parseCellValue;
 
     shipmentSum += cellValue;
   }
 
   // Step 3: Perform the formula calculation: totalShipmentQuantity - SUM(shipment range)
   const result = totalShipmentQuantity - shipmentSum;
+  if (result < 0) {
+    throw new BadRequestError("In stock < shipment sum");
+  }
 
   console.log(
     `Result for row ${rowNumber}: ${totalShipmentQuantity} - ${shipmentSum} = ${result}`
   );
-  return result;
+  return;
 }
