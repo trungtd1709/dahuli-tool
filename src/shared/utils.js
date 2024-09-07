@@ -63,7 +63,7 @@ export const isEmptyValue = (value) => {
     value === "" ||
     value === false ||
     (Array.isArray(value) && value.length === 0) || // Check for empty array
-    (typeof value === "object" && Object.keys(value).length === 0) // Check for empty object
+    (typeof value === "object" && value !== null && Object.keys(value).length === 0)
   );
 };
 

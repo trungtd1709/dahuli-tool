@@ -25,9 +25,9 @@ import {
   cogsJsonToXlsx,
   createShipmentExcelBuffer,
   getFileType,
-  modifyExcelFile,
+  modifyShipmentFile,
   xlsxToJSON,
-} from "../../helper/xlsx-helper/index.js";
+} from "../../helper/xlsx-handler/index.js";
 import {
   FILE_TYPE,
   KEY_PREFERENCES,
@@ -180,7 +180,7 @@ export const calculateGood = async (files = []) => {
     );
 
     for (const order1File of order1Files) {
-      const newOrderBuffer = await modifyExcelFile(order1File, shipmentObjAddToOrder);
+      const newOrderBuffer = await modifyShipmentFile(order1File, shipmentObjAddToOrder);
       zip.file(order1File.originalname, newOrderBuffer);
     }
 

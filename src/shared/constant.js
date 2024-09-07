@@ -124,6 +124,7 @@ export const SHIPMENT_OUTPUT_KEY_NAME = {
   TOTAL_USD: "Total USD",
   ORDER: "Order",
   NOTE: "Note",
+  IN_STOCK: "In Stock",
 };
 
 export const SHIPMENT_OUTPUT_COL_ALPHABET = {

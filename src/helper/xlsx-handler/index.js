@@ -14,6 +14,9 @@ import {
   OUTPUT_NUM_DECIMAL_FORMAT,
 } from "../../shared/constant.js";
 import { isEmptyValue, now } from "../../shared/utils.js";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
 
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
 /**
@@ -615,48 +618,7 @@ const addNumberFormatToShipment = (worksheet) => {
   });
 };
 
-async function readExcelToRawJson(file) {
-  // Create a new workbook
-  const workbook = new ExcelJS.Workbook();
-
-  // Read the uploaded file buffer
-  await workbook.xlsx.load(file.buffer);
-
-  // Get the first worksheet
-  const worksheet = workbook.getWorksheet(1);
-
-  // Initialize an array to hold the data
-  const jsonArray = [];
-
-  // Get the headers from the first row
-  const headers = [];
-  worksheet.getRow(1).eachCell((cell, colNumber) => {
-    headers[colNumber] = cell.text.trim();
-  });
-
-  // Iterate over all the rows (starting from the second row)
-  worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-    if (rowNumber === 1) return; // skip header row
-
-    const rowData = {};
-    row.eachCell((cell, colNumber) => {
-      rowData[headers[colNumber]] = cell.value;
-    });
-
-    jsonArray.push(rowData);
-  });
-
-  worksheet.eachRow((row, rowNumber) => {
-    // Add data to new columns (e.g., Column D)
-    // This example adds two new columns after the existing columns
-    row.getCell(row.cellCount + 1).value = `New Col 1 Row ${rowNumber}`;
-    row.getCell(row.cellCount + 2).value = `New Col 2 Row ${rowNumber}`;
-  });
-
-  // return jsonArray;
-}
-
-export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
+export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(file.buffer);
   const worksheet = workbook.getWorksheet(1);
@@ -664,10 +626,9 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
   let productNameColumnIndex = null;
   let quantityColumnIndex = null;
   let quantityColumnLetter = null;
-
   let totalUsdColumnIndex = null;
   let totalUsdColumnLetter = null;
-
+  let oldInStockIndex;
   let lastRowIndex;
   const firstRowIndex = "2";
 
@@ -675,19 +636,21 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
 
   const headers = [];
   const jsonData = [];
+
   headerRow.eachCell((cell, colNumber) => {
     headers[colNumber] = cell.text.trim();
+    const colKeyName = cell?.value;
     if (
-      cell.value &&
-      cell.value.toString().trim().toLowerCase() ===
+      colKeyName &&
+      colKeyName.toString().trim().toLowerCase() ===
         inputKeyName.productName.toLowerCase()
     ) {
       productNameColumnIndex = colNumber;
     }
 
     if (
-      cell.value &&
-      cell.value
+      colKeyName &&
+      colKeyName
         .toString()
         .trim()
         .toLowerCase()
@@ -697,9 +660,13 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
       quantityColumnLetter = columnIndexToLetter(quantityColumnIndex);
     }
 
-    if (cell.value && cell.value.toString().trim() == inputKeyName.totalUsd) {
+    if (colKeyName && colKeyName.toString().trim() == inputKeyName.totalUsd) {
       totalUsdColumnIndex = colNumber;
       totalUsdColumnLetter = columnIndexToLetter(totalUsdColumnIndex);
+    }
+
+    if (colKeyName === SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK) {
+      oldInStockIndex = colNumber;
     }
   });
 
@@ -717,12 +684,11 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
 
   const shipmentKeys = Object.keys(shipmentObjAddToOrder).sort() ?? [];
 
-  const shipmentStartColIndex = headerRow.cellCount + 1;
-  const shipmentLastColIndex = headerRow.cellCount + shipmentKeys.length;
-  const inStockColIndex = shipmentLastColIndex + 1;
+  const shipmentStartColIndex = headerRow.cellCount + 2;
 
+  // add quantity
   shipmentKeys.forEach((shipmentKey, index) => {
-    const newColIndex = headerRow.cellCount + 1;
+    const newColIndex = shipmentStartColIndex + index;
     headerRow.getCell(newColIndex).value = shipmentKey;
 
     // Add data for each row under the new column
@@ -744,18 +710,13 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
     });
   });
 
+  const shipmentLastColIndex = headerRow.cellCount;
+  const inStockColIndex = shipmentLastColIndex + 1;
+
   const shipmentStartColLetter = columnIndexToLetter(shipmentStartColIndex);
   const shipmentLastColLetter = columnIndexToLetter(shipmentLastColIndex);
 
-  worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-    const formula = `${quantityColumnLetter}${rowNumber} - SUM(${shipmentStartColLetter}${rowNumber}:${shipmentLastColLetter}${rowNumber})`;
-    const cell = row.getCell(inStockColIndex);
-
-    if (cell) {
-      cell.value = { formula };
-    }
-  });
-  headerRow.getCell(inStockColIndex).value = "In stock";
+  headerRow.getCell(inStockColIndex).value = SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK;
 
   headerRow.getCell(inStockColIndex + 1).value = "";
 
@@ -769,6 +730,7 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
     setCellFormula(worksheet, shipmentTotalCellAddress, totalFormula);
   }
 
+  // add cost
   shipmentKeys.forEach((shipmentKey, index) => {
     const newColIndex = headerRow.cellCount + 1;
     const newColLetter = columnIndexToLetter(newColIndex);
@@ -802,6 +764,27 @@ export async function modifyExcelFile(file, shipmentObjAddToOrder = {}) {
         shipmentCostCell.value = { formula: costFormula };
       }
     });
+  });
+
+   // add in stock value
+   worksheet.eachRow({ includeEmpty: false }, async (row, rowNumber) => {
+    const totalShipmentQuantityLetter = oldInStockIndex
+      ? columnIndexToLetter(oldInStockIndex)
+      : quantityColumnLetter;
+    const formula = `${totalShipmentQuantityLetter}${rowNumber} - SUM(${shipmentStartColLetter}${rowNumber}:${shipmentLastColLetter}${rowNumber})`;
+    const cell = row.getCell(inStockColIndex);
+
+    // const formulaResult = await calculateFormula(
+    //   worksheet,
+    //   totalShipmentQuantityLetter,
+    //   rowNumber,
+    //   shipmentStartColIndex,
+    //   shipmentLastColIndex
+    // );
+
+    if (cell) {
+      cell.value = { formula };
+    }
   });
 
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
@@ -840,4 +823,43 @@ function columnIndexToLetter(columnIndex) {
   }
 
   return columnLetter;
+}
+
+async function calculateFormula(
+  worksheet,
+  totalShipmentQuantityColLetter,
+  rowNumber,
+  shipmentStartColIndex,
+  shipmentLastColIndex
+) {
+  // Step 1: Get the value of total shipment quantity
+  const totalShipmentCell = worksheet.getCell(
+    `${totalShipmentQuantityColLetter}${rowNumber}`
+  );
+  const totalShipmentQuantity = totalShipmentCell.value;
+
+  // Step 2: Get the values in the shipment range
+  let shipmentSum = 0;
+  for (
+    let colIndex = shipmentStartColIndex;
+    colIndex <= shipmentLastColIndex;
+    colIndex++
+  ) {
+    const cellLetter = columnIndexToLetter(colIndex); // Convert column index to letter
+    const cellAddress = `${cellLetter}${rowNumber}`;
+    const cell = worksheet.getCell(cellAddress);
+    console.log(cell.value);
+    const parseCellValue = parseFloat(cell.value);
+    const cellValue = isEmptyValue(parseCellValue) || isNaN(parseCellValue) ? parseCellValue : 0;
+
+    shipmentSum += cellValue;
+  }
+
+  // Step 3: Perform the formula calculation: totalShipmentQuantity - SUM(shipment range)
+  const result = totalShipmentQuantity - shipmentSum;
+
+  console.log(
+    `Result for row ${rowNumber}: ${totalShipmentQuantity} - ${shipmentSum} = ${result}`
+  );
+  return result;
 }
