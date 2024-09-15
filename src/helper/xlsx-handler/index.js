@@ -727,7 +727,6 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
     const formula = `${totalShipmentQuantityLetter}${rowNumber} - SUM(${shipmentStartColLetter}${rowNumber}:${shipmentLastColLetter}${rowNumber})`;
     const cell = row.getCell(inStockColIndex);
 
-    // Perform async operation
     if (oldInStockIndex) {
       await checkNegative(
         worksheet,
@@ -877,7 +876,7 @@ async function checkNegative(
   // Step 3: Perform the formula calculation: totalShipmentQuantity - SUM(shipment range)
   const result = totalShipmentQuantity - shipmentSum;
   if (result < 0) {
-    throw new BadRequestError("In stock < shipment sum");
+    throw new BadRequestError(`In stock < shipment sum at row No ${rowNumber}`);
   }
 
   console.log(
