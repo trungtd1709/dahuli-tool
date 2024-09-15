@@ -266,6 +266,7 @@ const transformShippingCostItem = (
   const isDomestic = lowerCaseShipName.includes(KEY_PREFERENCES.DOMESTIC);
 
   return {
+    name,
     shipmentId,
     shipment,
     totalUsd,

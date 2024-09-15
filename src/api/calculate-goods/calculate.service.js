@@ -26,6 +26,7 @@ import {
   createShipmentExcelBuffer,
   getFileType,
   modifyShipmentFile,
+  modifyShippingFile,
   xlsxToJSON,
 } from "../../helper/xlsx-handler/index.js";
 import {
@@ -40,6 +41,7 @@ import {
   MISSING_TSV_FILE,
 } from "../../shared/err-const.js";
 import { isEmptyValue, mergeArrays, now } from "../../shared/utils.js";
+import { InputShippingCost } from "../../model/index.js";
 
 /**
  * @param {Array.<Express.Multer.File>} files - An array of Multer file objects.
@@ -52,6 +54,7 @@ export const calculateGood = async (files = []) => {
   let rawInputShippingCost = [];
   let rawJsonOrder1 = [];
   let shipmentData = [];
+  let allInputShippingCost = [];
 
   let shipment;
   const zip = new JSZip();
@@ -135,6 +138,8 @@ export const calculateGood = async (files = []) => {
         return b?.isDomestic - a?.isDomestic;
       });
 
+      allInputShippingCost = [allInputShippingCost, ...inputShippingCost];
+
       skuList = mergeArrays(inputTsvData, skuList, inputKeyName.sku).filter(
         (item) => !_.isEmpty(item?.elements)
       );
@@ -180,8 +185,52 @@ export const calculateGood = async (files = []) => {
     );
 
     for (const order1File of order1Files) {
-      const newOrderBuffer = await modifyShipmentFile(order1File, shipmentObjAddToOrder);
+      const newOrderBuffer = await modifyShipmentFile(
+        order1File,
+        shipmentObjAddToOrder
+      );
       zip.file(order1File.originalname, newOrderBuffer);
+    }
+
+    allInputShippingCost = allInputShippingCost.map((inputShippingCost) => {
+      const {
+        isDomestic,
+        name,
+        order,
+        paymentCostDivisor,
+        shipment,
+        shipmentId,
+        totalCny,
+        totalShipmentQuantity,
+        totalUsd,
+        weight,
+      } = inputShippingCost;
+      return new InputShippingCost(
+        name,
+        order,
+        shipment,
+        shipmentId,
+        totalCny,
+        totalUsd,
+        totalShipmentQuantity,
+        weight,
+        paymentCostDivisor,
+        isDomestic
+      );
+    });
+
+    const shippingFiles = files.filter(
+      (file) => file.fileType == FILE_TYPE.SHIPPING
+    );
+
+    for (const shippingFile of shippingFiles) {
+      const newShippingBuffer = await modifyShippingFile(
+        shippingFile,
+        shipmentObjAddToOrder,
+        allInputShippingCost,
+        inputTsvDataArr
+      );
+      zip.file(shippingFile.originalname, newShippingBuffer);
     }
 
     const zipFile = zip.generateAsync({ type: "nodebuffer" });

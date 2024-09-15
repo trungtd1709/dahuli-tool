@@ -17,6 +17,7 @@ import { isEmptyValue, now } from "../../shared/utils.js";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { InputShippingCost } from "../../model/index.js";
 
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
 /**
@@ -741,27 +742,6 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
       cell.value = { formula };
     }
   }
-  // worksheet.eachRow({ includeEmpty: false }, async (row, rowNumber) => {
-  //   const totalShipmentQuantityLetter = oldInStockIndex
-  //     ? columnIndexToLetter(oldInStockIndex)
-  //     : quantityColumnLetter;
-  //   const formula = `${totalShipmentQuantityLetter}${rowNumber} - SUM(${shipmentStartColLetter}${rowNumber}:${shipmentLastColLetter}${rowNumber})`;
-  //   const cell = row.getCell(inStockColIndex);
-
-  //   if (oldInStockIndex) {
-  //     await checkNegative(
-  //       worksheet,
-  //       totalShipmentQuantityLetter,
-  //       rowNumber,
-  //       shipmentStartColIndex,
-  //       shipmentLastColIndex
-  //     );
-  //   }
-
-  //   if (cell) {
-  //     cell.value = { formula };
-  //   }
-  // });
 
   headerRow.getCell(inStockColIndex).value = SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK;
 
@@ -904,4 +884,127 @@ async function checkNegative(
     `Result for row ${rowNumber}: ${totalShipmentQuantity} - ${shipmentSum} = ${result}`
   );
   return;
+}
+
+/**
+ * Converts an XLSX file to JSON.
+ * @param {Multer.File} file
+ * @param {Array<InputShippingCost>} allInputShippingCost
+ * @returns {Array}
+ */
+export async function modifyShippingFile(
+  file,
+  shipmentObjAddToOrder = {},
+  allInputShippingCost = [],
+  inputTsvDataArr = []
+) {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(file.buffer);
+  const worksheet = workbook.getWorksheet(1);
+
+  let productNameColumnIndex = null;
+  let quantityColumnIndex = null;
+  let quantityColumnLetter = null;
+  let totalUsdColumnIndex = null;
+  let totalUsdColumnLetter = null;
+  let lastRowIndex;
+  const firstRowIndex = "2";
+
+  const headerRow = worksheet.getRow(1);
+
+  const headers = [];
+  const jsonData = [];
+
+  headerRow.eachCell((cell, colNumber) => {
+    headers[colNumber] = cell.text.trim();
+    const colKeyName = cell?.value;
+    if (
+      colKeyName &&
+      colKeyName.toString().trim().toLowerCase() ===
+        inputKeyName.productName.toLowerCase()
+    ) {
+      productNameColumnIndex = colNumber;
+    }
+
+    if (
+      colKeyName &&
+      colKeyName
+        .toString()
+        .trim()
+        .toLowerCase()
+        .includes(KEY_PREFERENCES.QTY.toLowerCase())
+    ) {
+      quantityColumnIndex = colNumber;
+      quantityColumnLetter = columnIndexToLetter(quantityColumnIndex);
+    }
+
+    if (colKeyName && colKeyName.toString().trim() == inputKeyName.totalUsd) {
+      totalUsdColumnIndex = colNumber;
+      totalUsdColumnLetter = columnIndexToLetter(totalUsdColumnIndex);
+    }
+  });
+
+  worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    if (rowNumber === 1) return; // Skip header row
+
+    const rowData = {};
+    row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+      rowData[headers[colNumber]] = cell.value;
+    });
+    jsonData.push(rowData);
+
+    lastRowIndex = rowNumber;
+  });
+
+  const shipmentKeys = Object.keys(shipmentObjAddToOrder).sort() ?? [];
+
+  const shipmentStartColIndex = headerRow.cellCount + 2;
+
+  // add shipping cost
+  shipmentKeys.forEach((shipmentKey, index) => {
+    const newColIndex = shipmentStartColIndex + index;
+    const newColLetter = columnIndexToLetter(newColIndex);
+    headerRow.getCell(newColIndex).value = `Cost ${shipmentKey}`;
+
+    worksheet.getColumn(newColLetter).numFmt =
+      OUTPUT_NUM_DECIMAL_FORMAT["2digits"];
+
+    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+      if (rowNumber === 1) return; // Skip header row
+
+      const rowProductName = row.getCell(productNameColumnIndex).value;
+
+      const shippingCostObj = allInputShippingCost.find((item) => {
+        return item.name == rowProductName;
+      });
+
+      const tsvData = inputTsvDataArr.find(
+        (item) => item[0]?.shipmentId == shippingCostObj?.shipmentId
+      );
+
+      let shipmentQuantity;
+      if (!isEmptyValue(tsvData)) {
+        shipmentQuantity = tsvData[0]?.quantity;
+      }
+      if (!isEmptyValue(shippingCostObj) && shipmentQuantity) {
+        const { totalUsd, totalShipmentQuantity } = shippingCostObj;
+        const formula = `${totalUsd} / ${totalShipmentQuantity} * ${shipmentQuantity}`;
+        row.getCell(newColIndex).value = { formula };
+      }
+    });
+  });
+
+  const shipmentLastColIndex = headerRow.cellCount;
+
+  // set giá trị cho hàng total
+  for (let i = shipmentStartColIndex; i <= shipmentLastColIndex; i++) {
+    const shipmentColLetter = columnIndexToLetter(i);
+    const shipmentTotalCellAddress = `${shipmentColLetter}${lastRowIndex}`;
+    const totalFormula = `SUM(${shipmentColLetter}${firstRowIndex}:${shipmentColLetter}${
+      lastRowIndex - 1
+    })`;
+    setCellFormula(worksheet, shipmentTotalCellAddress, totalFormula);
+  }
+  const modifiedBuffer = await workbook.xlsx.writeBuffer();
+  return modifiedBuffer;
 }
