@@ -193,30 +193,7 @@ export const calculateGood = async (files = []) => {
     }
 
     allInputShippingCost = allInputShippingCost.map((inputShippingCost) => {
-      const {
-        isDomestic,
-        name,
-        order,
-        paymentCostDivisor,
-        shipment,
-        shipmentId,
-        totalCny,
-        totalShipmentQuantity,
-        totalUsd,
-        weight,
-      } = inputShippingCost;
-      return new InputShippingCost(
-        name,
-        order,
-        shipment,
-        shipmentId,
-        totalCny,
-        totalUsd,
-        totalShipmentQuantity,
-        weight,
-        paymentCostDivisor,
-        isDomestic
-      );
+      return InputShippingCost.fromJson(inputShippingCost);
     });
 
     const shippingFiles = files.filter(

@@ -24,9 +24,7 @@ export class InputShippingCost {
   }
 
   // Method in the class
-  greet() {
-    console.log(
-      `Hello, my name is ${this.name} and I am ${this.age} years old.`
-    );
+  static fromJson(jsonObj) {
+    return new InputShippingCost(jsonObj);
   }
 }
