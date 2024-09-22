@@ -1,14 +1,25 @@
+import _ from "lodash";
+import { BadRequestError } from "../../error/bad-request-err.js";
+import { InputShippingCost } from "../../model/index.js";
 import {
   CHECK_KEYWORD,
+  FILE_TYPE,
   inputKeyName,
   KEY_PREFERENCES,
 } from "../../shared/constant.js";
 import {
+  MISSING_SKU_LIST_FILE,
+  MISSING_TSV_FILE,
+} from "../../shared/err-const.js";
+import {
   evalCalculation,
   isEmptyValue,
+  mergeArrays,
   removeSpaces,
   removeStringAfter,
 } from "../../shared/utils.js";
+import { getDataTsvFile } from "../tsv-helper/index.js";
+import { getFileType, xlsxToJSON } from "../xlsx-handler/index.js";
 
 /**
  *
@@ -21,6 +32,11 @@ export const transformSkuListInput = (rawJson) => {
   });
 };
 
+/**
+ *
+ * @param {*} obj
+ * @returns
+ */
 const transformSkuItem = (obj) => {
   const { SKU, ...rest } = obj; // Extract SKU and the rest of the properties
 
@@ -49,6 +65,11 @@ const transformSkuItem = (obj) => {
   return product;
 };
 
+/**
+ *
+ * @param {*} obj
+ * @returns
+ */
 const transformOrderItem = (obj) => {
   const {
     productName: name,
@@ -112,7 +133,6 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
       const packingLabelingCostYuan = evalCalculation(
         `${totalCny} / ${quantity}`
       );
-      // const packingLabelingCost = `${packingLabelingCostYuan} / ${exchangeRate}`;
       packingLabelingCostArr.push({
         exchangeRate,
         name: item?.productName,
@@ -137,7 +157,9 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
         isDomestic: true,
         paymentCostDivisor: null,
       };
-      domesticShippingCostArr.push(domesticShippingCostObj);
+      domesticShippingCostArr.push(
+        InputShippingCost.fromJson(domesticShippingCostObj)
+      );
     }
 
     if (
@@ -151,7 +173,9 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
         isDomestic: false,
         paymentCostDivisor: null,
       };
-      internationalShippingCostArr.push(internationalShippingCostObj);
+      internationalShippingCostArr.push(
+        InputShippingCost.fromJson(internationalShippingCostObj)
+      );
     }
 
     // phí tính PPU
@@ -188,6 +212,11 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
   // return order1Input.filter((item) => item.price);
 };
 
+/**
+ *
+ * @param {*} obj
+ * @returns
+ */
 const transformCartonFee = (obj) => {
   const cnyItemPrice = evalCalculation(
     `${obj[inputKeyName.totalCny]} / ${obj?.quantity}`
@@ -201,6 +230,11 @@ const transformCartonFee = (obj) => {
   return newObj;
 };
 
+/**
+ *
+ * @param {*} rawJson
+ * @returns
+ */
 export const transformCartonFeeInput = (rawJson = []) => {
   const cartonFeeInput = rawJson.map((item) => {
     return transformCartonFee(item);
@@ -208,6 +242,14 @@ export const transformCartonFeeInput = (rawJson = []) => {
   return cartonFeeInput.filter((item) => item.price);
 };
 
+/**
+ *
+ * @param {*} shippingArr
+ * @param {*} shipmentId
+ * @param {*} shipment
+ * @param {*} totalShipmentQuantity
+ * @returns
+ */
 export const transformShippingCostInput = (
   shippingArr = [],
   shipmentId,
@@ -237,11 +279,19 @@ export const transformShippingCostInput = (
   });
 };
 
+/**
+ *
+ * @param {*} obj
+ * @param {*} shipmentId
+ * @param {*} shipment
+ * @param {*} totalShipmentQuantity
+ * @returns
+ */
 const transformShippingCostItem = (
   obj,
   shipmentId,
   shipment,
-  totalShipmentQuantity,
+  totalShipmentQuantity
 ) => {
   const {
     productName: name,
@@ -265,7 +315,7 @@ const transformShippingCostItem = (
   // ko chứa chữ domestic mặc định là international
   const isDomestic = lowerCaseShipName.includes(KEY_PREFERENCES.DOMESTIC);
 
-  return {
+  return InputShippingCost.fromJson({
     name,
     shipmentId,
     shipment,
@@ -276,7 +326,7 @@ const transformShippingCostItem = (
     paymentCostDivisor,
     totalShipmentQuantity,
     order,
-  };
+  });
 };
 
 /**
@@ -290,6 +340,9 @@ export const transformShipmentListInput = (rawJson) => {
   });
 };
 
+/**
+ *
+ */
 const transformShipmentItem = (obj) => {
   let {
     [inputKeyName.shipment]: originalShipment,
@@ -310,3 +363,164 @@ const transformShipmentItem = (obj) => {
     shipmentId,
   };
 };
+
+/**
+ *
+ */
+export const getRawInputShippingCost = (files = []) => {
+  let rawInputShippingCost = [];
+  const shippingListFiles = files.filter(
+    (file) => file.fileType == FILE_TYPE.SHIPPING
+  );
+
+  if (!isEmptyValue(shippingListFiles)) {
+    shippingListFiles.forEach((shippingFile) => {
+      const { order } = shippingFile;
+      const rawJson = xlsxToJSON({
+        file: shippingFile,
+        paymentCostKeyName: inputKeyName.totalUsd,
+        exchangeRateKeyName: inputKeyName.totalUsd,
+        isShippingFile: true,
+      }).map((item) => {
+        return { ...item, order };
+      });
+      rawInputShippingCost = [...rawInputShippingCost, ...rawJson];
+    });
+  }
+  return rawInputShippingCost;
+};
+
+/**
+ * @param {Array.<Express.Multer.File>} files
+ */
+export const getRawOrder1Data = (files = []) => {
+  let rawJsonOrder1 = [];
+  const order1Files = files.filter(
+    (file) => file.fileType == FILE_TYPE.ORDER_1
+  );
+  if (isEmptyValue(order1Files)) {
+    throw new BadRequestError(MISSING_ORDER_1_FILE);
+  }
+
+  for (const order1File of order1Files) {
+    const { order } = order1File;
+    const rawOrder1Data = xlsxToJSON({
+      file: order1File,
+      exchangeRateKeyName: inputKeyName.totalUsd,
+    }).map((item) => {
+      return { ...item, order };
+    });
+    rawJsonOrder1 = [...rawJsonOrder1, ...rawOrder1Data];
+  }
+  rawJsonOrder1 = rawJsonOrder1.filter((item) => {
+    return !isEmptyValue(item?.productName);
+  });
+  return rawJsonOrder1;
+};
+
+/**
+ * @param {Array.<Express.Multer.File>} files
+ */
+export const getShipmentData = (files = []) => {
+  let shipmentData = [];
+  const shipmentFile = files.find(
+    (file) => file.fileType == FILE_TYPE.SHIPMENT
+  );
+
+  if (!isEmptyValue(shipmentFile)) {
+    shipmentData = transformShipmentListInput(
+      xlsxToJSON({ file: shipmentFile })
+    );
+  }
+
+  return shipmentData;
+};
+
+/**
+ * @param {Array.<Express.Multer.File>} files
+ */
+export const getTsvFilesArr = (files = []) => {
+  const tsvFilesArr = files.filter((file) => file.fileType == FILE_TYPE.TSV);
+  if (isEmptyValue(tsvFilesArr)) {
+    throw new BadRequestError(MISSING_TSV_FILE);
+  }
+  return tsvFilesArr;
+};
+
+/**
+ *
+ * @param {Array.<Express.Multer.File>} files
+ * @returns
+ */
+export const getTotalSkuList = (files = []) => {
+  let totalSkuList = [];
+  const skuListFiles = files.filter(
+    (file) => file.fileType == FILE_TYPE.SKU_LIST
+  );
+  if (isEmptyValue(skuListFiles)) {
+    throw new BadRequestError(MISSING_SKU_LIST_FILE);
+  }
+
+  skuListFiles.forEach((skuListFile) => {
+    const rawSkuListData = xlsxToJSON({ file: skuListFile });
+    totalSkuList = [...totalSkuList, ...rawSkuListData];
+    // raw skulist json
+  });
+  totalSkuList = transformSkuListInput(totalSkuList);
+
+  return totalSkuList;
+};
+
+/**
+ *
+ * @param {Array.<Express.Multer.File>} files
+ * @returns
+ */
+export const addFileTypeAndOrder = (files) => {
+  files = files.map((file) => {
+    const fileType = getFileType(file);
+    const order = file.originalname.split("-")[0];
+    return { ...file, fileType, order };
+  });
+  return files;
+};
+
+/**
+ *
+ * @param {Array.<Express.Multer.File>} tsvFilesArr
+ */
+export const mergeTsvData = async (tsvFilesArr = [], totalSkuList) => {
+  let totalShipmentQuantity = 0;
+  let totalSkuType = 0;
+  let inputTsvDataArr = [];
+
+  for (const tsvFile of tsvFilesArr) {
+    const { shipmentQuantity, inputTsvData } = await getDataTsvFile({
+      file: tsvFile,
+    });
+    totalShipmentQuantity += shipmentQuantity;
+    inputTsvDataArr.push(inputTsvData);
+
+    const thisTsvSkuList = mergeArrays(
+      inputTsvData,
+      totalSkuList,
+      inputKeyName.sku
+    ).filter((item) => !_.isEmpty(item?.elements));
+    totalSkuType += thisTsvSkuList.length;
+  }
+
+  return {
+    totalShipmentQuantity,
+    totalSkuType,
+    inputTsvDataArr
+  }
+};
+
+export function extractNumberFromFilename(fileName) {
+  const match = fileName.match(/\((\d+)\)\.xlsx$/);
+  if (match) {
+    return match[1]; // Return the extracted number
+  } else {
+    return null; // Return null if no number is found
+  }
+}

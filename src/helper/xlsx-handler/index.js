@@ -17,7 +17,7 @@ import { isEmptyValue, now } from "../../shared/utils.js";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { InputShippingCost } from "../../model/index.js";
+
 
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
 /**
@@ -636,6 +636,8 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
   const headerRow = worksheet.getRow(1);
 
   const headers = [];
+
+  // json data của file xlsx gốc
   const jsonData = [];
 
   headerRow.eachCell((cell, colNumber) => {
@@ -678,7 +680,7 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
     row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
       rowData[headers[colNumber]] = cell.value;
     });
-    jsonData.push(rowData);
+    // jsonData.push(rowData);
 
     lastRowIndex = rowNumber;
   });
@@ -876,7 +878,7 @@ async function checkNegative(
   // Step 3: Perform the formula calculation: totalShipmentQuantity - SUM(shipment range)
   const result = totalShipmentQuantity - shipmentSum;
   if (result < 0) {
-    throw new BadRequestError(`In stock < shipment sum at row No ${rowNumber}`);
+    throw new BadRequestError(`In stock < shipment sum at row No ${rowNumber} and col ${columnIndexToLetter(colIndex)}`);
   }
 
   console.log(

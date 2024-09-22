@@ -1,5 +1,17 @@
-import { inputKeyName, OUTPUT_KEY_NAME, SHIPMENT_OUTPUT_KEY_NAME } from "../../shared/constant.js";
+import JSZip from "jszip";
+import {
+  FILE_TYPE,
+  inputKeyName,
+  KEY_PREFERENCES,
+  OUTPUT_KEY_NAME,
+  SHIPMENT_OUTPUT_KEY_NAME,
+} from "../../shared/constant.js";
 import { isEmptyValue } from "../../shared/utils.js";
+import {
+  cogsJsonToXlsx,
+  modifyShipmentFile,
+  modifyShippingFile,
+} from "../xlsx-handler/index.js";
 
 export const refactorSkuListFunc = (skuList) => {
   let refactorSkuList = skuList.map((item) => {
@@ -74,4 +86,78 @@ export const refactorElements = (allElements = []) => {
       [SHIPMENT_OUTPUT_KEY_NAME.NOTE]: "",
     };
   });
+};
+
+export const removeSkuKey = (skuList = []) => {
+  skuList = removeObjKey(skuList, inputKeyName.elements);
+  skuList = removeObjKey(skuList, KEY_PREFERENCES.packing);
+  skuList = removeObjKey(skuList, "customizePackage");
+  return skuList;
+};
+
+const removeObjKey = (skuList, keyName) => {
+  return skuList.map((item) => {
+    delete item[keyName];
+    return item;
+  });
+};
+
+/**
+ *
+ * @param {Array.<Express.Multer.File>} files
+ * @param {JSZip} zip
+ */
+export const addOrder1FileToZip = async (
+  files = [],
+  zip,
+  shipmentObjAddToOrder
+) => {
+  const order1Files = files.filter(
+    (file) => file.fileType == FILE_TYPE.ORDER_1
+  );
+
+  for (const order1File of order1Files) {
+    const newOrderBuffer = await modifyShipmentFile(
+      order1File,
+      shipmentObjAddToOrder
+    );
+    zip.file(order1File.originalname, newOrderBuffer);
+  }
+};
+
+/**
+ *
+ * @param {Array.<Express.Multer.File>} files
+ * @param {JSZip} zip
+ */
+export const addShippingFileToZip = async (
+  files = [],
+  zip,
+  shipmentObjAddToOrder,
+  allInputShippingCost,inputTsvDataArr
+) => {
+  const shippingFiles = files.filter(
+    (file) => file.fileType == FILE_TYPE.SHIPPING
+  );
+
+  for (const shippingFile of shippingFiles) {
+    const newShippingBuffer = await modifyShippingFile(
+      shippingFile,
+      shipmentObjAddToOrder,
+      allInputShippingCost,
+      inputTsvDataArr
+    );
+    zip.file(shippingFile.originalname, newShippingBuffer);
+  }
+};
+
+/**
+ *
+ * @param {*} skuList
+ * @param {JSZip} zip
+ */
+export const addCogsFileToZip = async (skuList, zip, shipment) => {
+  const refactorSkuList = refactorSkuListFunc(skuList);
+  const cogsXlsxBuffer = await cogsJsonToXlsx({ json: refactorSkuList });
+  zip.file(`${shipment}-cogs.xlsx`, cogsXlsxBuffer);
 };

@@ -117,13 +117,6 @@ export const addCustomizeCost = (skuList, elementsPrice) => {
   });
 };
 
-export const removeObjKey = (skuList, keyName) => {
-  return skuList.map((item) => {
-    delete item[keyName];
-    return item;
-  });
-};
-
 /**
  * Calculates the total price to make each object.
  * @param {Array} skuList - The array of objects.
