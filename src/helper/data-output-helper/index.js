@@ -138,7 +138,6 @@ export const addOrder1FileToZip = async (
       const { modifiedBuffer, negativeInStockPlaceArr } =
         await modifyShipmentFile(order1File, shipmentObjAddToOrder);
       zip.file(order1File.originalname, modifiedBuffer);
-      console.log("[shipmentObjAddToOrder]: ", shipmentObjAddToOrder);
       if (negativeInStockPlaceArr.length > 0) {
         fileIndexNeedToChange += 1;
       }

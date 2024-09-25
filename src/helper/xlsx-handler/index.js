@@ -20,6 +20,8 @@ import {
   rmDupEleFrArr,
   removeObjKeyNames,
 } from "../../shared/utils.js";
+import { xlsxUtils } from "../../shared/xlsxUtils.js";
+import { CANT_FIND_PRODUCT } from "../../shared/err-const.js";
 
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
 /**
@@ -754,7 +756,6 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
   headerRow.getCell(inStockColIndex).value = SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK;
   headerRow.getCell(inStockColIndex + 1).value = "";
 
-  // console.log("[shipmentObjAddToOrder]: ", shipmentObjAddToOrder);
   if (negativeInStockPlaceArr.length > 0) {
     let newShipmentObjAddToOrder = {};
     const leftShipments = rmDupEleFrArr(
@@ -776,19 +777,20 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
       const productIndex = shipmentObjAddToOrder[shipment].findIndex(
         (item) => item.name == productName
       );
-      if (!productIndex) {
-        throw new BadRequestError("Testtttt");
+      if (productIndex < 0) {
+        throw new BadRequestError(CANT_FIND_PRODUCT);
       }
       shipmentObjAddToOrder[shipment][productIndex].quantity = leftValue;
       newShipmentObjAddToOrder[shipment].push(
         shipmentObjAddToOrder[shipment][productIndex]
       );
     });
-     Object.keys(newShipmentObjAddToOrder).forEach((shipment) => {
+
+    // copy obj
+    Object.keys(newShipmentObjAddToOrder).forEach((shipment) => {
       shipmentObjAddToOrder[shipment] = newShipmentObjAddToOrder[shipment];
     });
   }
-  // console.log("[shipmentObjAddToOrder]: ", shipmentObjAddToOrder);
 
   // set giá trị cho hàng total
   for (let i = shipmentStartColIndex; i <= inStockColIndex; i++) {
@@ -813,7 +815,7 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
       if (rowNumber === 1) return;
 
       const shipmentQuantityColLetter = columnIndexToLetter(
-        findColumnIndexByKeyName(worksheet, shipmentKey)
+        xlsxUtils.findColumnIndexByKeyName(worksheet, shipmentKey)
       );
       const totalShipmentQuantityColLetter = quantityColumnLetter;
 
@@ -838,27 +840,6 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
 
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
   return { modifiedBuffer, negativeInStockPlaceArr };
-}
-
-function findColumnIndexByKeyName(worksheet, keyName) {
-  let columnIndex = null;
-
-  // Assume the header is in the first row
-  const headerRow = worksheet.getRow(1);
-
-  // Iterate through each cell in the header row
-  headerRow.eachCell((cell, colNumber) => {
-    if (cell.value && cell.value.toString().trim() === keyName) {
-      columnIndex = colNumber;
-    }
-  });
-
-  // If the column was not found, throw an error or return null
-  if (columnIndex === null) {
-    throw new Error(`Column with header "${keyName}" not found.`);
-  }
-
-  return columnIndex;
 }
 
 function columnIndexToLetter(columnIndex) {
@@ -922,7 +903,7 @@ async function checkNegative(
 
     shipmentSum += cellValue;
     const quantity = totalShipmentQuantity - shipmentSum;
-    console.log("[result]: ", quantity);
+    // console.log("[result]: ", quantity);
     if (quantity < 0) {
       // giá trị phải đẩy sang file order mới
       const leftValue = -quantity;

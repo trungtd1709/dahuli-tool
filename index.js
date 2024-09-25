@@ -22,7 +22,3 @@ app.use(errorHandler);
 app.listen(port, () => {
   console.log(`Server is running at http://localhost:${port}`);
 });
-
-const test = () => {
-  throw new Error("Test");
-}
