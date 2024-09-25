@@ -1,23 +1,25 @@
 import ExcelJS from "exceljs";
 import XLSX from "xlsx";
 import { BadRequestError } from "../../error/bad-request-err.js";
+import { NegativeInStockPlace } from "../../model/index.js";
 import {
   CHECK_KEYWORD,
   FILE_TYPE,
   KEY_PREFERENCES,
   OUTPUT_COL_ALPHABET,
   OUTPUT_KEY_NAME,
+  OUTPUT_NUM_DECIMAL_FORMAT,
   SHIPMENT_OUTPUT_COL_ALPHABET,
   SHIPMENT_OUTPUT_KEY_NAME,
   cashSymbolConst,
   inputKeyName,
-  OUTPUT_NUM_DECIMAL_FORMAT,
 } from "../../shared/constant.js";
-import { isEmptyValue, now } from "../../shared/utils.js";
-import path from "path";
-import fs from "fs";
-import { fileURLToPath } from "url";
-
+import {
+  isEmptyValue,
+  now,
+  rmDupEleFrArr,
+  removeObjKeyNames,
+} from "../../shared/utils.js";
 
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
 /**
@@ -686,7 +688,6 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
   });
 
   const shipmentKeys = Object.keys(shipmentObjAddToOrder).sort() ?? [];
-
   const shipmentStartColIndex = headerRow.cellCount + 2;
 
   // add quantity
@@ -719,6 +720,8 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
   const shipmentStartColLetter = columnIndexToLetter(shipmentStartColIndex);
   const shipmentLastColLetter = columnIndexToLetter(shipmentLastColIndex);
 
+  let negativeInStockPlaceArr = [];
+
   // add in stock value
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
@@ -730,13 +733,17 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
     const cell = row.getCell(inStockColIndex);
 
     if (oldInStockIndex) {
-      await checkNegative(
+      const rowNegativeInStockPlaceArr = await checkNegative(
         worksheet,
         totalShipmentQuantityLetter,
         rowNumber,
         shipmentStartColIndex,
         shipmentLastColIndex
       );
+      negativeInStockPlaceArr = [
+        ...negativeInStockPlaceArr,
+        ...rowNegativeInStockPlaceArr,
+      ];
     }
 
     if (cell) {
@@ -745,8 +752,43 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
   }
 
   headerRow.getCell(inStockColIndex).value = SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK;
-
   headerRow.getCell(inStockColIndex + 1).value = "";
+
+  // console.log("[shipmentObjAddToOrder]: ", shipmentObjAddToOrder);
+  if (negativeInStockPlaceArr.length > 0) {
+    let newShipmentObjAddToOrder = {};
+    const leftShipments = rmDupEleFrArr(
+      negativeInStockPlaceArr.map((negativeInStockPlace) => {
+        const shipment = negativeInStockPlace.shipment;
+        return shipment;
+      })
+    );
+    removeObjKeyNames(shipmentObjAddToOrder, leftShipments);
+    leftShipments.map((shipment) => {
+      newShipmentObjAddToOrder[shipment] = [];
+    });
+
+    negativeInStockPlaceArr.forEach((negativeInStockPlace) => {
+      const productName = negativeInStockPlace.productName;
+      const shipment = negativeInStockPlace.shipment;
+      const leftValue = negativeInStockPlace.leftValue;
+
+      const productIndex = shipmentObjAddToOrder[shipment].findIndex(
+        (item) => item.name == productName
+      );
+      if (!productIndex) {
+        throw new BadRequestError("Testtttt");
+      }
+      shipmentObjAddToOrder[shipment][productIndex].quantity = leftValue;
+      newShipmentObjAddToOrder[shipment].push(
+        shipmentObjAddToOrder[shipment][productIndex]
+      );
+    });
+     Object.keys(newShipmentObjAddToOrder).forEach((shipment) => {
+      shipmentObjAddToOrder[shipment] = newShipmentObjAddToOrder[shipment];
+    });
+  }
+  // console.log("[shipmentObjAddToOrder]: ", shipmentObjAddToOrder);
 
   // set giá trị cho hàng total
   for (let i = shipmentStartColIndex; i <= inStockColIndex; i++) {
@@ -795,7 +837,7 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
   });
 
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
-  return modifiedBuffer;
+  return { modifiedBuffer, negativeInStockPlaceArr };
 }
 
 function findColumnIndexByKeyName(worksheet, keyName) {
@@ -832,6 +874,11 @@ function columnIndexToLetter(columnIndex) {
   return columnLetter;
 }
 
+/**
+ * Converts an XLSX file to JSON.
+ * @param {ExcelJS.Worksheet} worksheet
+ * @returns {Array}
+ */
 async function checkNegative(
   worksheet,
   totalShipmentQuantityColLetter,
@@ -839,6 +886,7 @@ async function checkNegative(
   shipmentStartColIndex,
   shipmentLastColIndex
 ) {
+  const test = columnIndexToLetter(shipmentLastColIndex);
   // Step 1: Get the value of total shipment quantity
   const totalShipmentCell = worksheet.getCell(
     `${totalShipmentQuantityColLetter}${rowNumber}`
@@ -853,8 +901,8 @@ async function checkNegative(
   ) {
     return;
   }
-
   const totalShipmentQuantity = rawTotalShipmentQuantity;
+  let negativeInStockPlaceArr = [];
 
   // Step 2: Get the values in the shipment range
   let shipmentSum = 0;
@@ -873,18 +921,75 @@ async function checkNegative(
         : parseCellValue;
 
     shipmentSum += cellValue;
+    const quantity = totalShipmentQuantity - shipmentSum;
+    console.log("[result]: ", quantity);
+    if (quantity < 0) {
+      // giá trị phải đẩy sang file order mới
+      const leftValue = -quantity;
+
+      // giá trị giữ ở file order này
+      const remainValue = parseCellValue - leftValue;
+      const remainValueCellAddress = `${columnIndexToLetter(
+        colIndex
+      )}${rowNumber}`;
+      const remainValueCell = worksheet.getCell(remainValueCellAddress);
+      remainValueCell.value = remainValue;
+
+      const startShipment = getCellValue(worksheet, cellLetter, 1);
+      const productName = getCellValue(worksheet, "B", rowNumber);
+
+      // phần tử ở vị trí thiếu
+      negativeInStockPlaceArr.push(
+        NegativeInStockPlace.fromJson({
+          productName,
+          shipment: startShipment,
+          leftValue,
+        })
+      );
+
+      // reset các giá trị quantity sau cột này về ""
+      for (let i = colIndex + 1; i <= shipmentLastColIndex; i++) {
+        // gán giá trị quantity các cột còn lại = 0
+        const quantityShipmentCellAddress = `${columnIndexToLetter(
+          i
+        )}${rowNumber}`;
+        const quantityShipmentCell = worksheet.getCell(
+          quantityShipmentCellAddress
+        );
+
+        const shipment = getCellValue(worksheet, columnIndexToLetter(i), 1);
+        if (quantityShipmentCell.value) {
+          negativeInStockPlaceArr.push(
+            NegativeInStockPlace.fromJson({
+              productName,
+              shipment,
+              leftValue: quantityShipmentCell.value,
+            })
+          );
+        }
+        quantityShipmentCell.value = null;
+      }
+
+      break;
+      // throw new BadRequestError(
+      //   `In stock < shipment sum at rowNo: ${rowNumber}, col: ${columnIndexToLetter(
+      //     colIndex
+      //   )}, shipment: ${shipment}, productName: ${productName}`
+      // );
+      // return NegativeInStockPlace.fromJson({
+      //   productName,
+      //   shipment,
+      //   leftValue,
+      // });
+    }
   }
 
   // Step 3: Perform the formula calculation: totalShipmentQuantity - SUM(shipment range)
-  const result = totalShipmentQuantity - shipmentSum;
-  if (result < 0) {
-    throw new BadRequestError(`In stock < shipment sum at row No ${rowNumber} and col ${columnIndexToLetter(colIndex)}`);
-  }
 
-  console.log(
-    `Result for row ${rowNumber}: ${totalShipmentQuantity} - ${shipmentSum} = ${result}`
-  );
-  return;
+  // console.log(
+  //   `Result for row ${rowNumber}: ${totalShipmentQuantity} - ${shipmentSum} = ${result}`
+  // );
+  return negativeInStockPlaceArr;
 }
 
 /**
@@ -1009,3 +1114,19 @@ export async function modifyShippingFile(
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
   return modifiedBuffer;
 }
+
+/**
+ * Converts an XLSX file to JSON.
+ * @param {ExcelJS.Worksheet} worksheet
+ * @returns {Array}
+ */
+export const getCellValue = (worksheet, colLetter, rowIndex) => {
+  // const colLetter = columnIndexToLetter(colIndex);
+  const cellAddress = `${colLetter}${rowIndex}`;
+  const cell = worksheet.getCell(cellAddress);
+  if (cell) {
+    return cell.value;
+  } else {
+    return null;
+  }
+};

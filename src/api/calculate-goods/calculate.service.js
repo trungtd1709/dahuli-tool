@@ -138,7 +138,6 @@ export const calculateGood = async (files = []) => {
     }
 
     await addCogsFileToZip(mergeSkuList, zip, shipment);
-    await addOrder1FileToZip(files, zip, shipmentObjAddToOrder);
     await addShippingFileToZip(
       files,
       zip,
@@ -146,6 +145,7 @@ export const calculateGood = async (files = []) => {
       allInputShippingCost,
       inputTsvDataArr
     );
+    await addOrder1FileToZip(files, zip, shipmentObjAddToOrder);
 
     const zipFile = zip.generateAsync({ type: "nodebuffer" });
     return zipFile;
@@ -234,7 +234,7 @@ const addShipmentResultFileToZipAndGetAllElements = async (
         ? OUTPUT_KEY_NAME.DOMESTIC_SHIPPING_COST
         : OUTPUT_KEY_NAME.INTERNATIONAL_SHIPPING_COST
     } ${originalShipment}`;
-    
+
     let shippingElement = {
       name: shippingName,
       order,

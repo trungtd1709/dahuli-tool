@@ -12,6 +12,7 @@ import {
   modifyShipmentFile,
   modifyShippingFile,
 } from "../xlsx-handler/index.js";
+import { extractNumberFromFilename } from "../data-input-helper/index.js";
 
 export const refactorSkuListFunc = (skuList) => {
   let refactorSkuList = skuList.map((item) => {
@@ -112,16 +113,38 @@ export const addOrder1FileToZip = async (
   zip,
   shipmentObjAddToOrder
 ) => {
-  const order1Files = files.filter(
-    (file) => file.fileType == FILE_TYPE.ORDER_1
-  );
+  //
+  let fileIndexNeedToChange = 0;
+  const order1Files = files
+    .filter((file) => file.fileType === FILE_TYPE.ORDER_1)
+    .sort((fileA, fileB) => {
+      const numA = extractNumberFromFilename(fileA.originalname);
+      const numB = extractNumberFromFilename(fileB.originalname);
+      // If both files have numbers, compare them numerically
+      if (numA !== null && numB !== null) {
+        return Number(numA) - Number(numB);
+      }
+      // If only one file has a number, that one should come first
+      if (numA !== null) return -1;
+      if (numB !== null) return 1;
+      // If neither file has a number, keep the original order
+      return 0;
+    });
 
-  for (const order1File of order1Files) {
-    const newOrderBuffer = await modifyShipmentFile(
-      order1File,
-      shipmentObjAddToOrder
-    );
-    zip.file(order1File.originalname, newOrderBuffer);
+  for (let i = 0; i < order1Files.length; i++) {
+    const order1File = order1Files[i];
+
+    if (i == fileIndexNeedToChange) {
+      const { modifiedBuffer, negativeInStockPlaceArr } =
+        await modifyShipmentFile(order1File, shipmentObjAddToOrder);
+      zip.file(order1File.originalname, modifiedBuffer);
+      console.log("[shipmentObjAddToOrder]: ", shipmentObjAddToOrder);
+      if (negativeInStockPlaceArr.length > 0) {
+        fileIndexNeedToChange += 1;
+      }
+    } else {
+      zip.file(order1File.originalname, order1File.buffer);
+    }
   }
 };
 
@@ -134,7 +157,8 @@ export const addShippingFileToZip = async (
   files = [],
   zip,
   shipmentObjAddToOrder,
-  allInputShippingCost,inputTsvDataArr
+  allInputShippingCost,
+  inputTsvDataArr
 ) => {
   const shippingFiles = files.filter(
     (file) => file.fileType == FILE_TYPE.SHIPPING

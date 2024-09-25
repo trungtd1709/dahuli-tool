@@ -63,7 +63,9 @@ export const isEmptyValue = (value) => {
     value === "" ||
     value === false ||
     (Array.isArray(value) && value.length === 0) || // Check for empty array
-    (typeof value === "object" && value !== null && Object.keys(value).length === 0)
+    (typeof value === "object" &&
+      value !== null &&
+      Object.keys(value).length === 0)
   );
 };
 
@@ -128,9 +130,9 @@ export function simplifyFormula(formula) {
     return formula;
   } else {
     const formattedFormula = countResult.reduce((acc, item) => {
-      const {value, quantity} = item;
+      const { value, quantity } = item;
       const itemValue = quantity == 1 ? value : `${value} * ${quantity}`;
-       
+
       if (isEmptyValue(acc)) {
         return itemValue;
       }
@@ -153,17 +155,34 @@ export function splitByPlus(string) {
 
 export function removeStringOnce(baseString, stringToRemove) {
   // Escape any special characters in stringToRemove, including "*"
-  const escapedStringToRemove = stringToRemove.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+  const escapedStringToRemove = stringToRemove.replace(
+    /[-\/\\^$*+?.()|[\]{}]/g,
+    "\\$&"
+  );
 
   // Create a regular expression that matches stringToRemove with optional surrounding whitespace
-  const regex = new RegExp(`${escapedStringToRemove}\\s*`, 'i');
+  const regex = new RegExp(`${escapedStringToRemove}\\s*`, "i");
 
   // Replace only the first occurrence
-  const result = baseString.replace(regex, '');
+  const result = baseString.replace(regex, "");
 
   return result; // Trim to remove any leading/trailing whitespace
 }
 
 export const removeWhitespace = (string) => {
   return string?.replace(/\s+/g, "");
+};
+
+/// remove key that not in [keyNameArr]
+export const removeObjKeyNames = (obj, keyNameArr) => {
+  Object.keys(obj).forEach((key) => {
+    if (!keyNameArr.includes(key)) {
+      delete obj[key];
+    }
+  });
+  return obj;
+};
+
+export const rmDupEleFrArr = (arr = []) => {
+  return [...new Set(arr)];
 }
