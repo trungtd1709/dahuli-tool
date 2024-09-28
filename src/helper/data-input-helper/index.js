@@ -302,8 +302,14 @@ const transformShippingCostItem = (
     exchangeRate,
     order = "",
   } = obj;
-  let totalUsd = "";
-  let totalCny = "";
+  const rawTotalUsd = obj?.[inputKeyName.totalUsd];
+  const rawTotalCny = obj?.[inputKeyName.totalCny];
+
+  let totalUsd =
+    rawTotalCny && exchangeRate
+      ? `${rawTotalCny} / ${exchangeRate}`
+      : rawTotalUsd ?? "";
+  let totalCny = rawTotalCny ?? "";
 
   if (priceShippingFormulaUsd && weight) {
     totalUsd = `(${priceShippingFormulaUsd} * ${weight})`;
@@ -512,8 +518,8 @@ export const mergeTsvData = async (tsvFilesArr = [], totalSkuList) => {
   return {
     totalShipmentQuantity,
     totalSkuType,
-    inputTsvDataArr
-  }
+    inputTsvDataArr,
+  };
 };
 
 export function extractNumberFromFilename(fileName) {
