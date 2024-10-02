@@ -209,7 +209,6 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
     internationalShippingCostArr,
     inputPrinttingFeeArr,
   };
-  // return order1Input.filter((item) => item.price);
 };
 
 /**
