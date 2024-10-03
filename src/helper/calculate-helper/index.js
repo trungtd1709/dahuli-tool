@@ -6,55 +6,55 @@ import {
   removeValueAndSplash,
   simplifyFormula,
 } from "../../shared/utils.js";
+import { ElementPrice } from "../../model/index.js";
 
 /**
  * Calculates the total price to make each object.
  * @param {Array} skuList - The array of objects.
- * @param {Array} goodsPrice - The array of element prices.
+ * @param {Array<ElementPrice>} elementsPrice - The array of element prices.
  * @returns {Array} The array of objects with their total price.
  */
-export const calculatePpuPrice = (skuList, goodsPrice) => {
-  // const exchangeRate = goodsPrice[0].exchangeRate;
+export const calculatePpuPrice = (skuList, elementsPrice) => {
   return skuList.map((good) => {
     let ppuPrice = good.elements.reduce((acc, element) => {
-      const priceObj = goodsPrice.find(
-        (p) => p.name.toLowerCase() === element.name.toLowerCase()
+      const elementPrice = elementsPrice.find(
+        (el) => el.name.toLowerCase() === element.name.toLowerCase()
       );
-      const exchangeRate = priceObj?.exchangeRate;
-      const cnyPrice = priceObj ? priceObj.price : 0;
+      const exchangeRate = elementPrice?.exchangeRate;
+      const cnyPrice = elementPrice ? elementPrice.cnyPrice : 0;
       const usdPrice = `${cnyPrice} / ${exchangeRate}`;
       const quantity = parseInt(element.quantity) || 1;
 
       element.cnyPrice = cnyPrice;
       element.usdPrice = usdPrice;
 
-      let totalGoodsPrice = usdPrice;
+      let totalElementsPrice = usdPrice;
       if (quantity > 1) {
-        totalGoodsPrice = `${usdPrice} * ${quantity}`;
+        totalElementsPrice = `${usdPrice} * ${quantity}`;
       }
 
       const domesticShippingCost =
-        priceObj?.[inputKeyName.domesticShippingCost];
+        elementPrice?.[inputKeyName.domesticShippingCost];
       if (domesticShippingCost) {
         const usdDomesticShippingCost = `${domesticShippingCost} / ${exchangeRate}`;
-        totalGoodsPrice = `(${usdPrice} + ${usdDomesticShippingCost}) * ${quantity}`;
+        totalElementsPrice = `(${usdPrice} + ${usdDomesticShippingCost}) * ${quantity}`;
       }
 
       if (!acc) {
-        return totalGoodsPrice;
+        return totalElementsPrice;
       }
 
-      return `${acc} + ${totalGoodsPrice}`;
+      return `${acc} + ${totalElementsPrice}`;
     }, "");
 
     ppuPrice = simplifyFormula(ppuPrice);
 
-    const isSameExchangeRate = goodsPrice.every(
-      (item) => item?.exchangeRate == goodsPrice[0]?.exchangeRate
+    const isSameExchangeRate = elementsPrice.every(
+      (item) => item?.exchangeRate == elementsPrice[0]?.exchangeRate
     );
 
-    if (isSameExchangeRate && goodsPrice[0]?.exchangeRate) {
-      const exchangeRate = goodsPrice[0]?.exchangeRate;
+    if (isSameExchangeRate && elementsPrice[0]?.exchangeRate) {
+      const exchangeRate = elementsPrice[0]?.exchangeRate;
       ppuPrice = `${removeValueAndSplash(
         ppuPrice,
         exchangeRate

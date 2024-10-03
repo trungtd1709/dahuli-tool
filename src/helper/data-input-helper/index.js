@@ -1,6 +1,6 @@
 import _ from "lodash";
 import { BadRequestError } from "../../error/bad-request-err.js";
-import { InputShippingCost } from "../../model/index.js";
+import { ElementPrice, InputShippingCost } from "../../model/index.js";
 import {
   CHECK_KEYWORD,
   FILE_TYPE,
@@ -70,6 +70,39 @@ const transformSkuItem = (obj) => {
  * @param {*} obj
  * @returns
  */
+const transformToElementPrice = (obj) => {
+  const {
+    productName: name,
+    quantity,
+    [inputKeyName.totalCny]: totalCny,
+    [inputKeyName.domesticShippingCost]: domesticShippingCost,
+    packingLabelingCost,
+    exchangeRate,
+    fileName,
+    order = "",
+  } = obj;
+
+  const cnyPrice = evalCalculation(`${totalCny} / ${quantity}`);
+
+  const elementPrice = ElementPrice.fromJson({
+    name,
+    exchangeRate,
+    fileName,
+    cnyPrice,
+    domesticShippingCost,
+    packingLabelingCost,
+    order,
+    quantity,
+  });
+
+  return elementPrice;
+};
+
+/**
+ *
+ * @param {*} obj
+ * @returns
+ */
 const transformOrderItem = (obj) => {
   const {
     productName: name,
@@ -105,6 +138,112 @@ export const transformPrinttingFeeInput = (rawJson = []) => {
     return transformOrderItem(item);
   });
   return printtingFeeInput.filter((item) => item.price);
+};
+
+export const testTransformOrderList1Input = (rawJson = [], shipmentId) => {
+  // rawJson.pop();
+  // remove phần tử Total
+  rawJson = rawJson.filter(
+    (item) => item?.productName?.toLowerCase() != CHECK_KEYWORD.TOTAL
+  );
+
+  let domesticShippingCostArr = [];
+  let internationalShippingCostArr = [];
+  let packingLabelingCostArr = [];
+  let inputPrinttingFeeArr = [];
+
+  // add phí ship nội địa vào obj nếu có
+  for (let [index, item] of rawJson.entries()) {
+    const productName = item?.productName?.toLowerCase() ?? "";
+    const totalCny = item?.[inputKeyName.totalCny]?.toString();
+    const { quantity, fileName } = item;
+    const exchangeRate = item[inputKeyName.exchangeRate];
+
+    if (
+      productName.includes(KEY_PREFERENCES.packing) &&
+      productName.includes(KEY_PREFERENCES.labeling)
+    ) {
+      const packingLabelingCostYuan = evalCalculation(
+        `${totalCny} / ${quantity}`
+      );
+
+      const packingLabelingCostObj = ElementPrice.fromJson({
+        name: item?.productName,
+        fileName,
+        cnyPrice: packingLabelingCostYuan,
+        quantity,
+        exchangeRate,
+      });
+      packingLabelingCostArr.push(packingLabelingCostObj);
+    }
+
+    const prevProduct = rawJson[index - 1] ?? {};
+    const prevProductName = prevProduct?.productName?.toLowerCase();
+    const prevProductQuantity = prevProduct?.quantity;
+
+    // phí tính cột riêng
+    if (
+      productName.includes(KEY_PREFERENCES.DOMESTIC) &&
+      productName.includes(shipmentId.toLowerCase())
+    ) {
+      const domesticCostUsd = `${totalCny} / ${exchangeRate}`;
+      const domesticShippingCostObj = {
+        shipmentId: shipmentId,
+        totalUsd: domesticCostUsd,
+        isDomestic: true,
+        paymentCostDivisor: null,
+      };
+      domesticShippingCostArr.push(
+        InputShippingCost.fromJson(domesticShippingCostObj)
+      );
+    }
+
+    if (
+      productName.includes(KEY_PREFERENCES.INTERNATIONAL) &&
+      productName.includes(shipmentId.toLowerCase())
+    ) {
+      const internationalCostUsd = `${totalCny} / ${exchangeRate}`;
+      const internationalShippingCostObj = {
+        shipmentId: shipmentId,
+        totalUsd: internationalCostUsd,
+        isDomestic: false,
+        paymentCostDivisor: null,
+      };
+      internationalShippingCostArr.push(
+        InputShippingCost.fromJson(internationalShippingCostObj)
+      );
+    }
+
+    // phí tính PPU
+    // obj phí ship nội địa của 1 sản phẩm
+    if (!item?.quantity && productName?.includes(prevProductName)) {
+      const prevQuantity = prevProductQuantity.toString();
+      const itemShippingFee = evalCalculation(`${totalCny} / ${prevQuantity}`);
+      rawJson[index - 1][inputKeyName.domesticShippingCost] = itemShippingFee;
+    }
+  }
+
+  // remove obj shipping cost
+  rawJson = rawJson.filter((obj) => {
+    return (
+      !obj.productName?.toLowerCase()?.includes("domestic") &&
+      !(
+        obj.productName?.toLowerCase()?.includes("labeling") &&
+        obj.productName?.toLowerCase()?.includes("packing")
+      )
+    );
+  });
+
+  const elementsPriceArr = rawJson.map((item) => {
+    return transformToElementPrice(item);
+  });
+  return {
+    elementsPriceArr,
+    domesticShippingCostArr,
+    packingLabelingCostArr,
+    internationalShippingCostArr,
+    inputPrinttingFeeArr,
+  };
 };
 
 export const transformOrderList1Input = (rawJson = [], shipmentId) => {
@@ -408,12 +547,12 @@ export const getRawOrder1Data = (files = []) => {
   }
 
   for (const order1File of order1Files) {
-    const { order } = order1File;
+    const { order, originalname } = order1File;
     const rawOrder1Data = xlsxToJSON({
       file: order1File,
       exchangeRateKeyName: inputKeyName.totalUsd,
     }).map((item) => {
-      return { ...item, order };
+      return { ...item, order, fileName: originalname };
     });
     rawJsonOrder1 = [...rawJsonOrder1, ...rawOrder1Data];
   }
