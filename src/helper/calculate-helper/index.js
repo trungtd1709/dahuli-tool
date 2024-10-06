@@ -15,8 +15,8 @@ import { ElementPrice } from "../../model/index.js";
  * @returns {Array} The array of objects with their total price.
  */
 export const calculatePpuPrice = (skuList, elementsPrice) => {
-  return skuList.map((good) => {
-    let ppuPrice = good.elements.reduce((acc, element) => {
+  return skuList.map((sku) => {
+    let ppuPrice = sku.elements.reduce((acc, element) => {
       const elementPrice = elementsPrice.find(
         (el) => el.name.toLowerCase() === element.name.toLowerCase()
       );
@@ -61,14 +61,14 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       )} / ${exchangeRate}`;
     }
 
-    return { ...good, ppuPrice };
+    return { ...sku, ppuPrice };
   });
 };
 
 /**
  * Calculates the total price to make each object.
  * @param {Array} skuList - The array of objects.
- * @param {Array} cartonFee - The array of element prices.
+ * @param {Array<ElementPrice>} elementsPrice - The array of element prices.
  * @returns {Array} The array of objects with their total price.
  */
 export const addPackingCost = (skuList, elementsPrice) => {
@@ -94,14 +94,14 @@ export const addPackingCost = (skuList, elementsPrice) => {
 /**
  * Calculates the total price to make each object.
  * @param {Array} skuList - The array of objects.
- * @param {Array} elementsPrice - The array of element prices.
+ * @param {Array<ElementPrice>} elementsPrice - The array of element prices.
  * @returns {Array} The array of objects with their total price.
  */
 export const addCustomizeCost = (skuList, elementsPrice) => {
   return skuList.map((item) => {
     const customizePackage = item?.customizePackage;
     const customizeObj = elementsPrice.find(
-      (item) => item.name?.toLowerCase() == customizePackage?.toLowerCase()
+      (el) => el.name?.toLowerCase() == customizePackage?.toLowerCase()
     );
 
     let customPackageCost = "0";

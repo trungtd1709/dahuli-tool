@@ -9,6 +9,7 @@ export class ElementPrice {
     order,
     packingLabelingCost,
     quantity,
+    leftQuantity,
     domesticShippingCost,
   }) {
     this.name = name;
@@ -19,6 +20,7 @@ export class ElementPrice {
     this.usdPrice = usdPrice;
     this.cnyPrice = cnyPrice;
     this.quantity = quantity;
+    this.leftQuantity = leftQuantity;
     this.domesticShippingCost = domesticShippingCost;
   }
 
@@ -32,8 +34,12 @@ export class ElementPrice {
     order,
     packingLabelingCost,
     quantity,
+    leftQuantity,
     domesticShippingCost,
   }) {
+    if (!leftQuantity) {
+      leftQuantity = quantity;
+    }
 
     return new ElementPrice({
       name,
@@ -44,6 +50,7 @@ export class ElementPrice {
       order,
       packingLabelingCost,
       quantity,
+      leftQuantity,
       domesticShippingCost,
     });
   }
@@ -58,6 +65,7 @@ export class ElementPrice {
       order: this.order,
       packingLabelingCost: this.packingLabelingCost,
       quantity: this.quantity,
+      leftQuantity: this.leftQuantity,
       domesticShippingCost: this.domesticShippingCost,
     };
   }

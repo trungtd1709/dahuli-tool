@@ -31,6 +31,7 @@ import {
 import { createShipmentExcelBuffer } from "../../helper/xlsx-handler/index.js";
 import { OUTPUT_KEY_NAME, inputKeyName } from "../../shared/constant.js";
 import { isEmptyValue, mergeArrays, now } from "../../shared/utils.js";
+import { ElementPrice } from "../../model/index.js";
 
 /**
  * @param {Array.<Express.Multer.File>} files - An array of Multer file objects.
@@ -160,6 +161,10 @@ export const calculateGood = async (files = []) => {
   }
 };
 
+/**
+ * Calculates the total price to make each object.
+ * @param {Array<ElementPrice>} elementsPrice - The array of element prices.
+ */
 const addShipmentResultFileToZipAndGetAllElements = async (
   skuList,
   inputShippingCost,
