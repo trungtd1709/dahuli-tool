@@ -185,4 +185,16 @@ export const removeObjKeyNames = (obj, keyNameArr) => {
 
 export const rmDupEleFrArr = (arr = []) => {
   return [...new Set(arr)];
-}
+};
+
+export const sortArrayBaseOnKey = (arr = [], key) => {
+  return arr.sort((a, b) => {
+    if (a?.[key] > b?.[key]) {
+      return -1;
+    }
+    if (a?.[key] < b?.[key]) {
+      return 1;
+    }
+    return 0;
+  });
+};

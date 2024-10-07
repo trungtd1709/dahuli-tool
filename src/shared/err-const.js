@@ -4,4 +4,6 @@ export const MISSING_SKU_LIST_FILE = "Thiếu file sku list";
 export const MISSING_ORDER_1_FILE = "Thiếu file tiền hàng";
 export const MISSING_SHIPMENT_ID = "Không thấy shipmentId trong file TSV";
 export const MISSING_SHIPMENT = "Không thấy Shipment trong file Shipment tổng";
+export const MISSING_SHIPMENT_DATA = "Không thấy thông tin shipment";
+export const MISSING_ELEMENT_DATA = "Không thấy thông tin element trong file order1";
 export const CANT_FIND_PRODUCT = "Không thấy product";

@@ -55,7 +55,7 @@ export const calculateGood = async (files = []) => {
 
     // tổng các loại sku
     let { totalSkuType, inputTsvDataArr, totalShipmentQuantity } =
-      await mergeTsvData(tsvFilesArr, totalSkuList);
+      await mergeTsvData(tsvFilesArr, totalSkuList, shipmentData);
 
     for (const inputTsvData of inputTsvDataArr) {
       let inputShippingCost = [];
@@ -64,14 +64,9 @@ export const calculateGood = async (files = []) => {
       shipment = "";
       let originalShipment, shipmentId;
       shipmentId = inputTsvData[0].shipmentId;
-
-      if (!isEmptyValue(shipmentData)) {
-        const shipmentObj = shipmentData.find(
-          (item) => item?.shipmentId == shipmentId
-        );
-        shipment = shipmentObj?.shipment;
-        originalShipment = shipmentObj?.originalShipment;
-      }
+      
+      shipment = tsvFilesArr[0]?.shipment;
+      originalShipment = tsvFilesArr[0]?.shipment;
 
       inputShippingCost = transformShippingCostInput(
         rawInputShippingCost,
@@ -115,7 +110,6 @@ export const calculateGood = async (files = []) => {
         return { ...item, shipmentId, originalShipment };
       });
 
-      skuList = calculatePpuPrice(skuList, elementsPrice);
       skuList = addCustomizeCost(skuList, elementsPrice);
       skuList = addPackingCost(skuList, elementsPrice);
       skuList = addShippingAndPaymentCost(
@@ -125,6 +119,7 @@ export const calculateGood = async (files = []) => {
       );
       skuList = addCogsAndAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
+      skuList = calculatePpuPrice(skuList, elementsPrice);
 
       const allElements = await addShipmentResultFileToZipAndGetAllElements(
         skuList,

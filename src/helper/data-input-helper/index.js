@@ -9,6 +9,7 @@ import {
 } from "../../shared/constant.js";
 import {
   MISSING_ORDER_1_FILE,
+  MISSING_SHIPMENT_DATA,
   MISSING_SKU_LIST_FILE,
   MISSING_TSV_FILE,
 } from "../../shared/err-const.js";
@@ -18,6 +19,7 @@ import {
   mergeArrays,
   removeSpaces,
   removeStringAfter,
+  sortArrayBaseOnKey,
 } from "../../shared/utils.js";
 import { getDataTsvFile } from "../tsv-helper/index.js";
 import { getFileType, xlsxToJSON } from "../xlsx-handler/index.js";
@@ -578,6 +580,10 @@ export const getShipmentData = (files = []) => {
     );
   }
 
+  if(isEmptyValue(shipmentData)){
+    throw new BadRequestError(MISSING_SHIPMENT_DATA)
+  }
+
   return shipmentData;
 };
 
@@ -634,7 +640,11 @@ export const addFileTypeAndOrder = (files) => {
  *
  * @param {Array.<Express.Multer.File>} tsvFilesArr
  */
-export const mergeTsvData = async (tsvFilesArr = [], totalSkuList) => {
+export const mergeTsvData = async (
+  tsvFilesArr = [],
+  totalSkuList,
+  shipmentData = []
+) => {
   let totalShipmentQuantity = 0;
   let totalSkuType = 0;
   let inputTsvDataArr = [];
@@ -644,6 +654,20 @@ export const mergeTsvData = async (tsvFilesArr = [], totalSkuList) => {
       file: tsvFile,
     });
     totalShipmentQuantity += shipmentQuantity;
+
+    if (!isEmptyValue(shipmentData)) {
+      let shipmentId = inputTsvData[0].shipmentId;
+      const shipmentObj = shipmentData.find(
+        (item) => item?.shipmentId == shipmentId
+      );
+      const { shipment, originalShipment } = shipmentObj;
+      if (shipment) {
+        inputTsvData[0].shipment = shipment;
+      }
+      if (originalShipment) {
+        inputTsvData[0].originalShipment = originalShipment;
+      }
+    }
     inputTsvDataArr.push(inputTsvData);
 
     const thisTsvSkuList = mergeArrays(
@@ -653,6 +677,17 @@ export const mergeTsvData = async (tsvFilesArr = [], totalSkuList) => {
     ).filter((item) => !_.isEmpty(item?.elements));
     totalSkuType += thisTsvSkuList.length;
   }
+
+  inputTsvDataArr = inputTsvDataArr.sort((a, b) => {
+    if (a[0]?.originalShipment > b[0]?.originalShipment) {
+      return 1;
+    }
+    if (a[0]?.originalShipment < b[0]?.originalShipment) {
+      return -1;
+    }
+    return 0;
+  });
+  inputTsvDataArr = sortArrayBaseOnKey(inputTsvDataArr, "originalShipment");
 
   return {
     totalShipmentQuantity,
@@ -664,7 +699,7 @@ export const mergeTsvData = async (tsvFilesArr = [], totalSkuList) => {
 export function extractNumberFromFilename(fileName) {
   const match = fileName.match(/\((\d+)\)\.xlsx$/);
   if (match) {
-    return match[1]; // Return the extracted number
+    return parseInt(match[1]); // Return the extracted number
   } else {
     return null; // Return null if no number is found
   }

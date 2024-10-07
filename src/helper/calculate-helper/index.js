@@ -7,6 +7,8 @@ import {
   simplifyFormula,
 } from "../../shared/utils.js";
 import { ElementPrice } from "../../model/index.js";
+import { BadRequestError } from "../../error/bad-request-err.js";
+import { MISSING_ELEMENT_DATA } from "../../shared/err-const.js";
 
 /**
  * Calculates the total price to make each object.
@@ -17,13 +19,66 @@ import { ElementPrice } from "../../model/index.js";
 export const calculatePpuPrice = (skuList, elementsPrice) => {
   return skuList.map((sku) => {
     let ppuPrice = sku.elements.reduce((acc, element) => {
-      const elementPrice = elementsPrice.find(
-        (el) => el.name.toLowerCase() === element.name.toLowerCase()
-      );
+      let newPpuPrice = "";
+      const elementPrice = elementsPrice
+        .filter(
+          (el) =>
+            el.name.toLowerCase() === element.name.toLowerCase() &&
+            el.leftQuantity > 0
+        )
+        .reduce((currentValue, nextValue) => {
+          // If currentValue is null, we return nextValue (i.e., first valid object)
+          if (currentValue === null) {
+            return nextValue;
+          }
+          // Otherwise, return the one with the smaller fileOrder
+          return nextValue?.fileOrder < currentValue?.fileOrder
+            ? nextValue
+            : currentValue;
+        }, null);
+
+      if (!elementPrice) {
+        throw new BadRequestError(MISSING_ELEMENT_DATA);
+      }
+
       const exchangeRate = elementPrice?.exchangeRate;
       const cnyPrice = elementPrice ? elementPrice.cnyPrice : 0;
       const usdPrice = `${cnyPrice} / ${exchangeRate}`;
-      const quantity = parseInt(element.quantity) || 1;
+      const skuQuantity = sku?.quantity ?? 0;
+      const quantity = (parseInt(element.quantity) || 1) * skuQuantity;
+
+      const remainingQuantity = elementPrice.setLeftQuantity(quantity);
+
+      // TH này ko cần tìm thêm gì, tính luôn ppu
+      if (remainingQuantity <= 0) {
+        newPpuPrice = `${usdPrice} * ${quantity} / C3`;
+      }
+      if (remainingQuantity > 0) {
+        const newElementPrice = elementsPrice
+          .filter(
+            (el) =>
+              el.name.toLowerCase() === element.name.toLowerCase() &&
+              el.leftQuantity > 0 &&
+              el.fileOrder > elementPrice.fileOrder
+          )
+          .reduce((currentValue, nextValue) => {
+            // If currentValue is null, we return nextValue (i.e., first valid object)
+            if (currentValue === null) {
+              return nextValue;
+            }
+            // Otherwise, return the one with the smaller fileOrder
+            return nextValue?.fileOrder < currentValue?.fileOrder
+              ? nextValue
+              : currentValue;
+          }, null);
+        if (!newElementPrice) {
+          throw new BadRequestError(MISSING_ELEMENT_DATA);
+        }
+        newElementPrice.setLeftQuantity(remainingQuantity);
+        newPpuPrice = `${usdPrice} * ${
+          quantity - remainingQuantity
+        } / C3 + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / C3`;
+      }
 
       element.cnyPrice = cnyPrice;
       element.usdPrice = usdPrice;
@@ -44,7 +99,10 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         return totalElementsPrice;
       }
 
-      return `${acc} + ${totalElementsPrice}`;
+      const oldPpuPrice = `${acc} + ${totalElementsPrice}`;
+
+      return newPpuPrice;
+      // return oldPpuPrice;
     }, "");
 
     ppuPrice = simplifyFormula(ppuPrice);
