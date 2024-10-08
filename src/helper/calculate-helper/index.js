@@ -74,7 +74,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
           throw new BadRequestError(MISSING_ELEMENT_DATA);
         }
         newElementPrice.setLeftQuantity(remainingQuantity);
-        newPpuPrice = `${newPpuPrice} + ${newElementPrice.getUsdFormula()} * ${
+        newPpuPrice = `${elementPrice.getUsdFormula()} * ${
           quantity - remainingQuantity
         } / C3 + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / C3`;
       }
@@ -168,8 +168,7 @@ export const addCustomizeCost = (skuList, elementsPrice) => {
 
     if (!_.isEmpty(customizeObj)) {
       cnyCustomPackageCost = customizeObj.price;
-      const exchangeRate = customizeObj?.exchangeRate;
-      const usdPrice = `${cnyCustomPackageCost} / ${exchangeRate}`;
+      const usdPrice = customizeObj.getUsdFormula();
       customPackageCost = usdPrice;
     }
     return { ...item, customPackageCost, cnyCustomPackageCost };

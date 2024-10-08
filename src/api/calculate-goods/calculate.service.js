@@ -57,14 +57,14 @@ export const calculateGood = async (files = []) => {
     let { totalSkuType, inputTsvDataArr, totalShipmentQuantity } =
       await mergeTsvData(tsvFilesArr, totalSkuList, shipmentData);
 
+    let elementsPrice = [];
     for (const inputTsvData of inputTsvDataArr) {
       let inputShippingCost = [];
       let skuList = totalSkuList;
-      let elementsPrice = [];
       shipment = "";
       let originalShipment, shipmentId;
       shipmentId = inputTsvData[0].shipmentId;
-      
+
       // shipment = tsvFilesArr[0]?.shipment;
       // originalShipment = tsvFilesArr[0]?.shipment;
 
@@ -97,11 +97,14 @@ export const calculateGood = async (files = []) => {
         internationalShippingCostArr = [],
         packingLabelingCostArr = [],
       } = totalOrder1Data;
-      elementsPrice = [
-        ...elementsPriceArr,
-        ...elementsPrice,
-        ...packingLabelingCostArr,
-      ];
+      // elementsPrice = [
+      //   ...elementsPriceArr,
+      //   // ...elementsPrice,
+      //   ...packingLabelingCostArr,
+      // ];
+      if (isEmptyValue(elementsPrice)) {
+        elementsPrice = [...elementsPriceArr, ...packingLabelingCostArr];
+      }
       inputShippingCost = [
         ...inputShippingCost,
         ...domesticShippingCostArr,
