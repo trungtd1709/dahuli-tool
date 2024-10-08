@@ -35,6 +35,7 @@ export const inputKeyName = {
   customPackageCost: "Custom Package Cost",
   shipment: "Shipment",
   shipmentId: "Shipment ID",
+  IN_STOCK: "In Stock",
 };
 
 export const KEY_PREFERENCES = {

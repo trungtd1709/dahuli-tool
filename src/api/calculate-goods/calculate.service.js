@@ -65,8 +65,16 @@ export const calculateGood = async (files = []) => {
       let originalShipment, shipmentId;
       shipmentId = inputTsvData[0].shipmentId;
       
-      shipment = tsvFilesArr[0]?.shipment;
-      originalShipment = tsvFilesArr[0]?.shipment;
+      // shipment = tsvFilesArr[0]?.shipment;
+      // originalShipment = tsvFilesArr[0]?.shipment;
+
+      if (!isEmptyValue(shipmentData)) {
+        const shipmentObj = shipmentData.find(
+          (item) => item?.shipmentId == shipmentId
+        );
+        shipment = shipmentObj?.shipment;
+        originalShipment = shipmentObj?.originalShipment;
+      }
 
       inputShippingCost = transformShippingCostInput(
         rawInputShippingCost,

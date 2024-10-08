@@ -198,3 +198,26 @@ export const sortArrayBaseOnKey = (arr = [], key) => {
     return 0;
   });
 };
+
+export function getMaxIndexKeyValue(obj, keyName) {
+  // Step 1: Extract keys matching the pattern "In Stock" or "In Stock_X"
+  const keys = Object.keys(obj).filter(key => key.startsWith(keyName));
+  
+  let maxIndex = -1;
+  let maxKey = keyName; 
+
+  keys.forEach(key => {
+      // Check if the key has an index and extract it
+      const match = key.match(/In Stock(?:_(\d+))?/);
+      if (match) {
+          const index = match[1] ? parseInt(match[1], 10) : -1;
+          if (index > maxIndex) {
+              maxIndex = index;
+              maxKey = key;
+          }
+      }
+  });
+
+  // Step 3: Return the value associated with the key having the biggest index
+  return obj[maxKey];
+}

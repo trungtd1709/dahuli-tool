@@ -15,6 +15,7 @@ import {
 } from "../../shared/err-const.js";
 import {
   evalCalculation,
+  getMaxIndexKeyValue,
   isEmptyValue,
   mergeArrays,
   removeSpaces,
@@ -85,6 +86,8 @@ const transformToElementPrice = (obj) => {
     order = "",
   } = obj;
 
+  const inStock = getMaxIndexKeyValue(obj, inputKeyName.IN_STOCK);
+
   const cnyPrice = evalCalculation(`${totalCny} / ${quantity}`);
 
   const elementPrice = ElementPrice.fromJson({
@@ -96,6 +99,7 @@ const transformToElementPrice = (obj) => {
     packingLabelingCost,
     order,
     quantity,
+    leftQuantity: inStock,
   });
 
   return elementPrice;
@@ -144,8 +148,6 @@ export const transformPrinttingFeeInput = (rawJson = []) => {
 };
 
 export const testTransformOrderList1Input = (rawJson = [], shipmentId) => {
-  // rawJson.pop();
-  // remove phần tử Total
   rawJson = rawJson.filter(
     (item) => item?.productName?.toLowerCase() != CHECK_KEYWORD.TOTAL
   );

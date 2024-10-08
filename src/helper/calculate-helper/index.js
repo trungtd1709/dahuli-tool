@@ -42,8 +42,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       }
 
       const exchangeRate = elementPrice?.exchangeRate;
-      const cnyPrice = elementPrice ? elementPrice.cnyPrice : 0;
-      const usdPrice = `${cnyPrice} / ${exchangeRate}`;
+      const usdPrice = elementPrice.getUsdFormula();
       const skuQuantity = sku?.quantity ?? 0;
       const quantity = (parseInt(element.quantity) || 1) * skuQuantity;
 
@@ -75,12 +74,11 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
           throw new BadRequestError(MISSING_ELEMENT_DATA);
         }
         newElementPrice.setLeftQuantity(remainingQuantity);
-        newPpuPrice = `${usdPrice} * ${
+        newPpuPrice = `${newPpuPrice} + ${newElementPrice.getUsdFormula()} * ${
           quantity - remainingQuantity
         } / C3 + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / C3`;
       }
 
-      element.cnyPrice = cnyPrice;
       element.usdPrice = usdPrice;
 
       let totalElementsPrice = usdPrice;
@@ -93,15 +91,18 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       if (domesticShippingCost) {
         const usdDomesticShippingCost = `${domesticShippingCost} / ${exchangeRate}`;
         totalElementsPrice = `(${usdPrice} + ${usdDomesticShippingCost}) * ${quantity}`;
+        // newPpuPrice = `${newPpuPrice}`
       }
 
       if (!acc) {
-        return totalElementsPrice;
+        return newPpuPrice;
       }
 
-      const oldPpuPrice = `${acc} + ${totalElementsPrice}`;
+      // const oldPpuPrice = `${acc} + ${totalElementsPrice}`;
 
-      return newPpuPrice;
+      const ppuPrice = `${acc} + ${newPpuPrice}`;
+
+      return ppuPrice;
       // return oldPpuPrice;
     }, "");
 
