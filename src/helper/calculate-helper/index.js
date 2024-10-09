@@ -167,7 +167,7 @@ export const addCustomizeCost = (skuList, elementsPrice) => {
     let cnyCustomPackageCost = "";
 
     if (!_.isEmpty(customizeObj)) {
-      cnyCustomPackageCost = customizeObj.price;
+      cnyCustomPackageCost = customizeObj.cnyPrice;
       const usdPrice = customizeObj.getUsdFormula();
       customPackageCost = usdPrice;
     }

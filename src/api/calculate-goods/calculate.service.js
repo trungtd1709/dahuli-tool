@@ -206,6 +206,7 @@ const addShipmentResultFileToZipAndGetAllElements = async (
     })
     .flat();
 
+    // add up quantity
   allElements = Object.values(
     allElements.reduce((accumulator, current) => {
       if (accumulator[current.name]) {
@@ -218,17 +219,19 @@ const addShipmentResultFileToZipAndGetAllElements = async (
   );
 
   allElements = allElements.map((element) => {
-    const { name, quantity, usdPrice, cnyPrice } = element;
+    let { name, quantity, usdPrice, cnyPrice } = element;
     const elementPriceObj = elementsPrice.find(
       (item) => item?.name?.toLowerCase() == name?.toLowerCase()
     );
     let order = "";
     if (!isEmptyValue(elementPriceObj)) {
       order = elementPriceObj?.order;
+      usdPrice = elementPriceObj.getUsdFormula();
+      cnyPrice = elementPriceObj.cnyPrice;
     }
     const totalUsd = `${usdPrice} * ${quantity}`;
     const totalCny = `${cnyPrice} * ${quantity}`;
-    return { ...element, totalCny, totalUsd, order };
+    return { ...element, usdPrice, cnyPrice, totalCny, totalUsd, order };
   });
 
   inputShippingCost.forEach((item) => {
