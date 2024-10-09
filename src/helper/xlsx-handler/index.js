@@ -327,7 +327,11 @@ export const cogsJsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
     }));
 
     // Add rows from JSON data
-    json.forEach((item) => {
+    json.forEach((item, index) => {
+      item[OUTPUT_KEY_NAME.PPU] = item[OUTPUT_KEY_NAME.PPU].replace(
+        /rowNo/g,
+        `C${(index + 2).toString()}`
+      );
       worksheet.addRow(item);
     });
 

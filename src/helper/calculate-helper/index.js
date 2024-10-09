@@ -50,7 +50,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
 
       // TH này ko cần tìm thêm gì, tính luôn ppu
       if (remainingQuantity <= 0) {
-        newPpuPrice = `${usdPrice} * ${quantity} / C3`;
+        newPpuPrice = `${usdPrice} * ${quantity} / rowNo`;
       }
       if (remainingQuantity > 0) {
         const newElementPrice = elementsPrice
@@ -76,7 +76,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         newElementPrice.setLeftQuantity(remainingQuantity);
         newPpuPrice = `${elementPrice.getUsdFormula()} * ${
           quantity - remainingQuantity
-        } / C3 + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / C3`;
+        } / rowNo + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / rowNo`;
       }
 
       element.usdPrice = usdPrice;
