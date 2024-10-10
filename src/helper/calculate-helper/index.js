@@ -20,6 +20,8 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
   return skuList.map((sku) => {
     let ppuPrice = sku.elements.reduce((acc, element) => {
       let newPpuPrice = "";
+      const elementIndex = sku.elements.findIndex((el) => el.name == element.name);
+
       const elementPrice = elementsPrice
         .filter(
           (el) =>
@@ -48,6 +50,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
 
       const remainingQuantity = elementPrice.setLeftQuantity(quantity);
 
+      sku.elements[elementIndex].order = elementPrice.order;
       // TH này ko cần tìm thêm gì, tính luôn ppu
       if (remainingQuantity <= 0) {
         newPpuPrice = `${usdPrice} * ${quantity} / rowNo`;
@@ -73,6 +76,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         if (!newElementPrice) {
           throw new BadRequestError(MISSING_ELEMENT_DATA);
         }
+        sku.elements[elementIndex].order = `${sku.elements[elementIndex].order} + ${newElementPrice.order}`;
         newElementPrice.setLeftQuantity(remainingQuantity);
         newPpuPrice = `${elementPrice.getUsdFormula()} * ${
           quantity - remainingQuantity
