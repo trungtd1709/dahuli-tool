@@ -328,10 +328,15 @@ export const cogsJsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
 
     // Add rows from JSON data
     json.forEach((item, index) => {
+      const quantityCell = `C${(index + 2).toString()}`;
+
       item[OUTPUT_KEY_NAME.PPU] = item[OUTPUT_KEY_NAME.PPU].replace(
-        /rowNo/g,
-        `C${(index + 2).toString()}`
+        /quantityCell/g,
+        quantityCell
       );
+      item[OUTPUT_KEY_NAME.CUSTOM_PACKAGE_COST] = item[
+        OUTPUT_KEY_NAME.CUSTOM_PACKAGE_COST
+      ].replace(/quantityCell/g, quantityCell);
       worksheet.addRow(item);
     });
 

@@ -96,15 +96,16 @@ export class ElementPrice {
         this.leftQuantity = 0;
         return -newLeftQuantity;
       }
+    } else {
+      return 0;
     }
   }
 
   getUsdFormula() {
     let usdFormula;
     if (!isEmptyValue(this.cnyPrice) || !isEmpty(this.exchangeRate)) {
-       usdFormula = `${this.cnyPrice} / ${this.exchangeRate}`;
-    }
-    else{
+      usdFormula = `${this.cnyPrice} / ${this.exchangeRate}`;
+    } else {
       usdFormula = this.usdPrice;
     }
     return usdFormula;

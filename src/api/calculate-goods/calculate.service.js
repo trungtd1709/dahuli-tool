@@ -97,11 +97,6 @@ export const calculateGood = async (files = []) => {
         internationalShippingCostArr = [],
         packingLabelingCostArr = [],
       } = totalOrder1Data;
-      // elementsPrice = [
-      //   ...elementsPriceArr,
-      //   // ...elementsPrice,
-      //   ...packingLabelingCostArr,
-      // ];
       if (isEmptyValue(elementsPrice)) {
         elementsPrice = [...elementsPriceArr, ...packingLabelingCostArr];
       }
@@ -132,7 +127,7 @@ export const calculateGood = async (files = []) => {
       skuList = addTotalAmountAndQuantity(skuList);
       skuList = calculatePpuPrice(skuList, elementsPrice);
 
-      const allElements = await addShipmentResultFileToZipAndGetAllElements(
+      const allElements = await addShipmentFileAndGetAllElements(
         skuList,
         inputShippingCost,
         originalShipment,
@@ -171,7 +166,7 @@ export const calculateGood = async (files = []) => {
  * Calculates the total price to make each object.
  * @param {Array<ElementPrice>} elementsPrice - The array of element prices.
  */
-const addShipmentResultFileToZipAndGetAllElements = async (
+const addShipmentFileAndGetAllElements = async (
   skuList,
   inputShippingCost,
   originalShipment,
@@ -185,15 +180,17 @@ const addShipmentResultFileToZipAndGetAllElements = async (
         customizePackage = "",
         customPackageCost = "",
         cnyCustomPackageCost = "",
+        customPackageOrder = ""
       } = sku;
       let { elements = [], quantity } = sku;
 
-      if (!isEmptyValue(customizePackage)) {
+      if (customizePackage) {
         const customizePackageObj = {
           name: customizePackage,
           quantity: 1,
           cnyPrice: cnyCustomPackageCost,
           usdPrice: customPackageCost,
+          order: customPackageOrder,
         };
         elements = [...elements, customizePackageObj];
       }
@@ -223,9 +220,7 @@ const addShipmentResultFileToZipAndGetAllElements = async (
     const elementPriceObj = elementsPrice.find(
       (item) => item?.name?.toLowerCase() == name?.toLowerCase()
     );
-    // let order = "";
     if (!isEmptyValue(elementPriceObj)) {
-      // order = elementPriceObj?.order;
       usdPrice = elementPriceObj.getUsdFormula();
       cnyPrice = elementPriceObj.cnyPrice;
     }

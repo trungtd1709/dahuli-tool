@@ -8,7 +8,10 @@ import {
 } from "../../shared/utils.js";
 import { ElementPrice } from "../../model/index.js";
 import { BadRequestError } from "../../error/bad-request-err.js";
-import { MISSING_ELEMENT_DATA } from "../../shared/err-const.js";
+import {
+  MISSING_ELEMENT_DATA,
+  NOT_ENOUGHT_CUSTOM_PACKAGE_QUANTITY,
+} from "../../shared/err-const.js";
 
 /**
  * Calculates the total price to make each object.
@@ -20,24 +23,17 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
   return skuList.map((sku) => {
     let ppuPrice = sku.elements.reduce((acc, element) => {
       let newPpuPrice = "";
-      const elementIndex = sku.elements.findIndex((el) => el.name == element.name);
+      const elementIndex = sku.elements.findIndex(
+        (el) => el.name == element.name
+      );
 
-      const elementPrice = elementsPrice
-        .filter(
+      const elementPrice = findEleWithLowestFileOrder(
+        elementsPrice.filter(
           (el) =>
             el.name.toLowerCase() === element.name.toLowerCase() &&
             el.leftQuantity > 0
         )
-        .reduce((currentValue, nextValue) => {
-          // If currentValue is null, we return nextValue (i.e., first valid object)
-          if (currentValue === null) {
-            return nextValue;
-          }
-          // Otherwise, return the one with the smaller fileOrder
-          return nextValue?.fileOrder < currentValue?.fileOrder
-            ? nextValue
-            : currentValue;
-        }, null);
+      );
 
       if (!elementPrice) {
         throw new BadRequestError(MISSING_ELEMENT_DATA);
@@ -53,36 +49,29 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       sku.elements[elementIndex].order = elementPrice.order;
       // TH này ko cần tìm thêm gì, tính luôn ppu
       if (remainingQuantity <= 0) {
-        newPpuPrice = `${usdPrice} * ${quantity} / rowNo`;
+        newPpuPrice = `${usdPrice} * ${quantity} / quantityCell`;
       }
       if (remainingQuantity > 0) {
-        const newElementPrice = elementsPrice
-          .filter(
+        const newElementPrice = findEleWithLowestFileOrder(
+          elementsPrice.filter(
             (el) =>
               el.name.toLowerCase() === element.name.toLowerCase() &&
               el.leftQuantity > 0 &&
               el.fileOrder > elementPrice.fileOrder
           )
-          .reduce((currentValue, nextValue) => {
-            // If currentValue is null, we return nextValue (i.e., first valid object)
-            if (currentValue === null) {
-              return nextValue;
-            }
-            // Otherwise, return the one with the smaller fileOrder
-            return nextValue?.fileOrder < currentValue?.fileOrder
-              ? nextValue
-              : currentValue;
-          }, null);
+        );
+
         if (!newElementPrice) {
           throw new BadRequestError(MISSING_ELEMENT_DATA);
         }
-        sku.elements[elementIndex].order = `${sku.elements[elementIndex].order} + ${newElementPrice.order}`;
+        sku.elements[
+          elementIndex
+        ].order = `${sku.elements[elementIndex].order} + ${newElementPrice.order}`;
         newElementPrice.setLeftQuantity(remainingQuantity);
         newPpuPrice = `${elementPrice.getUsdFormula()} * ${
           quantity - remainingQuantity
-        } / rowNo + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / rowNo`;
+        } / quantityCell + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / quantityCell`;
       }
-
       element.usdPrice = usdPrice;
 
       let totalElementsPrice = usdPrice;
@@ -95,19 +84,13 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       if (domesticShippingCost) {
         const usdDomesticShippingCost = `${domesticShippingCost} / ${exchangeRate}`;
         totalElementsPrice = `(${usdPrice} + ${usdDomesticShippingCost}) * ${quantity}`;
-        // newPpuPrice = `${newPpuPrice}`
       }
 
       if (!acc) {
         return newPpuPrice;
       }
-
-      // const oldPpuPrice = `${acc} + ${totalElementsPrice}`;
-
       const ppuPrice = `${acc} + ${newPpuPrice}`;
-
       return ppuPrice;
-      // return oldPpuPrice;
     }, "");
 
     ppuPrice = simplifyFormula(ppuPrice);
@@ -163,19 +146,50 @@ export const addPackingCost = (skuList, elementsPrice) => {
 export const addCustomizeCost = (skuList, elementsPrice) => {
   return skuList.map((item) => {
     const customizePackage = item?.customizePackage;
-    const customizeObj = elementsPrice.find(
-      (el) => el.name?.toLowerCase() == customizePackage?.toLowerCase()
+    const customizeObj = findEleWithLowestFileOrder(
+      elementsPrice.filter(
+        (el) =>
+          el.name?.toLowerCase() == customizePackage?.toLowerCase() &&
+          el.leftQuantity > 0
+      )
     );
 
-    let customPackageCost = "0";
     let cnyCustomPackageCost = "";
+    const quantity = item?.quantity;
+    let customPackageCostFormula = "0";
 
+    item.customPackageOrder = customizeObj.order;
     if (!_.isEmpty(customizeObj)) {
       cnyCustomPackageCost = customizeObj.cnyPrice;
-      const usdPrice = customizeObj.getUsdFormula();
-      customPackageCost = usdPrice;
+      const remainingQuantity = customizeObj.setLeftQuantity(quantity);
+      if (remainingQuantity > 0) {
+        const secondCustomizeObj = findEleWithLowestFileOrder(
+          elementsPrice.filter(
+            (el) =>
+              el.name?.toLowerCase() == customizePackage?.toLowerCase() &&
+              el.leftQuantity > 0
+          )
+        );
+        if (secondCustomizeObj) {
+          secondCustomizeObj.setLeftQuantity(remainingQuantity);
+          customPackageCostFormula = `${customizeObj.getUsdFormula()} * ${
+            quantity - remainingQuantity
+          } / quantityCell + ${secondCustomizeObj.getUsdFormula()} * ${remainingQuantity} / quantityCell`;
+          item.customPackageOrder = `${item.customPackageOrder} + ${secondCustomizeObj.order}`;
+        } else {
+          throw new BadRequestError(NOT_ENOUGHT_CUSTOM_PACKAGE_QUANTITY);
+        }
+      }
+      // th này múc luôn
+      else {
+        customPackageCostFormula = customizeObj.getUsdFormula();
+      }
     }
-    return { ...item, customPackageCost, cnyCustomPackageCost };
+    return {
+      ...item,
+      customPackageCost: customPackageCostFormula,
+      cnyCustomPackageCost,
+    };
   });
 };
 
@@ -302,4 +316,19 @@ export const addTotalAmountAndQuantity = (skuList = []) => {
       return { ...item, totalAmount: "", totalQuantity: "" };
     }
   });
+};
+
+/// tìm ele có file order nhỏ nhất từ những TH đã filter
+const findEleWithLowestFileOrder = (filteredElementsPrice = []) => {
+  const result = filteredElementsPrice.reduce((currentValue, nextValue) => {
+    // If currentValue is null, we return nextValue (i.e., first valid object)
+    if (currentValue === null) {
+      return nextValue;
+    }
+    // Otherwise, return the one with the smaller fileOrder
+    return nextValue?.fileOrder < currentValue?.fileOrder
+      ? nextValue
+      : currentValue;
+  }, null);
+  return result;
 };
