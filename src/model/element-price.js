@@ -110,4 +110,8 @@ export class ElementPrice {
     }
     return usdFormula;
   }
+
+  getCnyFormula() {
+    return this.cnyPrice;
+  }
 }

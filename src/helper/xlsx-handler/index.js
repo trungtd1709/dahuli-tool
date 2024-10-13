@@ -699,7 +699,7 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
   });
 
   const shipmentKeys = Object.keys(shipmentObjAddToOrder).sort() ?? [];
-  const shipmentStartColIndex = headerRow.cellCount + 2;
+  const shipmentStartColIndex = headerRow.cellCount + 1;
 
   // add quantity
   shipmentKeys.forEach((shipmentKey, index) => {
@@ -1054,7 +1054,7 @@ export async function modifyShippingFile(
 
   const shipmentKeys = Object.keys(shipmentObjAddToOrder).sort() ?? [];
 
-  const shipmentStartColIndex = headerRow.cellCount + 2;
+  const shipmentStartColIndex = headerRow.cellCount + 1;
 
   // add shipping cost
   shipmentKeys.forEach((shipmentKey, index) => {

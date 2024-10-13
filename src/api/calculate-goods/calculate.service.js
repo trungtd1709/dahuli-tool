@@ -83,10 +83,6 @@ export const calculateGood = async (files = []) => {
         totalShipmentQuantity
       );
 
-      // const totalOrder1Data = transformOrderList1Input(
-      //   rawJsonOrder1,
-      //   shipmentId
-      // );
       const totalOrder1Data = testTransformOrderList1Input(
         rawJsonOrder1,
         shipmentId
@@ -180,7 +176,9 @@ const addShipmentFileAndGetAllElements = async (
         customizePackage = "",
         customPackageCost = "",
         cnyCustomPackageCost = "",
-        customPackageOrder = ""
+        customPackageOrder = "",
+        totalUsdCustomPackageCost = "",
+        totalCnyCustomPackageCost = "",
       } = sku;
       let { elements = [], quantity } = sku;
 
@@ -191,6 +189,8 @@ const addShipmentFileAndGetAllElements = async (
           cnyPrice: cnyCustomPackageCost,
           usdPrice: customPackageCost,
           order: customPackageOrder,
+          totalCny: totalCnyCustomPackageCost,
+          totalUsd: totalUsdCustomPackageCost,
         };
         elements = [...elements, customizePackageObj];
       }
@@ -203,7 +203,7 @@ const addShipmentFileAndGetAllElements = async (
     })
     .flat();
 
-    // add up quantity
+  // add up quantity
   allElements = Object.values(
     allElements.reduce((accumulator, current) => {
       if (accumulator[current.name]) {
@@ -224,9 +224,7 @@ const addShipmentFileAndGetAllElements = async (
       usdPrice = elementPriceObj.getUsdFormula();
       cnyPrice = elementPriceObj.cnyPrice;
     }
-    const totalUsd = `${usdPrice} * ${quantity}`;
-    const totalCny = `${cnyPrice} * ${quantity}`;
-    return { ...element, usdPrice, cnyPrice, totalCny, totalUsd };
+    return { ...element, usdPrice, cnyPrice };
   });
 
   inputShippingCost.forEach((item) => {

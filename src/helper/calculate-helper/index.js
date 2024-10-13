@@ -40,16 +40,21 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       }
 
       const exchangeRate = elementPrice?.exchangeRate;
+      const cnyPrice = elementPrice.getCnyFormula();
       const usdPrice = elementPrice.getUsdFormula();
       const skuQuantity = sku?.quantity ?? 0;
       const quantity = (parseInt(element.quantity) || 1) * skuQuantity;
 
       const remainingQuantity = elementPrice.setLeftQuantity(quantity);
 
-      sku.elements[elementIndex].order = elementPrice.order;
+      let eleShipmentTotalCny = "";
+      let eleShipmentTotalUsd = "";
+      let order = elementPrice.order;
       // TH này ko cần tìm thêm gì, tính luôn ppu
       if (remainingQuantity <= 0) {
         newPpuPrice = `${usdPrice} * ${quantity} / quantityCell`;
+        eleShipmentTotalCny = `${cnyPrice} * ${quantity}`;
+        eleShipmentTotalUsd = `${cnyPrice} / ${exchangeRate} * ${quantity}`;
       }
       if (remainingQuantity > 0) {
         const newElementPrice = findEleWithLowestFileOrder(
@@ -64,15 +69,25 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         if (!newElementPrice) {
           throw new BadRequestError(MISSING_ELEMENT_DATA);
         }
-        sku.elements[
-          elementIndex
-        ].order = `${sku.elements[elementIndex].order} + ${newElementPrice.order}`;
+        order = `${order} + ${newElementPrice.order}`;
         newElementPrice.setLeftQuantity(remainingQuantity);
         newPpuPrice = `${elementPrice.getUsdFormula()} * ${
           quantity - remainingQuantity
         } / quantityCell + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / quantityCell`;
+
+        eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${
+          quantity - remainingQuantity
+        } + ${newElementPrice.getUsdFormula()} * ${remainingQuantity}`;
+
+        eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${
+          quantity - remainingQuantity
+        } + ${newElementPrice.getCnyFormula()} * ${remainingQuantity}`;
       }
       element.usdPrice = usdPrice;
+      element.order = order;
+      element.totalUsd = eleShipmentTotalUsd;
+      element.totalCny = eleShipmentTotalCny;
+      // sku.elements[elementIndex].order = order;
 
       let totalElementsPrice = usdPrice;
       if (quantity > 1) {
@@ -157,6 +172,8 @@ export const addCustomizeCost = (skuList, elementsPrice) => {
     let cnyCustomPackageCost = "";
     const quantity = item?.quantity;
     let customPackageCostFormula = "0";
+    let totalCnyCustomPackageCost;
+    let totalUsdCustomPackageCost;
 
     item.customPackageOrder = customizeObj.order;
     if (!_.isEmpty(customizeObj)) {
@@ -175,6 +192,12 @@ export const addCustomizeCost = (skuList, elementsPrice) => {
           customPackageCostFormula = `${customizeObj.getUsdFormula()} * ${
             quantity - remainingQuantity
           } / quantityCell + ${secondCustomizeObj.getUsdFormula()} * ${remainingQuantity} / quantityCell`;
+          totalUsdCustomPackageCost = `${customizeObj.getUsdFormula()} * ${
+            quantity - remainingQuantity
+          } + ${secondCustomizeObj.getUsdFormula()} * ${remainingQuantity}`;
+          totalCnyCustomPackageCost = `${customizeObj.getCnyFormula()} * ${
+            quantity - remainingQuantity
+          } + ${secondCustomizeObj.getCnyFormula()} * ${remainingQuantity}`;
           item.customPackageOrder = `${item.customPackageOrder} + ${secondCustomizeObj.order}`;
         } else {
           throw new BadRequestError(NOT_ENOUGHT_CUSTOM_PACKAGE_QUANTITY);
@@ -183,12 +206,16 @@ export const addCustomizeCost = (skuList, elementsPrice) => {
       // th này múc luôn
       else {
         customPackageCostFormula = customizeObj.getUsdFormula();
+        totalUsdCustomPackageCost = `${customPackageCostFormula} * ${quantity}`;
+        totalCnyCustomPackageCost = `${customizeObj.getCnyFormula()} * ${quantity}`;
       }
     }
     return {
       ...item,
       customPackageCost: customPackageCostFormula,
       cnyCustomPackageCost,
+      totalUsdCustomPackageCost,
+      totalCnyCustomPackageCost,
     };
   });
 };
@@ -319,6 +346,10 @@ export const addTotalAmountAndQuantity = (skuList = []) => {
 };
 
 /// tìm ele có file order nhỏ nhất từ những TH đã filter
+/**
+ * Calculates the total price to make each object.
+ * @returns {ElementPrice} The array of objects with their total price.
+ */
 const findEleWithLowestFileOrder = (filteredElementsPrice = []) => {
   const result = filteredElementsPrice.reduce((currentValue, nextValue) => {
     // If currentValue is null, we return nextValue (i.e., first valid object)

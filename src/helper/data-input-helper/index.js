@@ -97,7 +97,7 @@ const transformToElementPrice = (obj) => {
     cnyPrice,
     domesticShippingCost,
     packingLabelingCost,
-    order,
+    order: order.trim(),
     quantity,
     leftQuantity: inStock,
   });
