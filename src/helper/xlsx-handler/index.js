@@ -876,7 +876,6 @@ async function checkNegative(
   shipmentStartColIndex,
   shipmentLastColIndex
 ) {
-  const test = columnIndexToLetter(shipmentLastColIndex);
   // Step 1: Get the value of total shipment quantity
   const totalShipmentCell = worksheet.getCell(
     `${totalShipmentQuantityColLetter}${rowNumber}`
@@ -884,15 +883,15 @@ async function checkNegative(
   const rawTotalShipmentQuantity = parseFloat(
     totalShipmentCell.value?.result ?? totalShipmentCell.value
   );
+  let negativeInStockPlaceArr = [];
 
   if (
     isNaN(rawTotalShipmentQuantity) ||
     isEmptyValue(rawTotalShipmentQuantity)
   ) {
-    return;
+    return negativeInStockPlaceArr;
   }
   const totalShipmentQuantity = rawTotalShipmentQuantity;
-  let negativeInStockPlaceArr = [];
 
   // Step 2: Get the values in the shipment range
   let shipmentSum = 0;
@@ -974,11 +973,6 @@ async function checkNegative(
     }
   }
 
-  // Step 3: Perform the formula calculation: totalShipmentQuantity - SUM(shipment range)
-
-  // console.log(
-  //   `Result for row ${rowNumber}: ${totalShipmentQuantity} - ${shipmentSum} = ${result}`
-  // );
   return negativeInStockPlaceArr;
 }
 

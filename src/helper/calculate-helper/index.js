@@ -175,8 +175,8 @@ export const addCustomizeCost = (skuList, elementsPrice) => {
     let totalCnyCustomPackageCost;
     let totalUsdCustomPackageCost;
 
-    item.customPackageOrder = customizeObj.order;
     if (!_.isEmpty(customizeObj)) {
+      item.customPackageOrder = customizeObj?.order;
       cnyCustomPackageCost = customizeObj.cnyPrice;
       const remainingQuantity = customizeObj.setLeftQuantity(quantity);
       if (remainingQuantity > 0) {
