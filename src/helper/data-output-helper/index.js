@@ -148,7 +148,6 @@ export const addOrder1FileToZip = async (
 };
 
 /**
- *
  * @param {Array.<Express.Multer.File>} files
  * @param {JSZip} zip
  */

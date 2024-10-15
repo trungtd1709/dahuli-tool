@@ -434,6 +434,10 @@ const addNumberFormatToWorksheet = (worksheet) => {
   });
 };
 
+/**
+ * Converts an XLSX file to JSON.
+ * @param {ExcelJS.Worksheet} worksheet
+ */
 const addStyleToWorksheet = (worksheet, firstRowNum) => {
   worksheet.eachRow((row, rowNumber) => {
     row.eachCell((cell, colNumber) => {
@@ -645,13 +649,8 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
   let oldInStockIndex;
   let lastRowIndex;
   const firstRowIndex = "2";
-
   const headerRow = worksheet.getRow(1);
-
   const headers = [];
-
-  // json data của file xlsx gốc
-  const jsonData = [];
 
   headerRow.eachCell((cell, colNumber) => {
     headers[colNumber] = cell.text.trim();
@@ -730,6 +729,7 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
 
   const shipmentStartColLetter = columnIndexToLetter(shipmentStartColIndex);
   const shipmentLastColLetter = columnIndexToLetter(shipmentLastColIndex);
+  const inStockColLetter = columnIndexToLetter(inStockColIndex);
 
   let negativeInStockPlaceArr = [];
 
@@ -749,7 +749,8 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
         totalShipmentQuantityLetter,
         rowNumber,
         shipmentStartColIndex,
-        shipmentLastColIndex
+        shipmentLastColIndex,
+        inStockColLetter
       );
       negativeInStockPlaceArr = [
         ...negativeInStockPlaceArr,
@@ -758,7 +759,7 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
     }
 
     if (cell) {
-      cell.value = { formula };
+      cell.value = { ...cell.value, formula };
     }
   }
 
@@ -874,24 +875,22 @@ async function checkNegative(
   totalShipmentQuantityColLetter,
   rowNumber,
   shipmentStartColIndex,
-  shipmentLastColIndex
+  shipmentLastColIndex,
+  inStockColLetter
 ) {
   // Step 1: Get the value of total shipment quantity
   const totalShipmentCell = worksheet.getCell(
     `${totalShipmentQuantityColLetter}${rowNumber}`
   );
-  const rawTotalShipmentQuantity = parseFloat(
-    totalShipmentCell.value?.result ?? totalShipmentCell.value
+  const totalShipmentQuantity = parseFloat(
+    totalShipmentCell.value?.result ?? totalShipmentCell.result
   );
   let negativeInStockPlaceArr = [];
 
-  if (
-    isNaN(rawTotalShipmentQuantity) ||
-    isEmptyValue(rawTotalShipmentQuantity)
-  ) {
+  if (isNaN(totalShipmentQuantity) || totalShipmentQuantity < 0) {
     return negativeInStockPlaceArr;
   }
-  const totalShipmentQuantity = rawTotalShipmentQuantity;
+  // const totalShipmentQuantity = rawTotalShipmentQuantity;
 
   // Step 2: Get the values in the shipment range
   let shipmentSum = 0;
@@ -900,6 +899,8 @@ async function checkNegative(
     colIndex <= shipmentLastColIndex;
     colIndex++
   ) {
+    const rowInStockCellAddress = `${inStockColLetter}${rowNumber}`;
+    const rowInStockCell = worksheet.getCell(rowInStockCellAddress);
     const cellLetter = columnIndexToLetter(colIndex); // Convert column index to letter
     const cellAddress = `${cellLetter}${rowNumber}`;
     const cell = worksheet.getCell(cellAddress);
@@ -911,6 +912,12 @@ async function checkNegative(
 
     shipmentSum += cellValue;
     const quantity = totalShipmentQuantity - shipmentSum;
+
+    // đã tính hết giá trị và đang là cột cuối
+    if(quantity >= 0 && colIndex == shipmentLastColIndex){
+      rowInStockCell.value = { ...rowInStockCell.value, result: quantity };
+    }
+
     // console.log("[result]: ", quantity);
     if (quantity < 0) {
       // giá trị phải đẩy sang file order mới
@@ -923,6 +930,10 @@ async function checkNegative(
       )}${rowNumber}`;
       const remainValueCell = worksheet.getCell(remainValueCellAddress);
       remainValueCell.value = remainValue;
+
+      if (rowInStockCell) {
+        rowInStockCell.value = { ...rowInStockCell.value, result: 0 };
+      }
 
       const startShipment = getCellValue(worksheet, cellLetter, 1);
       const productName = getCellValue(worksheet, "B", rowNumber);
@@ -960,16 +971,6 @@ async function checkNegative(
       }
 
       break;
-      // throw new BadRequestError(
-      //   `In stock < shipment sum at rowNo: ${rowNumber}, col: ${columnIndexToLetter(
-      //     colIndex
-      //   )}, shipment: ${shipment}, productName: ${productName}`
-      // );
-      // return NegativeInStockPlace.fromJson({
-      //   productName,
-      //   shipment,
-      //   leftValue,
-      // });
     }
   }
 
