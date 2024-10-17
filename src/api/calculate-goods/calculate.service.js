@@ -65,9 +65,6 @@ export const calculateGood = async (files = []) => {
       let originalShipment, shipmentId;
       shipmentId = inputTsvData[0].shipmentId;
 
-      // shipment = tsvFilesArr[0]?.shipment;
-      // originalShipment = tsvFilesArr[0]?.shipment;
-
       if (!isEmptyValue(shipmentData)) {
         const shipmentObj = shipmentData.find(
           (item) => item?.shipmentId == shipmentId
@@ -203,7 +200,7 @@ const addShipmentFileAndGetAllElements = async (
     })
     .flat();
 
-  // add up quantity
+  // add up quantity các thành phần
   allElements = Object.values(
     allElements.reduce((accumulator, current) => {
       if (accumulator[current.name]) {
@@ -216,15 +213,17 @@ const addShipmentFileAndGetAllElements = async (
   );
 
   allElements = allElements.map((element) => {
-    let { name, quantity, usdPrice, cnyPrice } = element;
+    let { name, quantity, usdPrice, cnyPrice, totalCny, totalUsd } = element;
     const elementPriceObj = elementsPrice.find(
       (item) => item?.name?.toLowerCase() == name?.toLowerCase()
     );
+    totalCny = totalCny.replace("totalElementQuantity", quantity);
+    totalUsd = totalUsd.replace("totalElementQuantity", quantity);
     if (!isEmptyValue(elementPriceObj)) {
       usdPrice = elementPriceObj.getUsdFormula();
       cnyPrice = elementPriceObj.cnyPrice;
     }
-    return { ...element, usdPrice, cnyPrice };
+    return { ...element, usdPrice, cnyPrice, totalCny, totalUsd};
   });
 
   inputShippingCost.forEach((item) => {

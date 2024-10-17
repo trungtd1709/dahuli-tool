@@ -23,10 +23,6 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
   return skuList.map((sku) => {
     let ppuPrice = sku.elements.reduce((acc, element) => {
       let newPpuPrice = "";
-      const elementIndex = sku.elements.findIndex(
-        (el) => el.name == element.name
-      );
-
       const elementPrice = findEleWithLowestFileOrder(
         elementsPrice.filter(
           (el) =>
@@ -45,6 +41,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       const skuQuantity = sku?.quantity ?? 0;
       const quantity = (parseInt(element.quantity) || 1) * skuQuantity;
 
+      const test = elementPrice.getLeftQuantity();
       const remainingQuantity = elementPrice.setLeftQuantity(quantity);
 
       let eleShipmentTotalCny = "";
@@ -53,8 +50,9 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       // TH này ko cần tìm thêm gì, tính luôn ppu
       if (remainingQuantity <= 0) {
         newPpuPrice = `${usdPrice} * ${quantity} / quantityCell`;
-        eleShipmentTotalCny = `${cnyPrice} * ${quantity}`;
-        eleShipmentTotalUsd = `${cnyPrice} / ${exchangeRate} * ${quantity}`;
+        eleShipmentTotalCny = `${cnyPrice} * totalElementQuantity`;
+        eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * totalElementQuantity`;
+        // eleShipmentTotalCny = `${cnyPrice} * ${quantity}`;
       }
       if (remainingQuantity > 0) {
         const newElementPrice = findEleWithLowestFileOrder(
@@ -71,23 +69,16 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         }
         order = `${order} + ${newElementPrice.order}`;
         newElementPrice.setLeftQuantity(remainingQuantity);
-        newPpuPrice = `${elementPrice.getUsdFormula()} * ${
-          quantity - remainingQuantity
-        } / quantityCell + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / quantityCell`;
+        const quantityGoToNewOrder = quantity - remainingQuantity;
+        newPpuPrice = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} / quantityCell + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / quantityCell`;
 
-        eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${
-          quantity - remainingQuantity
-        } + ${newElementPrice.getUsdFormula()} * ${remainingQuantity}`;
-
-        eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${
-          quantity - remainingQuantity
-        } + ${newElementPrice.getCnyFormula()} * ${remainingQuantity}`;
+        eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
+        eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getCnyFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
       }
       element.usdPrice = usdPrice;
       element.order = order;
       element.totalUsd = eleShipmentTotalUsd;
       element.totalCny = eleShipmentTotalCny;
-      // sku.elements[elementIndex].order = order;
 
       let totalElementsPrice = usdPrice;
       if (quantity > 1) {

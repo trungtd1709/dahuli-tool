@@ -42,7 +42,7 @@ export class ElementPrice {
     leftQuantity,
     domesticShippingCost,
   }) {
-    if (!leftQuantity) {
+    if (isNaN(leftQuantity)) {
       leftQuantity = quantity;
     }
 
@@ -99,6 +99,10 @@ export class ElementPrice {
     } else {
       return 0;
     }
+  }
+
+  getLeftQuantity(){
+    return this.leftQuantity;
   }
 
   getUsdFormula() {
