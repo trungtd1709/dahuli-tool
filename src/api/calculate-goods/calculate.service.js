@@ -249,6 +249,7 @@ const addShipmentFileAndGetAllElements = async (
     let shippingElement = {
       name: shippingName,
       order,
+      quantity: shipmentSkuQuantity,
     };
     shippingElement.totalCny = totalShipmentCny ? totalCny : "";
     shippingElement.totalUsd = totalShipmentUsd ? totalUsd : "";

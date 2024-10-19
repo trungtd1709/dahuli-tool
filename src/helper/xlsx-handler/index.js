@@ -914,7 +914,7 @@ async function checkNegative(
     const quantity = totalShipmentQuantity - shipmentSum;
 
     // đã tính hết giá trị và đang là cột cuối
-    if(quantity >= 0 && colIndex == shipmentLastColIndex){
+    if (quantity >= 0 && colIndex == shipmentLastColIndex) {
       rowInStockCell.value = { ...rowInStockCell.value, result: quantity };
     }
 
@@ -1073,14 +1073,28 @@ export async function modifyShippingFile(
         (item) => item[0]?.shipmentId == shippingCostObj?.shipmentId
       );
 
-      let shipmentQuantity;
-      if (!isEmptyValue(tsvData)) {
-        shipmentQuantity = tsvData[0]?.quantity;
-      }
-      if (!isEmptyValue(shippingCostObj) && shipmentQuantity) {
-        const { totalUsd, totalShipmentQuantity } = shippingCostObj;
-        const formula = `${totalUsd} / ${totalShipmentQuantity} * ${shipmentQuantity}`;
-        row.getCell(newColIndex).value = { formula };
+      if (!isEmptyValue(shippingCostObj)) {
+        const { isDomestic } = shippingCostObj;
+
+        const shipmentShippingObj = shipmentObjAddToOrder[shipmentKey].find(
+          (item) => {
+            if(isDomestic){
+            return item.name.includes(OUTPUT_KEY_NAME.DOMESTIC_SHIPPING_COST);
+            }
+            return item.name.includes(OUTPUT_KEY_NAME.INTERNATIONAL_SHIPPING_COST);
+          }
+        );
+
+        let shipmentQuantity;
+        if (!isEmptyValue(tsvData)) {
+          shipmentQuantity =
+            shipmentShippingObj?.quantity ?? tsvData[0]?.quantity;
+        }
+        if (shipmentQuantity) {
+          const { totalUsd, totalShipmentQuantity } = shippingCostObj;
+          const formula = `${totalUsd} / ${totalShipmentQuantity} * ${shipmentQuantity}`;
+          row.getCell(newColIndex).value = { formula };
+        }
       }
     });
   });
