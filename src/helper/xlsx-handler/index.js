@@ -636,7 +636,7 @@ const addNumberFormatToShipment = (worksheet) => {
   });
 };
 
-export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
+export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(file.buffer);
   const worksheet = workbook.getWorksheet(1);
@@ -685,6 +685,11 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
     }
   });
 
+  const isInStockExist = xlsxUtils.checkIfColumnExists(
+    worksheet,
+    SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK
+  );
+
   worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
     if (rowNumber === 1) return; // Skip header row
 
@@ -698,7 +703,9 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
   });
 
   const shipmentKeys = Object.keys(shipmentObjAddToOrder).sort() ?? [];
-  const shipmentStartColIndex = headerRow.cellCount + 1;
+
+  // cái này liên quan đến UI cách cột thôi
+  const shipmentStartColIndex = isInStockExist ? headerRow.cellCount + 2 : headerRow.cellCount + 1;
 
   // add quantity
   shipmentKeys.forEach((shipmentKey, index) => {
@@ -816,8 +823,12 @@ export async function modifyShipmentFile(file, shipmentObjAddToOrder = {}) {
   shipmentKeys.forEach((shipmentKey, index) => {
     const newColIndex = headerRow.cellCount + 1;
     const newColLetter = columnIndexToLetter(newColIndex);
-    worksheet.getColumn(newColLetter).numFmt =
-      OUTPUT_NUM_DECIMAL_FORMAT["2digits"];
+    // worksheet.getColumn(newColLetter).numFmt =
+    // OUTPUT_NUM_DECIMAL_FORMAT.$2digits;
+    worksheet.getColumn(newColLetter).eachCell((cell) => {
+      cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$2digits;
+      cell.alignment = { horizontal: "right", vertical: "middle" };
+    });
     headerRow.getCell(newColIndex).value = `Cost ${shipmentKey}`;
 
     // Add data for each row under the new column
@@ -1078,10 +1089,12 @@ export async function modifyShippingFile(
 
         const shipmentShippingObj = shipmentObjAddToOrder[shipmentKey].find(
           (item) => {
-            if(isDomestic){
-            return item.name.includes(OUTPUT_KEY_NAME.DOMESTIC_SHIPPING_COST);
+            if (isDomestic) {
+              return item.name.includes(OUTPUT_KEY_NAME.DOMESTIC_SHIPPING_COST);
             }
-            return item.name.includes(OUTPUT_KEY_NAME.INTERNATIONAL_SHIPPING_COST);
+            return item.name.includes(
+              OUTPUT_KEY_NAME.INTERNATIONAL_SHIPPING_COST
+            );
           }
         );
 

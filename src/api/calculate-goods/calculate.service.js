@@ -128,7 +128,6 @@ export const calculateGood = async (files = []) => {
         elementsPrice,
         zip
       );
-
       shipmentObjAddToOrder[originalShipment] = allElements;
 
       skuList = removeSkuKey(skuList);

@@ -47,7 +47,7 @@ export const KEY_PREFERENCES = {
   paymentCost: "payment cost",
   total: "total",
   shippingCost: "shipping cost",
-  QTY: "Qty"
+  QTY: "Qty",
 };
 
 export const OUTPUT_KEY_NAME = {
@@ -87,6 +87,8 @@ export const OUTPUT_COL_ALPHABET = {
 export const OUTPUT_NUM_DECIMAL_FORMAT = {
   "4digits": "0.0000",
   "2digits": "0.00",
+  $2digits: "$#,##0.00",
+  $4digits: "$#,##0.0000",
 };
 
 export const cashSymbolConst = {

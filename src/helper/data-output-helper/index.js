@@ -9,7 +9,7 @@ import {
 import { isEmptyValue } from "../../shared/utils.js";
 import {
   cogsJsonToXlsx,
-  modifyShipmentFile,
+  modifyOrder1File,
   modifyShippingFile,
 } from "../xlsx-handler/index.js";
 import { extractNumberFromFilename } from "../data-input-helper/index.js";
@@ -136,7 +136,7 @@ export const addOrder1FileToZip = async (
 
     if (i == fileIndexNeedToChange) {
       const { modifiedBuffer, negativeInStockPlaceArr } =
-        await modifyShipmentFile(order1File, shipmentObjAddToOrder);
+        await modifyOrder1File(order1File, shipmentObjAddToOrder);
       zip.file(order1File.originalname, modifiedBuffer);
       if (negativeInStockPlaceArr.length > 0) {
         fileIndexNeedToChange += 1;

@@ -1,3 +1,5 @@
+import ExcelJS from "exceljs";
+
 export class xlsxUtils {
   static findColumnIndexByKeyName = (worksheet, keyName) => {
     let columnIndex = null;
@@ -19,4 +21,15 @@ export class xlsxUtils {
 
     return columnIndex;
   };
+
+  /**
+   * Converts an XLSX file to JSON.
+   * @param {ExcelJS.Worksheet} worksheet
+   */
+  static checkIfColumnExists(worksheet, keyName) {
+    const columnExists = worksheet.columns.some(
+      (column) => column.key === keyName
+    );
+    return columnExists;
+  }
 }
