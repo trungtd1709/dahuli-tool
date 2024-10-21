@@ -221,3 +221,16 @@ export function getMaxIndexKeyValue(obj, keyName) {
   // Step 3: Return the value associated with the key having the biggest index
   return obj[maxKey];
 }
+
+export function containsAlphabet(str) {
+  if(!str){
+    return false;
+  }
+  const regex = /[a-zA-Z]/;
+  return regex.test(str);
+}
+
+export function removeDivideByNumber(str, number) {
+  const regex = new RegExp(`/\\s*${number}`, 'g');
+  return str.replace(regex, '');
+}

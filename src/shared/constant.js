@@ -113,6 +113,7 @@ export const CHECK_KEYWORD = {
   SHIPMENT: "shipment",
   PPU_ELEMENTS: "thành phần ppu",
   TOTAL_CNY: "total cny",
+  TOTAL_USD: "total usd",
   TOTAL: "total",
 };
 

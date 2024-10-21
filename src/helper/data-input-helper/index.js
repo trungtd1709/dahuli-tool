@@ -18,8 +18,10 @@ import {
   getMaxIndexKeyValue,
   isEmptyValue,
   mergeArrays,
+  removeDivideByNumber,
   removeSpaces,
   removeStringAfter,
+  removeWhitespace,
   sortArrayBaseOnKey,
 } from "../../shared/utils.js";
 import { getDataTsvFile } from "../tsv-helper/index.js";
@@ -455,7 +457,11 @@ const transformShippingCostItem = (
   let totalCny = rawTotalCny ?? "";
 
   if (priceShippingFormulaUsd && weight) {
-    totalUsd = `(${priceShippingFormulaUsd} * ${weight})`;
+    if (removeWhitespace(priceShippingFormulaUsd).includes(`/${weight}`)) {
+      totalUsd = removeDivideByNumber(priceShippingFormulaUsd, weight);
+    } else {
+      totalUsd = `(${priceShippingFormulaUsd} * ${weight})`;
+    }
   }
   if (priceShippingFormulaYuan && weight) {
     totalCny = `(${priceShippingFormulaYuan} * ${weight})`;
@@ -582,8 +588,8 @@ export const getShipmentData = (files = []) => {
     );
   }
 
-  if(isEmptyValue(shipmentData)){
-    throw new BadRequestError(MISSING_SHIPMENT_DATA)
+  if (isEmptyValue(shipmentData)) {
+    throw new BadRequestError(MISSING_SHIPMENT_DATA);
   }
 
   return shipmentData;

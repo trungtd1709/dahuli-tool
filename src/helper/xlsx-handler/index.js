@@ -19,6 +19,7 @@ import {
   now,
   rmDupEleFrArr,
   removeObjKeyNames,
+  containsAlphabet,
 } from "../../shared/utils.js";
 import { xlsxUtils } from "../../shared/xlsxUtils.js";
 import { CANT_FIND_PRODUCT } from "../../shared/err-const.js";
@@ -192,7 +193,7 @@ function extractDivisor(formula) {
 }
 
 /**
- * Calculates the total price to make each object.
+ * @param {XLSX.WorkSheet} worksheet - The uploaded file object from Multer.
  * @returns {Array}
  */
 const getShippingCostFormulas = (
@@ -206,21 +207,22 @@ const getShippingCostFormulas = (
   const range = XLSX.utils.decode_range(worksheet["!ref"]);
   let priceColIndex = -1,
     weightColIndex = -1,
-    totalCnyColIndex = -1;
+    totalCnyColIndex = -1,
+    totalUsdColIndex = -1;
   for (let C = range.s.c; C <= range.e.c; ++C) {
     const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
     const cell = worksheet[cellAddress];
     if (cell?.v === shippingCostKeyName) {
       priceColIndex = C;
-      // break;
     }
     if (cell?.v?.toLowerCase()?.includes(CHECK_KEYWORD.WEIGHT)) {
       weightColIndex = C;
-      // break;
     }
     if (cell?.v?.toLowerCase()?.includes(CHECK_KEYWORD.TOTAL_CNY)) {
       totalCnyColIndex = C;
-      // break;
+    }
+    if (cell?.v?.toLowerCase()?.includes(CHECK_KEYWORD.TOTAL_USD)) {
+      totalUsdColIndex = C;
     }
   }
 
@@ -232,6 +234,20 @@ const getShippingCostFormulas = (
 
   if (priceColIndex >= 0) {
     for (let rowIndex = range.s.r + 1; rowIndex <= range.e.r; ++rowIndex) {
+      const weightCellAddress = XLSX.utils.encode_cell({
+        r: rowIndex,
+        c: weightColIndex,
+      });
+      const totalCnyCellAddress = XLSX.utils.encode_cell({
+        r: rowIndex,
+        c: totalCnyColIndex,
+      });
+
+      const weightCell = worksheet[weightCellAddress];
+      const totalCnyCell = worksheet[totalCnyCellAddress];
+      const weight = weightCell?.v;
+      const totalCny = totalCnyCell?.f ?? totalCnyCell?.v;
+
       if (isEmptyValue(jsonData[rowIndex - 1])) {
         return;
       }
@@ -245,9 +261,13 @@ const getShippingCostFormulas = (
       const cell = worksheet[cellAddress];
 
       let priceFormula = cell?.v ?? "";
+
+      // value
       if (cell?.v) {
         priceFormula = cell.v;
       }
+
+      // formula
       if (cell?.f) {
         priceFormula = cell.f;
         const cellReferenceRegex = /^[A-Z]+\d+\/[A-Z]+\d+$/;
@@ -266,20 +286,6 @@ const getShippingCostFormulas = (
         // formulas.push(evalCalculation(formula));
       }
       if (isEmptyValue(cell?.f) && isEmptyValue(cell?.v)) {
-        const weightCellAddress = XLSX.utils.encode_cell({
-          r: rowIndex,
-          c: weightColIndex,
-        });
-        const totalCnyCellAddress = XLSX.utils.encode_cell({
-          r: rowIndex,
-          c: totalCnyColIndex,
-        });
-
-        const weightCell = worksheet[weightCellAddress];
-        const totalCnyCell = worksheet[totalCnyCellAddress];
-
-        const weight = weightCell?.v;
-        const totalCny = totalCnyCell?.f ?? totalCnyCell?.v;
         // const multipleWeighString = `*${weight}`;
         const multipleWeightStringPattern = new RegExp(`\\*\\s*${weight}`); // Matches "*" followed by any whitespace and then weight
         if (weight && totalCny && multipleWeightStringPattern.test(totalCny)) {
@@ -305,6 +311,18 @@ const getShippingCostFormulas = (
         jsonData[rowIndex - 1].priceShippingFormulaYuan =
           priceShippingFormulaYuan;
       }
+      const totalUsdCellAddress = XLSX.utils.encode_cell({
+        r: rowIndex,
+        c: totalUsdColIndex,
+      });
+      const totalUsdCell = worksheet[totalUsdCellAddress];
+
+      // công thức ko chứa cell address
+      if (!containsAlphabet(totalUsdCell?.f)) {
+        priceFormula = `(${totalUsdCell.f}) / ${weight}`;
+        // cái này là total USD nên phải chia weight để tìm công thức 1 sản phẩm
+      }
+
       jsonData[rowIndex - 1].priceShippingFormulaUsd = priceFormula;
     }
   }
@@ -672,12 +690,12 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
         .includes(KEY_PREFERENCES.QTY.toLowerCase())
     ) {
       quantityColumnIndex = colNumber;
-      quantityColumnLetter = columnIndexToLetter(quantityColumnIndex);
+      quantityColumnLetter = xlsxUtils.columnIndexToLetter(quantityColumnIndex);
     }
 
     if (colKeyName && colKeyName.toString().trim() == inputKeyName.totalUsd) {
       totalUsdColumnIndex = colNumber;
-      totalUsdColumnLetter = columnIndexToLetter(totalUsdColumnIndex);
+      totalUsdColumnLetter = xlsxUtils.columnIndexToLetter(totalUsdColumnIndex);
     }
 
     if (colKeyName === SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK) {
@@ -705,7 +723,9 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
   const shipmentKeys = Object.keys(shipmentObjAddToOrder).sort() ?? [];
 
   // cái này liên quan đến UI cách cột thôi
-  const shipmentStartColIndex = isInStockExist ? headerRow.cellCount + 2 : headerRow.cellCount + 1;
+  const shipmentStartColIndex = isInStockExist
+    ? headerRow.cellCount + 2
+    : headerRow.cellCount + 1;
 
   // add quantity
   shipmentKeys.forEach((shipmentKey, index) => {
@@ -734,9 +754,12 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
   const shipmentLastColIndex = headerRow.cellCount;
   const inStockColIndex = shipmentLastColIndex + 1;
 
-  const shipmentStartColLetter = columnIndexToLetter(shipmentStartColIndex);
-  const shipmentLastColLetter = columnIndexToLetter(shipmentLastColIndex);
-  const inStockColLetter = columnIndexToLetter(inStockColIndex);
+  const shipmentStartColLetter = xlsxUtils.columnIndexToLetter(
+    shipmentStartColIndex
+  );
+  const shipmentLastColLetter =
+    xlsxUtils.columnIndexToLetter(shipmentLastColIndex);
+  const inStockColLetter = xlsxUtils.columnIndexToLetter(inStockColIndex);
 
   let negativeInStockPlaceArr = [];
 
@@ -744,7 +767,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
     const totalShipmentQuantityLetter = oldInStockIndex
-      ? columnIndexToLetter(oldInStockIndex)
+      ? xlsxUtils.columnIndexToLetter(oldInStockIndex)
       : quantityColumnLetter;
 
     const formula = `${totalShipmentQuantityLetter}${rowNumber} - SUM(${shipmentStartColLetter}${rowNumber}:${shipmentLastColLetter}${rowNumber})`;
@@ -811,7 +834,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
 
   // set giá trị cho hàng total
   for (let i = shipmentStartColIndex; i <= inStockColIndex; i++) {
-    const shipmentColLetter = columnIndexToLetter(i);
+    const shipmentColLetter = xlsxUtils.columnIndexToLetter(i);
     const shipmentTotalCellAddress = `${shipmentColLetter}${lastRowIndex}`;
     const totalFormula = `SUM(${shipmentColLetter}${firstRowIndex}:${shipmentColLetter}${
       lastRowIndex - 1
@@ -822,7 +845,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
   // add cost
   shipmentKeys.forEach((shipmentKey, index) => {
     const newColIndex = headerRow.cellCount + 1;
-    const newColLetter = columnIndexToLetter(newColIndex);
+    const newColLetter = xlsxUtils.columnIndexToLetter(newColIndex);
     // worksheet.getColumn(newColLetter).numFmt =
     // OUTPUT_NUM_DECIMAL_FORMAT.$2digits;
     worksheet.getColumn(newColLetter).eachCell((cell) => {
@@ -835,7 +858,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber === 1) return;
 
-      const shipmentQuantityColLetter = columnIndexToLetter(
+      const shipmentQuantityColLetter = xlsxUtils.columnIndexToLetter(
         xlsxUtils.findColumnIndexByKeyName(worksheet, shipmentKey)
       );
       const totalShipmentQuantityColLetter = quantityColumnLetter;
@@ -861,19 +884,6 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
 
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
   return { modifiedBuffer, negativeInStockPlaceArr };
-}
-
-function columnIndexToLetter(columnIndex) {
-  let columnLetter = "";
-  let tempIndex = columnIndex;
-
-  while (tempIndex > 0) {
-    let remainder = (tempIndex - 1) % 26;
-    columnLetter = String.fromCharCode(remainder + 65) + columnLetter;
-    tempIndex = Math.floor((tempIndex - 1) / 26);
-  }
-
-  return columnLetter;
 }
 
 /**
@@ -912,7 +922,7 @@ async function checkNegative(
   ) {
     const rowInStockCellAddress = `${inStockColLetter}${rowNumber}`;
     const rowInStockCell = worksheet.getCell(rowInStockCellAddress);
-    const cellLetter = columnIndexToLetter(colIndex); // Convert column index to letter
+    const cellLetter = xlsxUtils.columnIndexToLetter(colIndex); // Convert column index to letter
     const cellAddress = `${cellLetter}${rowNumber}`;
     const cell = worksheet.getCell(cellAddress);
     const parseCellValue = parseFloat(cell.value);
@@ -936,7 +946,7 @@ async function checkNegative(
 
       // giá trị giữ ở file order này
       const remainValue = parseCellValue - leftValue;
-      const remainValueCellAddress = `${columnIndexToLetter(
+      const remainValueCellAddress = `${xlsxUtils.columnIndexToLetter(
         colIndex
       )}${rowNumber}`;
       const remainValueCell = worksheet.getCell(remainValueCellAddress);
@@ -961,14 +971,18 @@ async function checkNegative(
       // reset các giá trị quantity sau cột này về ""
       for (let i = colIndex + 1; i <= shipmentLastColIndex; i++) {
         // gán giá trị quantity các cột còn lại = 0
-        const quantityShipmentCellAddress = `${columnIndexToLetter(
+        const quantityShipmentCellAddress = `${xlsxUtils.columnIndexToLetter(
           i
         )}${rowNumber}`;
         const quantityShipmentCell = worksheet.getCell(
           quantityShipmentCellAddress
         );
 
-        const shipment = getCellValue(worksheet, columnIndexToLetter(i), 1);
+        const shipment = getCellValue(
+          worksheet,
+          xlsxUtils.columnIndexToLetter(i),
+          1
+        );
         if (quantityShipmentCell.value) {
           negativeInStockPlaceArr.push(
             NegativeInStockPlace.fromJson({
@@ -1037,12 +1051,12 @@ export async function modifyShippingFile(
         .includes(KEY_PREFERENCES.QTY.toLowerCase())
     ) {
       quantityColumnIndex = colNumber;
-      quantityColumnLetter = columnIndexToLetter(quantityColumnIndex);
+      quantityColumnLetter = xlsxUtils.columnIndexToLetter(quantityColumnIndex);
     }
 
     if (colKeyName && colKeyName.toString().trim() == inputKeyName.totalUsd) {
       totalUsdColumnIndex = colNumber;
-      totalUsdColumnLetter = columnIndexToLetter(totalUsdColumnIndex);
+      totalUsdColumnLetter = xlsxUtils.columnIndexToLetter(totalUsdColumnIndex);
     }
   });
 
@@ -1065,7 +1079,7 @@ export async function modifyShippingFile(
   // add shipping cost
   shipmentKeys.forEach((shipmentKey, index) => {
     const newColIndex = shipmentStartColIndex + index;
-    const newColLetter = columnIndexToLetter(newColIndex);
+    const newColLetter = xlsxUtils.columnIndexToLetter(newColIndex);
     headerRow.getCell(newColIndex).value = `Cost ${shipmentKey}`;
 
     worksheet.getColumn(newColLetter).numFmt =
@@ -1116,7 +1130,7 @@ export async function modifyShippingFile(
 
   // set giá trị cho hàng total
   for (let i = shipmentStartColIndex; i <= shipmentLastColIndex; i++) {
-    const shipmentColLetter = columnIndexToLetter(i);
+    const shipmentColLetter = xlsxUtils.columnIndexToLetter(i);
     const shipmentTotalCellAddress = `${shipmentColLetter}${lastRowIndex}`;
     const totalFormula = `SUM(${shipmentColLetter}${firstRowIndex}:${shipmentColLetter}${
       lastRowIndex - 1
@@ -1133,7 +1147,7 @@ export async function modifyShippingFile(
  * @returns {Array}
  */
 export const getCellValue = (worksheet, colLetter, rowIndex) => {
-  // const colLetter = columnIndexToLetter(colIndex);
+  // const colLetter = xlsxUtils.columnIndexToLetter(colIndex);
   const cellAddress = `${colLetter}${rowIndex}`;
   const cell = worksheet.getCell(cellAddress);
   if (cell) {

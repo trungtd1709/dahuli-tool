@@ -32,4 +32,17 @@ export class xlsxUtils {
     );
     return columnExists;
   }
+
+  static columnIndexToLetter(columnIndex) {
+    let columnLetter = "";
+    let tempIndex = columnIndex;
+  
+    while (tempIndex > 0) {
+      let remainder = (tempIndex - 1) % 26;
+      columnLetter = String.fromCharCode(remainder + 65) + columnLetter;
+      tempIndex = Math.floor((tempIndex - 1) / 26);
+    }
+  
+    return columnLetter;
+  }
 }
