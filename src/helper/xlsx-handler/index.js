@@ -23,6 +23,7 @@ import {
 } from "../../shared/utils.js";
 import { xlsxUtils } from "../../shared/xlsxUtils.js";
 import { CANT_FIND_PRODUCT } from "../../shared/err-const.js";
+import { fileColor } from "../../shared/fileColor.js";
 
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
 /**
@@ -374,7 +375,7 @@ export const cogsJsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
       lastRowNum,
     });
     addNumberFormatToWorksheet(worksheet);
-    addStyleToWorksheet(worksheet, firstRowNum);
+    addStyleToCogsWorksheet(worksheet, firstRowNum);
 
     const xlsxBuffer = await workbook.xlsx.writeBuffer();
     console.log(`${now()}: [JSON --> BUFFER SUCCESS]`);
@@ -456,7 +457,7 @@ const addNumberFormatToWorksheet = (worksheet) => {
  * Converts an XLSX file to JSON.
  * @param {ExcelJS.Worksheet} worksheet
  */
-const addStyleToWorksheet = (worksheet, firstRowNum) => {
+const addStyleToCogsWorksheet = (worksheet, firstRowNum) => {
   worksheet.eachRow((row, rowNumber) => {
     row.eachCell((cell, colNumber) => {
       if (rowNumber === firstRowNum) {
@@ -703,6 +704,12 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
     }
   });
 
+  if (totalUsdColumnIndex) {
+    // xlsxUtils.clearColumnFill(worksheet, totalUsdColumnIndex);
+    // xlsxUtils.clearColumnFill(worksheet, 1);
+    // xlsxUtils.changeBgColorColumn(worksheet, 1, fileColor.red);
+  }
+
   const isInStockExist = xlsxUtils.checkIfColumnExists(
     worksheet,
     SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK
@@ -715,7 +722,6 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
     row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
       rowData[headers[colNumber]] = cell.value;
     });
-    // jsonData.push(rowData);
 
     lastRowIndex = rowNumber;
   });
@@ -763,7 +769,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
 
   let negativeInStockPlaceArr = [];
 
-  // add in stock value
+  // add In Stock value
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
     const totalShipmentQuantityLetter = oldInStockIndex
@@ -771,16 +777,17 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
       : quantityColumnLetter;
 
     const formula = `${totalShipmentQuantityLetter}${rowNumber} - SUM(${shipmentStartColLetter}${rowNumber}:${shipmentLastColLetter}${rowNumber})`;
-    const cell = row.getCell(inStockColIndex);
+    const inStockCell = row.getCell(inStockColIndex);
 
     if (oldInStockIndex) {
-      const rowNegativeInStockPlaceArr = await checkNegative(
+      const rowNegativeInStockPlaceArr = checkNegative(
         worksheet,
         totalShipmentQuantityLetter,
         rowNumber,
         shipmentStartColIndex,
         shipmentLastColIndex,
-        inStockColLetter
+        inStockColLetter,
+        totalUsdColumnLetter
       );
       negativeInStockPlaceArr = [
         ...negativeInStockPlaceArr,
@@ -788,11 +795,12 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
       ];
     }
 
-    if (cell) {
-      cell.value = { ...cell.value, formula };
+    if (inStockCell) {
+      inStockCell.value = { ...inStockCell.value, formula };
     }
   }
 
+  // Add header name for in stock column
   headerRow.getCell(inStockColIndex).value = SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK;
   headerRow.getCell(inStockColIndex + 1).value = "";
 
@@ -846,9 +854,9 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
   shipmentKeys.forEach((shipmentKey, index) => {
     const newColIndex = headerRow.cellCount + 1;
     const newColLetter = xlsxUtils.columnIndexToLetter(newColIndex);
-    // worksheet.getColumn(newColLetter).numFmt =
-    // OUTPUT_NUM_DECIMAL_FORMAT.$2digits;
+
     worksheet.getColumn(newColLetter).eachCell((cell) => {
+      // add $ sign
       cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$2digits;
       cell.alignment = { horizontal: "right", vertical: "middle" };
     });
@@ -882,6 +890,29 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
     });
   });
 
+  // Add Cost In Stock value to last column
+  const costInStockIndex = headerRow.cellCount + 1;
+
+  headerRow.getCell(costInStockIndex).value =
+    SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
+  worksheet.getColumn(costInStockIndex).eachCell((cell) => {
+    // add $ sign
+    cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$2digits;
+  });
+  for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
+    const row = worksheet.getRow(rowNumber);
+
+    const costInStockFormula = `${inStockColLetter}${rowNumber} * ${totalUsdColumnLetter}${rowNumber} / ${quantityColumnLetter}${rowNumber}`;
+    const costInStockCell = row.getCell(costInStockIndex);
+
+    if (costInStockCell) {
+      costInStockCell.value = {
+        ...costInStockCell.value,
+        formula: costInStockFormula,
+      };
+    }
+  }
+
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
   return { modifiedBuffer, negativeInStockPlaceArr };
 }
@@ -891,13 +922,14 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
  * @param {ExcelJS.Worksheet} worksheet
  * @returns {Array}
  */
-async function checkNegative(
+function checkNegative(
   worksheet,
   totalShipmentQuantityColLetter,
   rowNumber,
   shipmentStartColIndex,
   shipmentLastColIndex,
-  inStockColLetter
+  inStockColLetter,
+  totalUsdColLetter
 ) {
   // Step 1: Get the value of total shipment quantity
   const totalShipmentCell = worksheet.getCell(
@@ -934,12 +966,21 @@ async function checkNegative(
     shipmentSum += cellValue;
     const quantity = totalShipmentQuantity - shipmentSum;
 
+    // cái if này đơn thuần là UI, ko liên quan logic
+    if (quantity <= 0) {
+      const totalUsdCellAddress = `${totalUsdColLetter}${rowNumber}`;
+      // xlsxUtils.changeCellBgColor(
+      //   worksheet,
+      //   totalUsdCellAddress,
+      //   fileColor.green
+      // );
+    }
+
     // đã tính hết giá trị và đang là cột cuối
     if (quantity >= 0 && colIndex == shipmentLastColIndex) {
       rowInStockCell.value = { ...rowInStockCell.value, result: quantity };
     }
 
-    // console.log("[result]: ", quantity);
     if (quantity < 0) {
       // giá trị phải đẩy sang file order mới
       const leftValue = -quantity;

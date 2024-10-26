@@ -129,6 +129,7 @@ export const SHIPMENT_OUTPUT_KEY_NAME = {
   ORDER: "Order",
   NOTE: "Note",
   IN_STOCK: "In Stock",
+  COST_IN_STOCK: "Cost In Stock",
 };
 
 export const SHIPMENT_OUTPUT_COL_ALPHABET = {
