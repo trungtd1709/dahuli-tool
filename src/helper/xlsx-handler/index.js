@@ -666,6 +666,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
   let totalUsdColumnIndex = null;
   let totalUsdColumnLetter = null;
   let oldInStockIndex;
+  let oldCostInStockIndex;
   let lastRowIndex;
   const firstRowIndex = "2";
   const headerRow = worksheet.getRow(1);
@@ -702,12 +703,20 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
     if (colKeyName === SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK) {
       oldInStockIndex = colNumber;
     }
+
+    if (colKeyName === SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK) {
+      oldCostInStockIndex = colNumber;
+    }
   });
 
   if (totalUsdColumnIndex) {
     // xlsxUtils.clearColumnFill(worksheet, totalUsdColumnIndex);
     // xlsxUtils.clearColumnFill(worksheet, 1);
     // xlsxUtils.changeBgColorColumn(worksheet, 1, fileColor.red);
+  }
+
+  if (oldCostInStockIndex) {
+    xlsxUtils.clearColumnData(worksheet, oldCostInStockIndex);
   }
 
   const isInStockExist = xlsxUtils.checkIfColumnExists(
@@ -892,6 +901,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
 
   // Add Cost In Stock value to last column
   const costInStockIndex = headerRow.cellCount + 1;
+  const costInStockLetter = xlsxUtils.columnIndexToLetter(costInStockIndex);
 
   headerRow.getCell(costInStockIndex).value =
     SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
@@ -903,12 +913,17 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
     const row = worksheet.getRow(rowNumber);
 
     const costInStockFormula = `${inStockColLetter}${rowNumber} * ${totalUsdColumnLetter}${rowNumber} / ${quantityColumnLetter}${rowNumber}`;
+    const totalCostInStockFormula = `SUM(${costInStockLetter}2:${costInStockLetter}${
+      lastRowIndex - 1
+    })`;
     const costInStockCell = row.getCell(costInStockIndex);
+    const formula =
+      rowNumber == lastRowIndex ? totalCostInStockFormula : costInStockFormula;
 
     if (costInStockCell) {
       costInStockCell.value = {
         ...costInStockCell.value,
-        formula: costInStockFormula,
+        formula,
       };
     }
   }

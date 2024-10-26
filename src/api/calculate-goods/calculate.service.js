@@ -67,7 +67,7 @@ export const calculateGood = async (files = []) => {
 
       if (!isEmptyValue(shipmentData)) {
         const shipmentObj = shipmentData.find(
-          (item) => item?.shipmentId == shipmentId
+          (item) => item?.shipmentId === shipmentId
         );
         shipment = shipmentObj?.shipment;
         originalShipment = shipmentObj?.originalShipment;

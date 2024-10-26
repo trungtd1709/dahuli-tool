@@ -35,6 +35,13 @@ export class xlsxUtils {
     return columnExists;
   }
 
+  /**
+   * @param {ExcelJS.Worksheet} worksheet
+   */
+  static clearColumnData(worksheet, colIndex) {
+    worksheet.spliceColumns(colIndex, 1);
+  }
+
   static columnIndexToLetter(columnIndex) {
     let columnLetter = "";
     let tempIndex = columnIndex;
