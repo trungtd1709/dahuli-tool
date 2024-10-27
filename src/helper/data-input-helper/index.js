@@ -81,6 +81,7 @@ const transformToElementPrice = (obj) => {
     productName: name,
     quantity,
     [inputKeyName.totalCny]: totalCny,
+    [inputKeyName.totalUsd]: totalUsd,
     [inputKeyName.domesticShippingCost]: domesticShippingCost,
     packingLabelingCost,
     exchangeRate,
@@ -91,12 +92,14 @@ const transformToElementPrice = (obj) => {
   const inStock = getMaxIndexKeyValue(obj, inputKeyName.IN_STOCK);
 
   const cnyPrice = evalCalculation(`${totalCny} / ${quantity}`);
+  const usdPrice = evalCalculation(`${totalUsd} / ${quantity}`);
 
   const elementPrice = ElementPrice.fromJson({
     name,
     exchangeRate,
     fileName,
     cnyPrice,
+    usdPrice,
     domesticShippingCost,
     packingLabelingCost,
     order: order.trim(),

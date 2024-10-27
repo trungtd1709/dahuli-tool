@@ -41,7 +41,6 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       const skuQuantity = sku?.quantity ?? 0;
       const quantity = (parseInt(element.quantity) || 1) * skuQuantity;
 
-      const test = elementPrice.getLeftQuantity();
       const remainingQuantity = elementPrice.setLeftQuantity(quantity);
 
       let eleShipmentTotalCny = "";
@@ -52,7 +51,6 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         newPpuPrice = `${usdPrice} * ${quantity} / quantityCell`;
         eleShipmentTotalCny = `${cnyPrice} * totalElementQuantity`;
         eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * totalElementQuantity`;
-        // eleShipmentTotalCny = `${cnyPrice} * ${quantity}`;
       }
       if (remainingQuantity > 0) {
         const newElementPrice = findEleWithLowestFileOrder(

@@ -50,6 +50,12 @@ export class ElementPrice {
     if (fileName) {
       fileOrder = extractNumberFromFilename(fileName);
     }
+    if(isEmptyValue(cnyPrice)){
+      cnyPrice = null;
+    }
+    if(isEmptyValue(exchangeRate)){
+      exchangeRate = null;
+    }
 
     return new ElementPrice({
       name,
@@ -107,7 +113,7 @@ export class ElementPrice {
 
   getUsdFormula() {
     let usdFormula;
-    if (!isEmptyValue(this.cnyPrice) || !isEmpty(this.exchangeRate)) {
+    if (!isEmptyValue(this.cnyPrice) && !isEmptyValue(this.exchangeRate)) {
       usdFormula = `${this.cnyPrice} / ${this.exchangeRate}`;
     } else {
       usdFormula = this.usdPrice;

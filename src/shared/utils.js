@@ -65,7 +65,8 @@ export const isEmptyValue = (value) => {
     (Array.isArray(value) && value.length === 0) || // Check for empty array
     (typeof value === "object" &&
       value !== null &&
-      Object.keys(value).length === 0)
+      Object.keys(value).length === 0) ||
+    Number.isNaN(value) // Check for NaN
   );
 };
 
