@@ -1080,6 +1080,8 @@ export async function modifyShippingFile(
   let totalUsdColumnIndex = null;
   let totalUsdColumnLetter = null;
   let lastRowIndex;
+  let oldCostInStockIndex;
+
   const firstRowIndex = "2";
 
   const headerRow = worksheet.getRow(1);
@@ -1114,7 +1116,15 @@ export async function modifyShippingFile(
       totalUsdColumnIndex = colNumber;
       totalUsdColumnLetter = xlsxUtils.columnIndexToLetter(totalUsdColumnIndex);
     }
+
+    if (colKeyName === SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK) {
+      oldCostInStockIndex = colNumber;
+    }
   });
+
+  if (oldCostInStockIndex) {
+    xlsxUtils.clearColumnData(worksheet, oldCostInStockIndex);
+  }
 
   worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
     if (rowNumber === 1) return; // Skip header row
@@ -1184,6 +1194,12 @@ export async function modifyShippingFile(
 
   const shipmentLastColIndex = headerRow.cellCount;
 
+  const shipmentStartColLetter = xlsxUtils.columnIndexToLetter(
+    shipmentStartColIndex
+  );
+  const shipmentLastColLetter =
+    xlsxUtils.columnIndexToLetter(shipmentLastColIndex);
+
   // set giá trị cho hàng total
   for (let i = shipmentStartColIndex; i <= shipmentLastColIndex; i++) {
     const shipmentColLetter = xlsxUtils.columnIndexToLetter(i);
@@ -1193,6 +1209,33 @@ export async function modifyShippingFile(
     })`;
     setCellFormula(worksheet, shipmentTotalCellAddress, totalFormula);
   }
+
+  // Add Cost In Stock value to last column
+  const costInStockIndex = headerRow.cellCount + 1;
+
+  headerRow.getCell(costInStockIndex).value =
+    SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
+  worksheet.getColumn(costInStockIndex).eachCell((cell) => {
+    // add $ sign
+    cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$2digits;
+  });
+  for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
+    const row = worksheet.getRow(rowNumber);
+    const totalUsdCellAddress = `${totalUsdColumnLetter}${rowNumber}`;
+    const shipmentStartCellAddress = `${shipmentStartColLetter}${rowNumber}`;
+    const shipmentLastCellAddress = `${shipmentLastColLetter}${rowNumber}`;
+
+    const totalCostInStockFormula = `${totalUsdCellAddress} - SUM(${shipmentStartCellAddress}:${shipmentLastCellAddress})`;
+    const costInStockCell = row.getCell(costInStockIndex);
+
+    if (costInStockCell) {
+      costInStockCell.value = {
+        ...costInStockCell.value,
+        formula: totalCostInStockFormula,
+      };
+    }
+  }
+
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
   return modifiedBuffer;
 }
