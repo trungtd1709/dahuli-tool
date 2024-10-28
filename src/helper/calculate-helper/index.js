@@ -1,5 +1,5 @@
 import _ from "lodash";
-import { inputKeyName, OUTPUT_COL_ALPHABET } from "../../shared/constant.js";
+import { INPUT_KEY_NAME, OUTPUT_COL_ALPHABET } from "../../shared/constant.js";
 import {
   evalCalculation,
   isEmptyValue,
@@ -84,7 +84,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       }
 
       const domesticShippingCost =
-        elementPrice?.[inputKeyName.domesticShippingCost];
+        elementPrice?.[INPUT_KEY_NAME.domesticShippingCost];
       if (domesticShippingCost) {
         const usdDomesticShippingCost = `${domesticShippingCost} / ${exchangeRate}`;
         totalElementsPrice = `(${usdPrice} + ${usdDomesticShippingCost}) * ${quantity}`;

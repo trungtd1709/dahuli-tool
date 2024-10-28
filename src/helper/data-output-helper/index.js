@@ -1,7 +1,7 @@
 import JSZip from "jszip";
 import {
   FILE_TYPE,
-  inputKeyName,
+  INPUT_KEY_NAME,
   KEY_PREFERENCES,
   OUTPUT_KEY_NAME,
   SHIPMENT_OUTPUT_KEY_NAME,
@@ -90,7 +90,7 @@ export const refactorElements = (allElements = []) => {
 };
 
 export const removeSkuKey = (skuList = []) => {
-  skuList = removeObjKey(skuList, inputKeyName.elements);
+  skuList = removeObjKey(skuList, INPUT_KEY_NAME.elements);
   skuList = removeObjKey(skuList, KEY_PREFERENCES.packing);
   skuList = removeObjKey(skuList, "customizePackage");
   return skuList;

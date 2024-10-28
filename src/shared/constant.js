@@ -17,7 +17,7 @@ export const fileTestName = {
 export const sampleFolder = "sample-file";
 // export const sampleFolder = "sample-file-S295";
 
-export const inputKeyName = {
+export const INPUT_KEY_NAME = {
   elements: "elements",
   sku: "SKU",
   packingLabelingCost: "Packing & Labeling Cost",

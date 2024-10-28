@@ -29,7 +29,7 @@ import {
   removeSkuKey,
 } from "../../helper/data-output-helper/index.js";
 import { createShipmentExcelBuffer } from "../../helper/xlsx-handler/index.js";
-import { OUTPUT_KEY_NAME, inputKeyName } from "../../shared/constant.js";
+import { OUTPUT_KEY_NAME, INPUT_KEY_NAME } from "../../shared/constant.js";
 import { isEmptyValue, mergeArrays, now } from "../../shared/utils.js";
 import { ElementPrice } from "../../model/index.js";
 
@@ -101,7 +101,7 @@ export const calculateGood = async (files = []) => {
         return b?.isDomestic - a?.isDomestic;
       });
 
-      skuList = mergeArrays(inputTsvData, skuList, inputKeyName.sku).filter(
+      skuList = mergeArrays(inputTsvData, skuList, INPUT_KEY_NAME.sku).filter(
         (item) => !_.isEmpty(item?.elements)
       );
 

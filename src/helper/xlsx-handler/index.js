@@ -12,7 +12,7 @@ import {
   SHIPMENT_OUTPUT_COL_ALPHABET,
   SHIPMENT_OUTPUT_KEY_NAME,
   cashSymbolConst,
-  inputKeyName,
+  INPUT_KEY_NAME,
 } from "../../shared/constant.js";
 import {
   isEmptyValue,
@@ -139,7 +139,7 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
     if (cell && cell.v === paymentCostKeyName) {
       paymentCostColumnIndex = C;
     }
-    if (cell && cell.v === inputKeyName.productName) {
+    if (cell && cell.v === INPUT_KEY_NAME.productName) {
       productNameColumnIndex = C;
     }
   }
@@ -152,7 +152,7 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
 
   if (productNameColumnIndex === -1) {
     console.error(
-      `Key name '${inputKeyName.productName}' not found in the first row.`
+      `Key name '${INPUT_KEY_NAME.productName}' not found in the first row.`
     );
   }
 
@@ -491,7 +491,7 @@ const changeObjKeyName = (jsonData = []) => {
       if (key.toLowerCase().includes("weight")) {
         newObj["weight"] = obj[key]; // Rename the key to 'weight'
       } else if (
-        key.toLowerCase().includes(inputKeyName.productName.toLowerCase())
+        key.toLowerCase().includes(INPUT_KEY_NAME.productName.toLowerCase())
       ) {
         newObj["productName"] = obj[key]; // Rename keys containing 'name' to 'name'
       } else if (key.toLowerCase().includes("qty")) {
@@ -678,7 +678,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
     if (
       colKeyName &&
       colKeyName.toString().trim().toLowerCase() ===
-        inputKeyName.productName.toLowerCase()
+        INPUT_KEY_NAME.productName.toLowerCase()
     ) {
       productNameColumnIndex = colNumber;
     }
@@ -695,7 +695,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
       quantityColumnLetter = xlsxUtils.columnIndexToLetter(quantityColumnIndex);
     }
 
-    if (colKeyName && colKeyName.toString().trim() == inputKeyName.totalUsd) {
+    if (colKeyName && colKeyName.toString().trim() == INPUT_KEY_NAME.totalUsd) {
       totalUsdColumnIndex = colNumber;
       totalUsdColumnLetter = xlsxUtils.columnIndexToLetter(totalUsdColumnIndex);
     }
@@ -1095,7 +1095,7 @@ export async function modifyShippingFile(
     if (
       colKeyName &&
       colKeyName.toString().trim().toLowerCase() ===
-        inputKeyName.productName.toLowerCase()
+        INPUT_KEY_NAME.productName.toLowerCase()
     ) {
       productNameColumnIndex = colNumber;
     }
@@ -1112,7 +1112,7 @@ export async function modifyShippingFile(
       quantityColumnLetter = xlsxUtils.columnIndexToLetter(quantityColumnIndex);
     }
 
-    if (colKeyName && colKeyName.toString().trim() == inputKeyName.totalUsd) {
+    if (colKeyName && colKeyName.toString().trim() == INPUT_KEY_NAME.totalUsd) {
       totalUsdColumnIndex = colNumber;
       totalUsdColumnLetter = xlsxUtils.columnIndexToLetter(totalUsdColumnIndex);
     }
