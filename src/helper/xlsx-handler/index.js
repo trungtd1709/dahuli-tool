@@ -166,7 +166,7 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
       const productNameCell = worksheet[productNameCellAddress];
 
       if (
-        productNameCell?.v?.toLowerCase()?.includes(KEY_PREFERENCES.paymentCost)
+        productNameCell?.v?.toLowerCase()?.includes(KEY_PREFERENCES.PAYMENT_COST)
       ) {
         const paymentCostCellAddress = XLSX.utils.encode_cell({
           r: R,
