@@ -170,8 +170,8 @@ export const testTransformOrderList1Input = (rawJson = [], shipmentId) => {
     const exchangeRate = item[inputKeyName.exchangeRate];
 
     if (
-      productName.includes(KEY_PREFERENCES.packing) &&
-      productName.includes(KEY_PREFERENCES.labeling)
+      productName.includes(KEY_PREFERENCES.PACKING) &&
+      productName.includes(KEY_PREFERENCES.LABELING)
     ) {
       const packingLabelingCostYuan = evalCalculation(
         `${totalCny} / ${quantity}`
@@ -276,8 +276,8 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
     const exchangeRate = item[inputKeyName.exchangeRate];
 
     if (
-      productName.includes(KEY_PREFERENCES.packing) &&
-      productName.includes(KEY_PREFERENCES.labeling)
+      productName.includes(KEY_PREFERENCES.PACKING) &&
+      productName.includes(KEY_PREFERENCES.LABELING)
     ) {
       const packingLabelingCostYuan = evalCalculation(
         `${totalCny} / ${quantity}`
@@ -414,7 +414,7 @@ export const transformShippingCostInput = (
   shippingArr = shippingArr.filter((item) => {
     return !item.productName
       .toLowerCase()
-      .includes(KEY_PREFERENCES.paymentCost);
+      .includes(KEY_PREFERENCES.PAYMENT_COST);
   });
 
   return shippingArr.map((item) => {

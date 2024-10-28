@@ -41,12 +41,9 @@ export const inputKeyName = {
 export const KEY_PREFERENCES = {
   INTERNATIONAL: "internation",
   DOMESTIC: "domestic",
-  pickUp: "pick up",
-  packing: "packing",
-  labeling: "labeling",
-  paymentCost: "payment cost",
-  total: "total",
-  shippingCost: "shipping cost",
+  PACKING: "packing",
+  LABELING: "labeling",
+  PAYMENT_COST: "payment cost",
   QTY: "Qty",
 };
 
