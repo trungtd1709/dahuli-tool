@@ -149,23 +149,23 @@ export const addPackingCost = (skuList, elementsPrice) => {
  * @param {Array<ElementPrice>} elementsPrice - The array of element prices.
  * @returns {Array} The array of objects with their total price.
  */
-export const addPaymentCostToElement = (skuList, elementsPrice) => {
-  // trong order1 neu co packingLabelingCost thì đã có trong key packingLabelingCost
-  // tìm trong elementsPrice còn packing fee ko
-  return skuList.map((item) => {
-    const packing = item?.packing?.toLowerCase();
-    const packingObj =
-      elementsPrice.find((item) => item.name?.toLowerCase() == packing) ?? {};
-
-    let { exchangeRate, price } = packingObj;
-    if (exchangeRate && price) {
-      price = `${price} / ${exchangeRate}`;
-    }
-
-    if (!_.isEmpty(price)) {
-      return { ...item, packingLabelingCost: price };
-    }
-    return item;
+export const addPaymentCostToCogs = (skuList, elementsPrice) => {
+  return skuList.map((sku, index) => {
+    sku.elements.forEach((element) => {
+      const elementName = element?.name;
+      const elementExist =
+        elementsPrice.find((item) => item.name == elementName) ?? {};
+      const { paymentCostDivisor } = elementExist;
+      if (paymentCostDivisor) {
+        const itemPaymentCostFormula = `${OUTPUT_COL_ALPHABET.PPU}${
+          index + 2
+        }/${paymentCostDivisor}`;
+        sku = {
+          ...sku,
+          itemPaymentCost: itemPaymentCostFormula,
+        };
+      }
+    });
   });
 };
 

@@ -69,7 +69,7 @@ export const OUTPUT_COL_ALPHABET = {
   SKU: "A",
   SHIPMENT_ID: "B",
   QUANTITY: "C",
-  Note: "D",
+  NOTE: "D",
   PPU: "E",
   CUSTOM_PACKAGE_COST: "F",
   PACKING_LABELING_COST: "G",

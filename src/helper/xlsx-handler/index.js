@@ -66,7 +66,6 @@ export const xlsxToJSON = ({
     if (isShippingFile) {
       getShippingCostFormulas(worksheet, jsonData);
     }
-
     jsonData = changeObjKeyName(jsonData);
 
     return jsonData;

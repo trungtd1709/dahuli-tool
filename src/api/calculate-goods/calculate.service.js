@@ -5,6 +5,7 @@ import {
   addCogsAndAmount,
   addCustomizeCost,
   addPackingCost,
+  addPaymentCostToCogs,
   addShippingAndPaymentCost,
   addTotalAmountAndQuantity,
   calculatePpuPrice,
@@ -119,7 +120,7 @@ export const calculateGood = async (files = []) => {
       skuList = addCogsAndAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
       skuList = calculatePpuPrice(skuList, elementsPrice);
-      // skuList = 
+      // skuList = addPaymentCostToCogs(skuList, elementsPrice);
 
       const allElements = await addShipmentFileAndGetAllElements(
         skuList,

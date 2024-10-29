@@ -106,6 +106,7 @@ const transformToElementPrice = (obj) => {
     order: order.trim(),
     quantity,
     leftQuantity: inStock,
+    paymentCostDivisor,
   });
 
   return elementPrice;
