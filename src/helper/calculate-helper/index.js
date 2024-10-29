@@ -166,6 +166,7 @@ export const addPaymentCostToCogs = (skuList, elementsPrice) => {
         };
       }
     });
+    return sku;
   });
 };
 
