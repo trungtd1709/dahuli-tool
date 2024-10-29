@@ -87,6 +87,7 @@ const transformToElementPrice = (obj) => {
     exchangeRate,
     fileName,
     order = "",
+    paymentCostDivisor,
   } = obj;
 
   const inStock = getMaxIndexKeyValue(obj, INPUT_KEY_NAME.IN_STOCK);
@@ -124,6 +125,7 @@ const transformOrderItem = (obj) => {
     [INPUT_KEY_NAME.domesticShippingCost]: domesticShippingCost,
     packingLabelingCost,
     exchangeRate,
+    paymentCostDivisor,
     order = "",
   } = obj;
 
@@ -564,6 +566,7 @@ export const getRawOrder1Data = (files = []) => {
     const { order, originalname } = order1File;
     const rawOrder1Data = xlsxToJSON({
       file: order1File,
+      paymentCostKeyName: INPUT_KEY_NAME.totalUsd,
       exchangeRateKeyName: INPUT_KEY_NAME.totalUsd,
     }).map((item) => {
       return { ...item, order, fileName: originalname };

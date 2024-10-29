@@ -39,7 +39,7 @@ export const xlsxToJSON = ({
   isShippingFile = false, // check xem có phải file order 4 (shipping cost) ko
 }) => {
   try {
-    console.log(`${now()}: [CONVERTING ${file.originalname}`);
+    console.log(`${now()}: [CONVERTING] ${file.originalname}`);
     const workbook = XLSX.read(file.buffer, { type: "buffer" });
 
     const sheetName = workbook.SheetNames[sheetIndex];
@@ -164,9 +164,11 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
         c: productNameColumnIndex,
       });
       const productNameCell = worksheet[productNameCellAddress];
+      const productName = productNameCell?.v?.toLowerCase();
 
       if (
-        productNameCell?.v?.toLowerCase()?.includes(KEY_PREFERENCES.PAYMENT_COST)
+        productName?.includes(KEY_PREFERENCES.PAYMENT_COST) ||
+        productName?.includes(KEY_PREFERENCES.PAYMENT_FEE)
       ) {
         const paymentCostCellAddress = XLSX.utils.encode_cell({
           r: R,
@@ -188,6 +190,7 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
   return;
 };
 
+// lấy số sau dấu /
 function extractDivisor(formula) {
   const match = formula.match(/\/\s*([\d,\.]+)/);
   return match ? match[1].trim() : null;

@@ -15,6 +15,7 @@ export class ElementPrice {
     leftQuantity,
     domesticShippingCost,
     fileOrder,
+    paymentCostDivisor,
   }) {
     this.name = name;
     this.exchangeRate = exchangeRate;
@@ -27,6 +28,7 @@ export class ElementPrice {
     this.leftQuantity = leftQuantity;
     this.domesticShippingCost = domesticShippingCost;
     this.fileOrder = fileOrder;
+    this.paymentCostDivisor = paymentCostDivisor;
   }
 
   // Method in the class
@@ -41,6 +43,7 @@ export class ElementPrice {
     quantity,
     leftQuantity,
     domesticShippingCost,
+    paymentCostDivisor,
   }) {
     if (isNaN(leftQuantity)) {
       leftQuantity = quantity;
@@ -69,6 +72,7 @@ export class ElementPrice {
       leftQuantity,
       domesticShippingCost,
       fileOrder,
+      paymentCostDivisor,
     });
   }
 
@@ -85,6 +89,7 @@ export class ElementPrice {
       leftQuantity: this.leftQuantity,
       domesticShippingCost: this.domesticShippingCost,
       fileOrder: this.fileOrder,
+      paymentCostDivisor: this.paymentCostDivisor,
     };
   }
 
@@ -123,5 +128,9 @@ export class ElementPrice {
 
   getCnyFormula() {
     return this.cnyPrice;
+  }
+
+  getPaymentCostDivisor() {
+    return this.paymentCostDivisor;
   }
 }

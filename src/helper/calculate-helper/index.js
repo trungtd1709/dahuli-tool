@@ -147,6 +147,32 @@ export const addPackingCost = (skuList, elementsPrice) => {
  * @param {Array<ElementPrice>} elementsPrice - The array of element prices.
  * @returns {Array} The array of objects with their total price.
  */
+export const addPaymentCostToElement = (skuList, elementsPrice) => {
+  // trong order1 neu co packingLabelingCost thì đã có trong key packingLabelingCost
+  // tìm trong elementsPrice còn packing fee ko
+  return skuList.map((item) => {
+    const packing = item?.packing?.toLowerCase();
+    const packingObj =
+      elementsPrice.find((item) => item.name?.toLowerCase() == packing) ?? {};
+
+    let { exchangeRate, price } = packingObj;
+    if (exchangeRate && price) {
+      price = `${price} / ${exchangeRate}`;
+    }
+
+    if (!_.isEmpty(price)) {
+      return { ...item, packingLabelingCost: price };
+    }
+    return item;
+  });
+};
+
+/**
+ * Calculates the total price to make each object.
+ * @param {Array} skuList - The array of objects.
+ * @param {Array<ElementPrice>} elementsPrice - The array of element prices.
+ * @returns {Array} The array of objects with their total price.
+ */
 export const addCustomizeCost = (skuList, elementsPrice) => {
   return skuList.map((item) => {
     const customizePackage = item?.customizePackage;
