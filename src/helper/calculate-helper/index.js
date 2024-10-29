@@ -48,7 +48,9 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       let order = elementPrice.order;
       // TH này ko cần tìm thêm gì, tính luôn ppu
       if (remainingQuantity <= 0) {
-        newPpuPrice = `${usdPrice} * ${quantity} / quantityCell`;
+        /// ko bỏ comment này
+        // newPpuPrice = `${usdPrice} * ${quantity} / quantityCell`;
+        newPpuPrice = usdPrice;
         eleShipmentTotalCny = `${cnyPrice} * totalElementQuantity`;
         eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * totalElementQuantity`;
       }
