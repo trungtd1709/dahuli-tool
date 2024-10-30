@@ -9,3 +9,4 @@ export const MISSING_ELEMENT_DATA = "Không thấy thông tin element trong file
 export const NOT_ENOUGHT_CUSTOM_PACKAGE_QUANTITY = "Không đủ quantity custom package";
 export const CANT_FIND_PRODUCT = "Không thấy product";
 export const MISSING_ORDER_1_FILE_ORDER = "Tên file order 1 thiếu số thứ tự";
+export const MISSING_DATA_COGS_FILE = "Không có data trong file cogs";
