@@ -1,22 +1,3 @@
-export const fileTestName = {
-  orderList1: "Order1.xlsx",
-  orderList2: "Order2.xlsx",
-  orderList3: "Order3.xlsx",
-  orderList4: "Order4.xlsx",
-  productList: "Sku List.xlsx",
-  tsvFile: "FBA176X1FK4S.tsv",
-};
-
-// export const fileTestName = {
-//   orderList1: "Order1.xlsx",
-//   orderList2: "Order2.xlsx",
-//   productList: "Sku List.xlsx",
-//   tsvFile: "FBA17CCQ4ZVY.tsv",
-// };
-
-export const sampleFolder = "sample-file";
-// export const sampleFolder = "sample-file-S295";
-
 export const INPUT_KEY_NAME = {
   elements: "elements",
   sku: "SKU",
