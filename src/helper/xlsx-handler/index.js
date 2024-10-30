@@ -438,15 +438,15 @@ const addFormulaToWorksheet = ({
  */
 const addNumberFormatToWorksheet = (worksheet) => {
   const columnsToFormat = {
-    PPU: "4digits",
-    CUSTOM_PACKAGE_COST: "4digits",
-    PACKING_LABELING_COST: "4digits",
-    DOMESTIC_SHIPPING_COST: "4digits",
-    INTERNATIONAL_SHIPPING_COST: "4digits",
-    PAYMENT_COST: "4digits",
-    COGS: "4digits",
-    AMOUNT: "2digits",
-    TOTAL_AMOUNT: "2digits",
+    PPU: "4_DIGITS",
+    CUSTOM_PACKAGE_COST: "4_DIGITS",
+    PACKING_LABELING_COST: "4_DIGITS",
+    DOMESTIC_SHIPPING_COST: "4_DIGITS",
+    INTERNATIONAL_SHIPPING_COST: "4_DIGITS",
+    PAYMENT_COST: "4_DIGITS",
+    COGS: "4_DIGITS",
+    AMOUNT: "2_DIGITS",
+    TOTAL_AMOUNT: "2_DIGITS",
   };
 
   Object.entries(columnsToFormat).forEach(([key, format]) => {
@@ -649,10 +649,10 @@ const addStyleToShipment = (worksheet, firstRowNum = 2) => {
  */
 const addNumberFormatToShipment = (worksheet) => {
   const columnsToFormat = {
-    CNY_PRICE: "4digits",
-    USD_PRICE: "4digits",
-    TOTAL_CNY: "4digits",
-    TOTAL_USD: "4digits",
+    CNY_PRICE: "4_DIGITS",
+    USD_PRICE: "4_DIGITS",
+    TOTAL_CNY: "4_DIGITS",
+    TOTAL_USD: "4_DIGITS",
   };
 
   Object.entries(columnsToFormat).forEach(([key, format]) => {
@@ -872,7 +872,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
 
     worksheet.getColumn(newColLetter).eachCell((cell) => {
       // add $ sign
-      cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$2digits;
+      cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
       cell.alignment = { horizontal: "right", vertical: "middle" };
     });
     headerRow.getCell(newColIndex).value = `Cost ${shipmentKey}`;
@@ -913,7 +913,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
     SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
   worksheet.getColumn(costInStockIndex).eachCell((cell) => {
     // add $ sign
-    cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$2digits;
+    cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
   });
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
@@ -1155,7 +1155,7 @@ export async function modifyShippingFile(
     headerRow.getCell(newColIndex).value = `Cost ${shipmentKey}`;
 
     worksheet.getColumn(newColLetter).numFmt =
-      OUTPUT_NUM_DECIMAL_FORMAT["2digits"];
+      OUTPUT_NUM_DECIMAL_FORMAT["2_DIGITS"];
 
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber === 1) return; // Skip header row
@@ -1223,7 +1223,7 @@ export async function modifyShippingFile(
     SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
   worksheet.getColumn(costInStockIndex).eachCell((cell) => {
     // add $ sign
-    cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$2digits;
+    cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
   });
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);

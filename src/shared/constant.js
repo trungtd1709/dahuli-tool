@@ -64,10 +64,10 @@ export const OUTPUT_COL_ALPHABET = {
 };
 
 export const OUTPUT_NUM_DECIMAL_FORMAT = {
-  "4digits": "0.0000",
-  "2digits": "0.00",
-  $2digits: "$#,##0.00",
-  $4digits: "$#,##0.0000",
+  "4_DIGITS": "0.0000",
+  "2_DIGITS": "0.00",
+  $_2_DIGITS: "$#,##0.00",
+  $_4_DIGITS: "$#,##0.0000",
 };
 
 export const CASH_SYMBOL = {
