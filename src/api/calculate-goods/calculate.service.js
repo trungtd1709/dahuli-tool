@@ -102,7 +102,7 @@ export const calculateGood = async (files = []) => {
         return b?.isDomestic - a?.isDomestic;
       });
 
-      skuList = mergeArrays(inputTsvData, skuList, INPUT_KEY_NAME.sku).filter(
+      skuList = mergeArrays(inputTsvData, skuList, INPUT_KEY_NAME.SKU).filter(
         (item) => !_.isEmpty(item?.elements)
       );
 

@@ -90,7 +90,7 @@ export const refactorElements = (allElements = []) => {
 };
 
 export const removeSkuKey = (skuList = []) => {
-  skuList = removeObjKey(skuList, INPUT_KEY_NAME.elements);
+  skuList = removeObjKey(skuList, INPUT_KEY_NAME.ELEMENTS);
   skuList = removeObjKey(skuList, KEY_PREFERENCES.PACKING);
   skuList = removeObjKey(skuList, "customizePackage");
   return skuList;
