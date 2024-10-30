@@ -306,7 +306,7 @@ const getShippingCostFormulas = (
       }
 
       // check xem có / exchange rate ko, để xem là USD hay tệ
-      if (priceFormula?.includes(exchangeRate)) {
+      if (priceFormula?.toString().includes(exchangeRate)) {
         const priceShippingFormulaYuan = priceFormula.replace(
           new RegExp(`/\\s*${exchangeRate}`),
           ""
@@ -519,9 +519,9 @@ export const getFileType = (file) => {
     return FILE_TYPE.TSV;
   }
 
-  if (file.originalname.toLowerCase().includes(KEY_PREFERENCES.SHIPPING)) {
-    return FILE_TYPE.SHIPPING;
-  }
+  // if (file.originalname.toLowerCase().includes(KEY_PREFERENCES.SHIPPING)) {
+  //   return FILE_TYPE.SHIPPING;
+  // }
 
   const workbook = XLSX.read(file.buffer, { type: "buffer" });
 
