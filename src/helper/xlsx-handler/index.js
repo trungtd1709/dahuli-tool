@@ -704,6 +704,8 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
 
     if (colKeyName === SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK) {
       oldInStockIndex = colNumber;
+      const test = xlsxUtils.columnIndexToLetter(oldInStockIndex);
+      console.log(test);
     }
 
     if (colKeyName === SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK) {
@@ -718,7 +720,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
   }
 
   if (oldCostInStockIndex) {
-    xlsxUtils.clearColumnData(worksheet, oldCostInStockIndex);
+    xlsxUtils.deleteColumn(worksheet, oldCostInStockIndex);
   }
 
   const isInStockExist = xlsxUtils.checkIfColumnExists(
@@ -783,14 +785,23 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
   // add In Stock value
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
+    const oldInStockColLetter = xlsxUtils.columnIndexToLetter(oldInStockIndex);
     const totalShipmentQuantityLetter = oldInStockIndex
-      ? xlsxUtils.columnIndexToLetter(oldInStockIndex)
+      ? oldInStockColLetter
       : quantityColumnLetter;
 
-    const formula = `${totalShipmentQuantityLetter}${rowNumber} - SUM(${shipmentStartColLetter}${rowNumber}:${shipmentLastColLetter}${rowNumber})`;
+    const shipmentSumQuantityFormula = `SUM(${shipmentStartColLetter}${rowNumber}:${shipmentLastColLetter}${rowNumber})`;
+    let formula = `${totalShipmentQuantityLetter}${rowNumber} - ${shipmentSumQuantityFormula}`;
     const inStockCell = row.getCell(inStockColIndex);
 
     if (oldInStockIndex) {
+      const oldInStockCellAddress = `${oldInStockColLetter}${rowNumber}`;
+      const oldInStockCell = worksheet.getCell(oldInStockCellAddress);
+      const oldInStockFormula = oldInStockCell.value?.formula;
+      if (oldInStockFormula) {
+        formula = `${oldInStockFormula} - ${shipmentSumQuantityFormula}`;
+      }
+
       const rowNegativeInStockPlaceArr = checkNegative(
         worksheet,
         totalShipmentQuantityLetter,
@@ -928,6 +939,10 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
         formula,
       };
     }
+  }
+
+  if (oldInStockIndex) {
+    xlsxUtils.clearColumnData(worksheet, oldInStockIndex);
   }
 
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
@@ -1125,7 +1140,7 @@ export async function modifyShippingFile(
   });
 
   if (oldCostInStockIndex) {
-    xlsxUtils.clearColumnData(worksheet, oldCostInStockIndex);
+    xlsxUtils.deleteColumn(worksheet, oldCostInStockIndex);
   }
 
   worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {

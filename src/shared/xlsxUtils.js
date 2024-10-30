@@ -38,7 +38,7 @@ export class xlsxUtils {
   /**
    * @param {ExcelJS.Worksheet} worksheet
    */
-  static clearColumnData(worksheet, colIndex) {
+  static deleteColumn(worksheet, colIndex) {
     worksheet.spliceColumns(colIndex, 1);
   }
 
@@ -53,6 +53,17 @@ export class xlsxUtils {
     }
 
     return columnLetter;
+  }
+
+  /**
+   * @param {ExcelJS.Worksheet} worksheet
+   */
+  static async clearColumnData(worksheet, columnIndex) {
+    worksheet.getColumn(columnIndex).eachCell((cell) => {
+      cell.value = null;        // Clear value (data)
+      cell.style = {};          // Clear style
+      cell.numFmt = null;       // Clear number format if set
+    });
   }
 
   /**
