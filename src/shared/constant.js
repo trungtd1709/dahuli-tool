@@ -46,6 +46,7 @@ export const KEY_PREFERENCES = {
   PAYMENT_COST: "payment cost",
   PAYMENT_FEE: "payment fee",
   QTY: "Qty",
+  SHIPPING: "shipping"
 };
 
 export const OUTPUT_KEY_NAME = {

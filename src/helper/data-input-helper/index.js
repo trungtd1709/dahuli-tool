@@ -9,6 +9,7 @@ import {
 } from "../../shared/constant.js";
 import {
   MISSING_ORDER_1_FILE,
+  MISSING_ORDER_1_FILE_ORDER,
   MISSING_SHIPMENT_DATA,
   MISSING_SKU_LIST_FILE,
   MISSING_TSV_FILE,
@@ -48,7 +49,10 @@ const transformSkuItem = (obj) => {
 
   let elements = Object.keys(rest).reduce((acc, key) => {
     // Only process keys that are "__EMPTY" or "Thành phần PPU"
-    if (key.startsWith(INPUT_KEY_NAME.empty) || key === INPUT_KEY_NAME.ppuElement) {
+    if (
+      key.startsWith(INPUT_KEY_NAME.empty) ||
+      key === INPUT_KEY_NAME.ppuElement
+    ) {
       const value = rest[key];
       const match = value.match(/^(\d+)\s*(.*)$/); // Match leading digits and the rest of the string
       const quantity = match ? parseInt(match[1], 10) : 1; // Extract quantity or default to 1
@@ -565,6 +569,13 @@ export const getRawOrder1Data = (files = []) => {
 
   for (const order1File of order1Files) {
     const { order, originalname } = order1File;
+
+    // thứ tự file
+    const fileOrder = extractNumberFromFilename(originalname);
+    if(!fileOrder && order1Files.length > 1){
+      throw new BadRequestError(MISSING_ORDER_1_FILE_ORDER);
+    }
+
     const rawOrder1Data = xlsxToJSON({
       file: order1File,
       paymentCostKeyName: INPUT_KEY_NAME.totalUsd,

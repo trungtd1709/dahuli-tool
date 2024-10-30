@@ -517,6 +517,10 @@ export const getFileType = (file) => {
     return FILE_TYPE.TSV;
   }
 
+  if (file.originalname.toLowerCase().includes(KEY_PREFERENCES.SHIPPING)) {
+    return FILE_TYPE.SHIPPING;
+  }
+
   const workbook = XLSX.read(file.buffer, { type: "buffer" });
 
   const sheetName = workbook.SheetNames[0];
