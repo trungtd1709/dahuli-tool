@@ -86,7 +86,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       }
 
       const domesticShippingCost =
-        elementPrice?.[INPUT_KEY_NAME.domesticShippingCost];
+        elementPrice?.[INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST];
       if (domesticShippingCost) {
         const usdDomesticShippingCost = `${domesticShippingCost} / ${exchangeRate}`;
         totalElementsPrice = `(${usdPrice} + ${usdDomesticShippingCost}) * ${quantity}`;

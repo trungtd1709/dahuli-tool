@@ -1,22 +1,17 @@
-import fs from "fs/promises";
-import path from "path";
+import _ from "lodash";
 import Papa from "papaparse";
+import path from "path";
 import { fileURLToPath } from "url";
 import { findIndexByFirstElement, now } from "../../shared/utils.js";
-import _ from "lodash";
-import { sampleFolder } from "../../shared/constant.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export const getDataTsvFile = async ({ file }) => {
-  // const filePath = path.resolve(__dirname, `../../../${sampleFolder}/${fileName}`);
-
   try {
     // Read the file content
     const data = file.buffer.toString("utf8");
-    // const data = await fs.readFile(filePath, "utf8");
-
+    
     // Parse the TSV content using PapaParse
     const parsedData = await new Promise((resolve, reject) => {
       Papa.parse(data, {

@@ -1,40 +1,20 @@
-export const fileTestName = {
-  orderList1: "Order1.xlsx",
-  orderList2: "Order2.xlsx",
-  orderList3: "Order3.xlsx",
-  orderList4: "Order4.xlsx",
-  productList: "Sku List.xlsx",
-  tsvFile: "FBA176X1FK4S.tsv",
-};
-
-// export const fileTestName = {
-//   orderList1: "Order1.xlsx",
-//   orderList2: "Order2.xlsx",
-//   productList: "Sku List.xlsx",
-//   tsvFile: "FBA17CCQ4ZVY.tsv",
-// };
-
-export const sampleFolder = "sample-file";
-// export const sampleFolder = "sample-file-S295";
-
 export const INPUT_KEY_NAME = {
-  elements: "elements",
-  sku: "SKU",
-  packingLabelingCost: "Packing & Labeling Cost",
-  packingLabeling: "Packing & Labeling",
-  empty: "__EMPTY",
-  ppuElement: "Thành phần PPU",
-  quantity: "Qty (Pcs)",
-  productName: "Product Name",
-  price: "Price",
-  domesticShippingCost: "Domestic shipping cost",
-  totalUsd: "Total USD",
-  totalCny: "Total CNY",
-  exchangeRate: "exchangeRate",
-  customizePackage: "Customize Package",
-  customPackageCost: "Custom Package Cost",
-  shipment: "Shipment",
-  shipmentId: "Shipment ID",
+  ELEMENTS: "elements",
+  SKU: "SKU",
+  PACKING_LABELING_COST: "Packing & Labeling Cost",
+  PACKING_LABELING: "Packing & Labeling",
+  EMPTY: "__EMPTY",
+  PPU_ELEMENTS: "Thành phần PPU",
+  QUANTITY: "Qty (Pcs)",
+  PRODUCT_NAME: "Product Name",
+  PRICE: "Price",
+  DOMESTIC_SHIPPING_COST: "Domestic shipping cost",
+  TOTAL_USD: "Total USD",
+  TOTAL_CNY: "Total CNY",
+  EXCHANGE_RATE: "exchangeRate",
+  CUSTOM_PACKAGE: "Customize Package",
+  SHIPMENT: "Shipment",
+  SHIPMENT_ID: "Shipment ID",
   IN_STOCK: "In Stock",
 };
 
@@ -46,6 +26,7 @@ export const KEY_PREFERENCES = {
   PAYMENT_COST: "payment cost",
   PAYMENT_FEE: "payment fee",
   QTY: "Qty",
+  SHIPPING: "shipping"
 };
 
 export const OUTPUT_KEY_NAME = {
@@ -83,15 +64,15 @@ export const OUTPUT_COL_ALPHABET = {
 };
 
 export const OUTPUT_NUM_DECIMAL_FORMAT = {
-  "4digits": "0.0000",
-  "2digits": "0.00",
-  $2digits: "$#,##0.00",
-  $4digits: "$#,##0.0000",
+  "4_DIGITS": "0.0000",
+  "2_DIGITS": "0.00",
+  $_2_DIGITS: "$#,##0.00",
+  $_4_DIGITS: "$#,##0.0000",
 };
 
-export const cashSymbolConst = {
-  yuan: "¥",
-  usd: "$",
+export const CASH_SYMBOL = {
+  YUAN: "¥",
+  USD: "$",
 };
 
 export const FILE_TYPE = {

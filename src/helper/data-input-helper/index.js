@@ -9,6 +9,7 @@ import {
 } from "../../shared/constant.js";
 import {
   MISSING_ORDER_1_FILE,
+  MISSING_ORDER_1_FILE_ORDER,
   MISSING_SHIPMENT_DATA,
   MISSING_SKU_LIST_FILE,
   MISSING_TSV_FILE,
@@ -48,7 +49,10 @@ const transformSkuItem = (obj) => {
 
   let elements = Object.keys(rest).reduce((acc, key) => {
     // Only process keys that are "__EMPTY" or "Thành phần PPU"
-    if (key.startsWith(INPUT_KEY_NAME.empty) || key === INPUT_KEY_NAME.ppuElement) {
+    if (
+      key.startsWith(INPUT_KEY_NAME.EMPTY) ||
+      key === INPUT_KEY_NAME.PPU_ELEMENTS
+    ) {
       const value = rest[key];
       const match = value.match(/^(\d+)\s*(.*)$/); // Match leading digits and the rest of the string
       const quantity = match ? parseInt(match[1], 10) : 1; // Extract quantity or default to 1
@@ -61,11 +65,11 @@ const transformSkuItem = (obj) => {
 
   const product = { SKU, elements };
 
-  if (obj?.[INPUT_KEY_NAME.packingLabeling]) {
-    product.packing = obj[INPUT_KEY_NAME.packingLabeling];
+  if (obj?.[INPUT_KEY_NAME.PACKING_LABELING]) {
+    product.packing = obj[INPUT_KEY_NAME.PACKING_LABELING];
   }
-  if (obj?.[INPUT_KEY_NAME.customizePackage]) {
-    product.customizePackage = obj[INPUT_KEY_NAME.customizePackage];
+  if (obj?.[INPUT_KEY_NAME.CUSTOM_PACKAGE]) {
+    product.customizePackage = obj[INPUT_KEY_NAME.CUSTOM_PACKAGE];
   }
 
   return product;
@@ -80,9 +84,9 @@ const transformToElementPrice = (obj) => {
   const {
     productName: name,
     quantity,
-    [INPUT_KEY_NAME.totalCny]: totalCny,
-    [INPUT_KEY_NAME.totalUsd]: totalUsd,
-    [INPUT_KEY_NAME.domesticShippingCost]: domesticShippingCost,
+    [INPUT_KEY_NAME.TOTAL_CNY]: totalCny,
+    [INPUT_KEY_NAME.TOTAL_USD]: totalUsd,
+    [INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST]: domesticShippingCost,
     packingLabelingCost,
     exchangeRate,
     fileName,
@@ -120,10 +124,9 @@ const transformToElementPrice = (obj) => {
 const transformOrderItem = (obj) => {
   const {
     productName: name,
-    // [INPUT_KEY_NAME.price]: cnyPrice, // đơn vị là CNY
     quantity,
-    [INPUT_KEY_NAME.totalCny]: totalCny,
-    [INPUT_KEY_NAME.domesticShippingCost]: domesticShippingCost,
+    [INPUT_KEY_NAME.TOTAL_CNY]: totalCny,
+    [INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST]: domesticShippingCost,
     packingLabelingCost,
     exchangeRate,
     paymentCostDivisor,
@@ -139,7 +142,7 @@ const transformOrderItem = (obj) => {
     quantity,
     exchangeRate,
     ...(domesticShippingCost && {
-      [INPUT_KEY_NAME.domesticShippingCost]: domesticShippingCost,
+      [INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST]: domesticShippingCost,
     }),
     order,
   };
@@ -168,9 +171,9 @@ export const testTransformOrderList1Input = (rawJson = [], shipmentId) => {
   // add phí ship nội địa vào obj nếu có
   for (let [index, item] of rawJson.entries()) {
     const productName = item?.productName?.toLowerCase() ?? "";
-    const totalCny = item?.[INPUT_KEY_NAME.totalCny]?.toString();
+    const totalCny = item?.[INPUT_KEY_NAME.TOTAL_CNY]?.toString();
     const { quantity, fileName } = item;
-    const exchangeRate = item[INPUT_KEY_NAME.exchangeRate];
+    const exchangeRate = item[INPUT_KEY_NAME.EXCHANGE_RATE];
 
     if (
       productName.includes(KEY_PREFERENCES.PACKING) &&
@@ -232,7 +235,7 @@ export const testTransformOrderList1Input = (rawJson = [], shipmentId) => {
     if (!item?.quantity && productName?.includes(prevProductName)) {
       const prevQuantity = prevProductQuantity.toString();
       const itemShippingFee = evalCalculation(`${totalCny} / ${prevQuantity}`);
-      rawJson[index - 1][INPUT_KEY_NAME.domesticShippingCost] = itemShippingFee;
+      rawJson[index - 1][INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST] = itemShippingFee;
     }
   }
 
@@ -274,9 +277,9 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
   // add phí ship nội địa vào obj nếu có
   for (let [index, item] of rawJson.entries()) {
     const productName = item?.productName?.toLowerCase() ?? "";
-    const totalCny = item?.[INPUT_KEY_NAME.totalCny]?.toString();
+    const totalCny = item?.[INPUT_KEY_NAME.TOTAL_CNY]?.toString();
     const quantity = item?.quantity;
-    const exchangeRate = item[INPUT_KEY_NAME.exchangeRate];
+    const exchangeRate = item[INPUT_KEY_NAME.EXCHANGE_RATE];
 
     if (
       productName.includes(KEY_PREFERENCES.PACKING) &&
@@ -335,12 +338,11 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
     if (!item?.quantity && productName?.includes(prevProductName)) {
       const prevQuantity = prevProductQuantity.toString();
       const itemShippingFee = evalCalculation(`${totalCny} / ${prevQuantity}`);
-      rawJson[index - 1][INPUT_KEY_NAME.domesticShippingCost] = itemShippingFee;
+      rawJson[index - 1][INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST] = itemShippingFee;
     }
   }
 
   // remove obj shipping cost
-  // rawJson = rawJson.filter((item) => item?.[INPUT_KEY_NAME.price]);
   rawJson = rawJson.filter((obj) => {
     return (
       !obj.productName?.toLowerCase()?.includes("domestic") &&
@@ -370,10 +372,10 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
  */
 const transformCartonFee = (obj) => {
   const cnyItemPrice = evalCalculation(
-    `${obj[INPUT_KEY_NAME.totalCny]} / ${obj?.quantity}`
+    `${obj[INPUT_KEY_NAME.TOTAL_CNY]} / ${obj?.quantity}`
   );
 
-  const itemPrice = `${cnyItemPrice} / ${obj[INPUT_KEY_NAME.exchangeRate]}`;
+  const itemPrice = `${cnyItemPrice} / ${obj[INPUT_KEY_NAME.EXCHANGE_RATE]}`;
   const newObj = {
     name: obj?.productName,
     price: itemPrice,
@@ -453,8 +455,8 @@ const transformShippingCostItem = (
     exchangeRate,
     order = "",
   } = obj;
-  const rawTotalUsd = obj?.[INPUT_KEY_NAME.totalUsd];
-  const rawTotalCny = obj?.[INPUT_KEY_NAME.totalCny];
+  const rawTotalUsd = obj?.[INPUT_KEY_NAME.TOTAL_USD];
+  const rawTotalCny = obj?.[INPUT_KEY_NAME.TOTAL_CNY];
 
   let totalUsd =
     rawTotalCny && exchangeRate
@@ -506,8 +508,8 @@ export const transformShipmentListInput = (rawJson) => {
  */
 const transformShipmentItem = (obj) => {
   let {
-    [INPUT_KEY_NAME.shipment]: originalShipment,
-    [INPUT_KEY_NAME.shipmentId]: shipmentId,
+    [INPUT_KEY_NAME.SHIPMENT]: originalShipment,
+    [INPUT_KEY_NAME.SHIPMENT_ID]: shipmentId,
   } = obj;
 
   let shipment = originalShipment;
@@ -539,8 +541,8 @@ export const getRawInputShippingCost = (files = []) => {
       const { order } = shippingFile;
       const rawJson = xlsxToJSON({
         file: shippingFile,
-        paymentCostKeyName: INPUT_KEY_NAME.totalUsd,
-        exchangeRateKeyName: INPUT_KEY_NAME.totalUsd,
+        paymentCostKeyName: INPUT_KEY_NAME.TOTAL_USD,
+        exchangeRateKeyName: INPUT_KEY_NAME.TOTAL_USD,
         isShippingFile: true,
       }).map((item) => {
         return { ...item, order };
@@ -565,10 +567,17 @@ export const getRawOrder1Data = (files = []) => {
 
   for (const order1File of order1Files) {
     const { order, originalname } = order1File;
+
+    // thứ tự file
+    const fileOrder = extractNumberFromFilename(originalname);
+    if(!fileOrder && order1Files.length > 1){
+      throw new BadRequestError(MISSING_ORDER_1_FILE_ORDER);
+    }
+
     const rawOrder1Data = xlsxToJSON({
       file: order1File,
-      paymentCostKeyName: INPUT_KEY_NAME.totalUsd,
-      exchangeRateKeyName: INPUT_KEY_NAME.totalUsd,
+      paymentCostKeyName: INPUT_KEY_NAME.TOTAL_USD,
+      exchangeRateKeyName: INPUT_KEY_NAME.TOTAL_USD,
     }).map((item) => {
       return { ...item, order, fileName: originalname };
     });
@@ -688,7 +697,7 @@ export const mergeTsvData = async (
     const thisTsvSkuList = mergeArrays(
       inputTsvData,
       totalSkuList,
-      INPUT_KEY_NAME.sku
+      INPUT_KEY_NAME.SKU
     ).filter((item) => !_.isEmpty(item?.elements));
     totalSkuType += thisTsvSkuList.length;
   }

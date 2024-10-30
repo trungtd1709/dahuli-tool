@@ -11,7 +11,7 @@ import {
   OUTPUT_NUM_DECIMAL_FORMAT,
   SHIPMENT_OUTPUT_COL_ALPHABET,
   SHIPMENT_OUTPUT_KEY_NAME,
-  cashSymbolConst,
+  CASH_SYMBOL,
   INPUT_KEY_NAME,
 } from "../../shared/constant.js";
 import {
@@ -22,7 +22,7 @@ import {
   containsAlphabet,
 } from "../../shared/utils.js";
 import { xlsxUtils } from "../../shared/xlsxUtils.js";
-import { CANT_FIND_PRODUCT } from "../../shared/err-const.js";
+import { CANT_FIND_PRODUCT, MISSING_DATA_COGS_FILE } from "../../shared/err-const.js";
 import { fileColor } from "../../shared/fileColor.js";
 
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
@@ -138,7 +138,7 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
     if (cell && cell.v === paymentCostKeyName) {
       paymentCostColumnIndex = C;
     }
-    if (cell && cell.v === INPUT_KEY_NAME.productName) {
+    if (cell && cell.v === INPUT_KEY_NAME.PRODUCT_NAME) {
       productNameColumnIndex = C;
     }
   }
@@ -151,7 +151,7 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
 
   if (productNameColumnIndex === -1) {
     console.error(
-      `Key name '${INPUT_KEY_NAME.productName}' not found in the first row.`
+      `Key name '${INPUT_KEY_NAME.PRODUCT_NAME}' not found in the first row.`
     );
   }
 
@@ -299,7 +299,7 @@ const getShippingCostFormulas = (
         }
       }
 
-      if (cell?.w?.includes(cashSymbolConst.yuan)) {
+      if (cell?.w?.includes(CASH_SYMBOL.YUAN)) {
         if (exchangeRate) {
           priceFormula = `${priceFormula} / ${exchangeRate}`;
         }
@@ -334,7 +334,7 @@ const getShippingCostFormulas = (
 export const cogsJsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
   try {
     if (json.length === 0) {
-      throw new Error("The JSON data is empty.");
+      throw new BadRequestError(MISSING_DATA_COGS_FILE);
     }
 
     const workbook = new ExcelJS.Workbook();
@@ -349,8 +349,10 @@ export const cogsJsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
 
     // Add rows from JSON data
     json.forEach((item, index) => {
+      // C là cột quantity
       const quantityCell = `C${(index + 2).toString()}`;
 
+      // thay giá trị quantityCell
       item[OUTPUT_KEY_NAME.PPU] = item[OUTPUT_KEY_NAME.PPU].replace(
         /quantityCell/g,
         quantityCell
@@ -438,15 +440,15 @@ const addFormulaToWorksheet = ({
  */
 const addNumberFormatToWorksheet = (worksheet) => {
   const columnsToFormat = {
-    PPU: "4digits",
-    CUSTOM_PACKAGE_COST: "4digits",
-    PACKING_LABELING_COST: "4digits",
-    DOMESTIC_SHIPPING_COST: "4digits",
-    INTERNATIONAL_SHIPPING_COST: "4digits",
-    PAYMENT_COST: "4digits",
-    COGS: "4digits",
-    AMOUNT: "2digits",
-    TOTAL_AMOUNT: "2digits",
+    PPU: "4_DIGITS",
+    CUSTOM_PACKAGE_COST: "4_DIGITS",
+    PACKING_LABELING_COST: "4_DIGITS",
+    DOMESTIC_SHIPPING_COST: "4_DIGITS",
+    INTERNATIONAL_SHIPPING_COST: "4_DIGITS",
+    PAYMENT_COST: "4_DIGITS",
+    COGS: "4_DIGITS",
+    AMOUNT: "2_DIGITS",
+    TOTAL_AMOUNT: "2_DIGITS",
   };
 
   Object.entries(columnsToFormat).forEach(([key, format]) => {
@@ -493,7 +495,7 @@ const changeObjKeyName = (jsonData = []) => {
       if (key.toLowerCase().includes("weight")) {
         newObj["weight"] = obj[key]; // Rename the key to 'weight'
       } else if (
-        key.toLowerCase().includes(INPUT_KEY_NAME.productName.toLowerCase())
+        key.toLowerCase().includes(INPUT_KEY_NAME.PRODUCT_NAME.toLowerCase())
       ) {
         newObj["productName"] = obj[key]; // Rename keys containing 'name' to 'name'
       } else if (key.toLowerCase().includes("qty")) {
@@ -515,6 +517,10 @@ const changeObjKeyName = (jsonData = []) => {
 export const getFileType = (file) => {
   if (file.originalname.includes(CHECK_KEYWORD.TSV)) {
     return FILE_TYPE.TSV;
+  }
+
+  if (file.originalname.toLowerCase().includes(KEY_PREFERENCES.SHIPPING)) {
+    return FILE_TYPE.SHIPPING;
   }
 
   const workbook = XLSX.read(file.buffer, { type: "buffer" });
@@ -574,10 +580,17 @@ export async function createShipmentExcelBuffer(jsonData = []) {
     const rowNumber = index + 2;
 
     // const { totalUsd, totalCny } = item;
+    const order = item[SHIPMENT_OUTPUT_KEY_NAME.ORDER] ?? "";
+    const isMoreThanOneOrder = order.includes("+");
     const totalUsdFormula = item[SHIPMENT_OUTPUT_KEY_NAME.TOTAL_USD];
     const totalCnyFormula = item[SHIPMENT_OUTPUT_KEY_NAME.TOTAL_CNY];
     const cnyPriceFormula = item[SHIPMENT_OUTPUT_KEY_NAME.CNY_PRICE];
-    const usdPriceFormula = item[SHIPMENT_OUTPUT_KEY_NAME.USD_PRICE];
+
+    const totalUsdCellAddress = `${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${rowNumber}`;
+    const quantityCellAddress = `${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${rowNumber}`;
+    const usdPriceFormula = isMoreThanOneOrder
+      ? item[SHIPMENT_OUTPUT_KEY_NAME.USD_PRICE]
+      : `${totalUsdCellAddress} / ${quantityCellAddress}`;
 
     const totalUsdCellAdd = `${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${rowNumber}`;
     const totalCnyCellAdd = `${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}${rowNumber}`;
@@ -594,9 +607,11 @@ export async function createShipmentExcelBuffer(jsonData = []) {
   const sumQuantityFormula = `SUM(${
     SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY
   }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${lastRowIndex})`;
+
   const sumTotalCnyFormula = `SUM(${
     SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY
   }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}${lastRowIndex})`;
+
   const sumTotalUsdFormula = `SUM(${
     SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD
   }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${lastRowIndex})`;
@@ -645,10 +660,10 @@ const addStyleToShipment = (worksheet, firstRowNum = 2) => {
  */
 const addNumberFormatToShipment = (worksheet) => {
   const columnsToFormat = {
-    CNY_PRICE: "4digits",
-    USD_PRICE: "4digits",
-    TOTAL_CNY: "4digits",
-    TOTAL_USD: "4digits",
+    CNY_PRICE: "4_DIGITS",
+    USD_PRICE: "4_DIGITS",
+    TOTAL_CNY: "4_DIGITS",
+    TOTAL_USD: "4_DIGITS",
   };
 
   Object.entries(columnsToFormat).forEach(([key, format]) => {
@@ -680,7 +695,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
     if (
       colKeyName &&
       colKeyName.toString().trim().toLowerCase() ===
-        INPUT_KEY_NAME.productName.toLowerCase()
+        INPUT_KEY_NAME.PRODUCT_NAME.toLowerCase()
     ) {
       productNameColumnIndex = colNumber;
     }
@@ -697,7 +712,10 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
       quantityColumnLetter = xlsxUtils.columnIndexToLetter(quantityColumnIndex);
     }
 
-    if (colKeyName && colKeyName.toString().trim() == INPUT_KEY_NAME.totalUsd) {
+    if (
+      colKeyName &&
+      colKeyName.toString().trim() == INPUT_KEY_NAME.TOTAL_USD
+    ) {
       totalUsdColumnIndex = colNumber;
       totalUsdColumnLetter = xlsxUtils.columnIndexToLetter(totalUsdColumnIndex);
     }
@@ -879,7 +897,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
 
     worksheet.getColumn(newColLetter).eachCell((cell) => {
       // add $ sign
-      cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$2digits;
+      cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
       cell.alignment = { horizontal: "right", vertical: "middle" };
     });
     headerRow.getCell(newColIndex).value = `Cost ${shipmentKey}`;
@@ -920,7 +938,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
     SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
   worksheet.getColumn(costInStockIndex).eachCell((cell) => {
     // add $ sign
-    cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$2digits;
+    cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
   });
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
@@ -1112,7 +1130,7 @@ export async function modifyShippingFile(
     if (
       colKeyName &&
       colKeyName.toString().trim().toLowerCase() ===
-        INPUT_KEY_NAME.productName.toLowerCase()
+        INPUT_KEY_NAME.PRODUCT_NAME.toLowerCase()
     ) {
       productNameColumnIndex = colNumber;
     }
@@ -1129,7 +1147,10 @@ export async function modifyShippingFile(
       quantityColumnLetter = xlsxUtils.columnIndexToLetter(quantityColumnIndex);
     }
 
-    if (colKeyName && colKeyName.toString().trim() == INPUT_KEY_NAME.totalUsd) {
+    if (
+      colKeyName &&
+      colKeyName.toString().trim() == INPUT_KEY_NAME.TOTAL_USD
+    ) {
       totalUsdColumnIndex = colNumber;
       totalUsdColumnLetter = xlsxUtils.columnIndexToLetter(totalUsdColumnIndex);
     }
@@ -1166,7 +1187,7 @@ export async function modifyShippingFile(
     headerRow.getCell(newColIndex).value = `Cost ${shipmentKey}`;
 
     worksheet.getColumn(newColLetter).numFmt =
-      OUTPUT_NUM_DECIMAL_FORMAT["2digits"];
+      OUTPUT_NUM_DECIMAL_FORMAT["2_DIGITS"];
 
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber === 1) return; // Skip header row
@@ -1234,7 +1255,7 @@ export async function modifyShippingFile(
     SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
   worksheet.getColumn(costInStockIndex).eachCell((cell) => {
     // add $ sign
-    cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$2digits;
+    cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
   });
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
