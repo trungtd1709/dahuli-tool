@@ -71,9 +71,9 @@ export const OUTPUT_NUM_DECIMAL_FORMAT = {
   $4digits: "$#,##0.0000",
 };
 
-export const cashSymbolConst = {
-  yuan: "¥",
-  usd: "$",
+export const CASH_SYMBOL = {
+  YUAN: "¥",
+  USD: "$",
 };
 
 export const FILE_TYPE = {

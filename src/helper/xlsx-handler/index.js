@@ -11,7 +11,7 @@ import {
   OUTPUT_NUM_DECIMAL_FORMAT,
   SHIPMENT_OUTPUT_COL_ALPHABET,
   SHIPMENT_OUTPUT_KEY_NAME,
-  cashSymbolConst,
+  CASH_SYMBOL,
   INPUT_KEY_NAME,
 } from "../../shared/constant.js";
 import {
@@ -299,7 +299,7 @@ const getShippingCostFormulas = (
         }
       }
 
-      if (cell?.w?.includes(cashSymbolConst.yuan)) {
+      if (cell?.w?.includes(CASH_SYMBOL.YUAN)) {
         if (exchangeRate) {
           priceFormula = `${priceFormula} / ${exchangeRate}`;
         }
