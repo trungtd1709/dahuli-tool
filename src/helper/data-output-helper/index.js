@@ -3,10 +3,11 @@ import {
   FILE_TYPE,
   INPUT_KEY_NAME,
   KEY_PREFERENCES,
+  OUTPUT_COL_ALPHABET,
   OUTPUT_KEY_NAME,
   SHIPMENT_OUTPUT_KEY_NAME,
 } from "../../shared/constant.js";
-import { isEmptyValue } from "../../shared/utils.js";
+import { getUniqueValueFromObjArr, isEmptyValue } from "../../shared/utils.js";
 import {
   cogsJsonToXlsx,
   createShipmentExcelBuffer,
@@ -14,8 +15,33 @@ import {
   modifyShippingFile,
 } from "../xlsx-handler/index.js";
 import { extractNumberFromFilename } from "../data-input-helper/index.js";
+import _ from "lodash";
 
-export const refactorSkuListFunc = (skuList) => {
+/**
+ *
+ * @param {Array} skuList
+ * @returns
+ */
+const refactorSkuListFunc = (skuList = []) => {
+  const shipmentArr = getUniqueValueFromObjArr(skuList, "shipment");
+  console.log(shipmentArr);
+  if (!isEmptyValue(shipmentArr)) {
+    shipmentArr.map((shipment) => {
+      const shipmentFirstIndex = _.findIndex(skuList, { shipment });
+      const shipmentLastIndex = _.findLastIndex(skuList, { shipment });
+      for (let i = shipmentFirstIndex; i <= shipmentLastIndex; i++) {
+        let sku = skuList[i];
+        let { domesticShippingCost, internationalShippingCost } = sku;
+        const colLetter = OUTPUT_COL_ALPHABET.TOTAL_UNIT;
+        const originalFirstCell = `${colLetter}2`;
+        const originalLastCell = `${colLetter}${
+          skuList.length + 1
+        }`;
+        const newFirstCell = `${colLetter}${shipmentFirstIndex}`;
+        const newLastCell = `${colLetter}${shipmentLastIndex}`;
+      }
+    });
+  }
   let refactorSkuList = skuList.map((item) => {
     const {
       SKU,
@@ -253,7 +279,7 @@ export const addShipmentFileAndGetAllElements = async (
       usdPrice = elementPriceObj.getUsdFormula();
       cnyPrice = elementPriceObj.cnyPrice;
     }
-    return { ...element, usdPrice, cnyPrice, totalCny, totalUsd};
+    return { ...element, usdPrice, cnyPrice, totalCny, totalUsd };
   });
 
   inputShippingCost.forEach((item) => {

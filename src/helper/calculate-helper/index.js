@@ -339,7 +339,6 @@ export const addCogsAndAmount = (skuList = []) => {
 };
 
 /**
- * Calculates the total price to make each object.
  * @param {Array} skuList - The array of objects.
  * @returns {Array} The array of objects with their total price.
  */

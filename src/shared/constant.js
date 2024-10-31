@@ -22,6 +22,7 @@ export const KEY_PREFERENCES = {
   INTERNATIONAL: "internation",
   DOMESTIC: "domestic",
   PACKING: "packing",
+  SHIPMENT: "shipment",
   LABELING: "labeling",
   PAYMENT_COST: "payment cost",
   PAYMENT_FEE: "payment fee",

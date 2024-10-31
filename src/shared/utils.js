@@ -188,6 +188,10 @@ export const rmDupEleFrArr = (arr = []) => {
   return [...new Set(arr)];
 };
 
+export const getUniqueValueFromObjArr = (arr = [], keyName) => {
+  return [...new Set(arr.map(item => item[keyName]))];
+}
+
 export const sortArrayBaseOnKey = (arr = [], key) => {
   return arr.sort((a, b) => {
     if (a?.[key] > b?.[key]) {
