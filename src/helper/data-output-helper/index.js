@@ -17,31 +17,89 @@ import {
 import { extractNumberFromFilename } from "../data-input-helper/index.js";
 import _ from "lodash";
 
+/// Nếu đợt file gồm nhiều shipment thì phải đổi công thức
+const checkMultipleShipmentAndChange = (skuList = []) => {
+  const shipmentArr = getUniqueValueFromObjArr(skuList, "shipment");
+  if (shipmentArr.length > 1) {
+    shipmentArr.map((shipment) => {
+      const shipmentFirstIndex = _.findIndex(skuList, { shipment });
+      const shipmentLastIndex = _.findLastIndex(skuList, { shipment });
+      for (let i = shipmentFirstIndex; i <= shipmentLastIndex; i++) {
+        // cột đầu tiên trong excel nên + 2
+        const shipmentFirstRowNo = shipmentFirstIndex + 2;
+        const shipmentLastRowNo = shipmentLastIndex + 2;
+
+        let sku = skuList[i];
+        let {
+          domesticShippingCost = "",
+          internationalShippingCost = "",
+          totalAmount,
+        } = sku;
+        const totalUnitColLetter = OUTPUT_COL_ALPHABET.TOTAL_UNIT;
+        const originalFirstCell = `${totalUnitColLetter}2`;
+        const originalLastCell = `${totalUnitColLetter}${skuList.length + 1}`;
+
+        const newFirstCell = `${totalUnitColLetter}${shipmentFirstRowNo}`;
+        const newLastCell = `${totalUnitColLetter}${shipmentLastRowNo}`;
+
+        domesticShippingCost = domesticShippingCost.replace(
+          originalFirstCell,
+          newFirstCell
+        );
+        domesticShippingCost = domesticShippingCost.replace(
+          originalLastCell,
+          newLastCell
+        );
+        internationalShippingCost = internationalShippingCost.replace(
+          originalFirstCell,
+          newFirstCell
+        );
+        internationalShippingCost = internationalShippingCost.replace(
+          originalLastCell,
+          newLastCell
+        );
+
+        if (i == shipmentFirstIndex) {
+          const amountColLetter = OUTPUT_COL_ALPHABET.AMOUNT;
+          const firstAmountCell = `${amountColLetter}${shipmentFirstRowNo}`;
+          const lastAmountCell = `${amountColLetter}${shipmentLastRowNo}`;
+          totalAmount = `SUM(${firstAmountCell}:${lastAmountCell})`;
+        }
+
+        skuList[i] = {
+          ...sku,
+          domesticShippingCost,
+          internationalShippingCost,
+          totalAmount,
+        };
+      }
+    });
+  }
+
+  return skuList;
+};
+
+/// Nếu đợt file gồm nhiều shipment thì phải đổi công thức
+const getCogsFileName = (skuList = []) => {
+  const shipmentArr = getUniqueValueFromObjArr(skuList, "shipment");
+  let fileName = "";
+  if (shipmentArr.length >= 1) {
+    shipmentArr.forEach((shipment) => {
+      fileName += shipment;
+      fileName += "-";
+    });
+  }
+  fileName += "cogs.xlsx"
+
+  return fileName;
+};
+
 /**
  *
  * @param {Array} skuList
  * @returns
  */
 const refactorSkuListFunc = (skuList = []) => {
-  const shipmentArr = getUniqueValueFromObjArr(skuList, "shipment");
-  console.log(shipmentArr);
-  if (!isEmptyValue(shipmentArr)) {
-    shipmentArr.map((shipment) => {
-      const shipmentFirstIndex = _.findIndex(skuList, { shipment });
-      const shipmentLastIndex = _.findLastIndex(skuList, { shipment });
-      for (let i = shipmentFirstIndex; i <= shipmentLastIndex; i++) {
-        let sku = skuList[i];
-        let { domesticShippingCost, internationalShippingCost } = sku;
-        const colLetter = OUTPUT_COL_ALPHABET.TOTAL_UNIT;
-        const originalFirstCell = `${colLetter}2`;
-        const originalLastCell = `${colLetter}${
-          skuList.length + 1
-        }`;
-        const newFirstCell = `${colLetter}${shipmentFirstIndex}`;
-        const newLastCell = `${colLetter}${shipmentLastIndex}`;
-      }
-    });
-  }
   let refactorSkuList = skuList.map((item) => {
     const {
       SKU,
@@ -205,10 +263,12 @@ export const addShippingFileToZip = async (
  * @param {*} skuList
  * @param {JSZip} zip
  */
-export const addCogsFileToZip = async (skuList, zip, shipment) => {
+export const addCogsFileToZip = async (skuList, zip) => {
+  skuList = checkMultipleShipmentAndChange(skuList);
+  const cogsFileName = getCogsFileName(skuList);
   const refactorSkuList = refactorSkuListFunc(skuList);
   const cogsXlsxBuffer = await cogsJsonToXlsx({ json: refactorSkuList });
-  zip.file(`${shipment}-cogs.xlsx`, cogsXlsxBuffer);
+  zip.file(cogsFileName, cogsXlsxBuffer);
 };
 
 /**

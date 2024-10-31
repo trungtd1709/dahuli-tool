@@ -60,9 +60,9 @@ export class xlsxUtils {
    */
   static async clearColumnData(worksheet, columnIndex) {
     worksheet.getColumn(columnIndex).eachCell((cell) => {
-      cell.value = null;        // Clear value (data)
-      cell.style = {};          // Clear style
-      cell.numFmt = null;       // Clear number format if set
+      cell.value = null; // Clear value (data)
+      cell.style = {}; // Clear style
+      cell.numFmt = null; // Clear number format if set
     });
   }
 
@@ -128,5 +128,19 @@ export class xlsxUtils {
         cell.fill = null; // Clear the fill for each cell in the column
       });
     }
+  }
+
+  /**
+   * Makes an entire row's font bold in an Excel worksheet.
+   * @param {Worksheet} worksheet - The worksheet where the row is located.
+   * @param {number} rowNumber - The row number to make bold (1-based index).
+   */
+  static makeRowBold(worksheet, rowNumber) {
+    const row = worksheet.getRow(rowNumber); // Get the row by number
+
+    // Set each cell in the row to bold
+    row.eachCell((cell) => {
+      cell.font = { ...cell.font, bold: true }; // Keep other font settings and apply bold
+    });
   }
 }

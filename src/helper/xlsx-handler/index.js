@@ -372,11 +372,9 @@ export const cogsJsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
     });
 
     // Apply formulas
-    addFormulaToWorksheet({
+    addFormulaToWorksheetCogs({
       jsonData: json,
       worksheet,
-      firstRowNum,
-      lastRowNum,
     });
     addNumberFormatToWorksheet(worksheet);
     addStyleToCogsWorksheet(worksheet, firstRowNum);
@@ -394,14 +392,13 @@ const setCellFormula = (worksheet, cell, formula) => {
   worksheet.getCell(cell).value = !isEmptyValue(formula) ? { formula } : "";
 };
 
-const addFormulaToWorksheet = ({
+const addFormulaToWorksheetCogs = ({
   jsonData = [],
   worksheet,
-  firstRowNum,
-  lastRowNum,
 }) => {
   jsonData.forEach((item, index) => {
     const rowNumber = index + 2; // Starting from row 2, assuming row 1 has headers
+    const totalAmountFormula = item?.[OUTPUT_KEY_NAME.TOTAL_AMOUNT] ?? "";
 
     const cellAddresses = {
       ppu: `${OUTPUT_COL_ALPHABET.PPU}${rowNumber}`,
@@ -412,13 +409,14 @@ const addFormulaToWorksheet = ({
       paymentCost: `${OUTPUT_COL_ALPHABET.PAYMENT_COST}${rowNumber}`,
       cogs: `${OUTPUT_COL_ALPHABET.COGS}${rowNumber}`,
       amount: `${OUTPUT_COL_ALPHABET.AMOUNT}${rowNumber}`,
-      totalAmount: `${OUTPUT_COL_ALPHABET.TOTAL_AMOUNT}${firstRowNum}`,
+      totalAmount: `${OUTPUT_COL_ALPHABET.TOTAL_AMOUNT}${rowNumber}`,
     };
 
     const formulas = {
       cogs: `SUM(${OUTPUT_COL_ALPHABET.PPU}${rowNumber}:${OUTPUT_COL_ALPHABET.PAYMENT_COST}${rowNumber})`,
       amount: `${OUTPUT_COL_ALPHABET.COGS}${rowNumber} * ${OUTPUT_COL_ALPHABET.QUANTITY}${rowNumber}`,
-      totalAmount: `SUM(${OUTPUT_COL_ALPHABET.AMOUNT}${firstRowNum}:${OUTPUT_COL_ALPHABET.AMOUNT}${lastRowNum})`,
+      // totalAmount: `SUM(${OUTPUT_COL_ALPHABET.AMOUNT}${firstRowNum}:${OUTPUT_COL_ALPHABET.AMOUNT}${lastRowNum})`,
+      totalAmount: totalAmountFormula,
       customPackageCost: item[OUTPUT_KEY_NAME.CUSTOM_PACKAGE_COST],
       ppu: item[OUTPUT_KEY_NAME.PPU],
       packingLabelingCost: item[OUTPUT_KEY_NAME.PACKING_LABELING_COST],
@@ -432,6 +430,10 @@ const addFormulaToWorksheet = ({
     Object.entries(cellAddresses).forEach(([key, cell]) => {
       setCellFormula(worksheet, cell, formulas[key]);
     });
+
+    if(totalAmountFormula){
+      xlsxUtils.makeRowBold(worksheet, rowNumber);
+    }
   });
 };
 
@@ -464,15 +466,11 @@ const addNumberFormatToWorksheet = (worksheet) => {
 const addStyleToCogsWorksheet = (worksheet, firstRowNum) => {
   worksheet.eachRow((row, rowNumber) => {
     row.eachCell((cell, colNumber) => {
-      if (rowNumber === firstRowNum) {
-        cell.font = { bold: true };
-      }
-
       // Apply red text color to the entire column J (COGS)
       if (colNumber === 10) {
         cell.font = {
+          ...cell.font,
           color: { argb: "FF0000" },
-          bold: rowNumber == firstRowNum ? true : false,
         };
       }
 
