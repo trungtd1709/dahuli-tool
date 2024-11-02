@@ -670,7 +670,7 @@ const addNumberFormatToShipment = (worksheet) => {
   });
 };
 
-export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
+export async function modifyOrder1File(file, allElements = {}) {
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(file.buffer);
   const worksheet = workbook.getWorksheet(1);
@@ -755,7 +755,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
     lastRowIndex = rowNumber;
   });
 
-  const shipmentKeys = Object.keys(shipmentObjAddToOrder).sort() ?? [];
+  const shipmentKeys = Object.keys(allElements).sort() ?? [];
 
   // cái này liên quan đến UI cách cột thôi
   const shipmentStartColIndex = isInStockExist
@@ -774,7 +774,7 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
       const rowProductName = row
         .getCell(productNameColumnIndex)
         .value.toLowerCase();
-      const shipmentDatas = shipmentObjAddToOrder[shipmentKey] ?? [];
+      const shipmentDatas = allElements[shipmentKey] ?? [];
 
       const productObj = shipmentDatas.find((shipmentData) => {
         return shipmentData?.name?.toLowerCase() == rowProductName;
@@ -843,16 +843,16 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
   headerRow.getCell(inStockColIndex + 1).value = "";
 
   if (negativeInStockPlaceArr.length > 0) {
-    let newShipmentObjAddToOrder = {};
+    let newAllElements = {};
     const leftShipments = rmDupEleFrArr(
       negativeInStockPlaceArr.map((negativeInStockPlace) => {
         const shipment = negativeInStockPlace.shipment;
         return shipment;
       })
     );
-    removeObjKeyNames(shipmentObjAddToOrder, leftShipments);
+    removeObjKeyNames(allElements, leftShipments);
     leftShipments.map((shipment) => {
-      newShipmentObjAddToOrder[shipment] = [];
+      newAllElements[shipment] = [];
     });
 
     negativeInStockPlaceArr.forEach((negativeInStockPlace) => {
@@ -860,21 +860,21 @@ export async function modifyOrder1File(file, shipmentObjAddToOrder = {}) {
       const shipment = negativeInStockPlace.shipment;
       const leftValue = negativeInStockPlace.leftValue;
 
-      const productIndex = shipmentObjAddToOrder[shipment].findIndex(
+      const productIndex = allElements[shipment].findIndex(
         (item) => item.name == productName
       );
       if (productIndex < 0) {
         throw new BadRequestError(CANT_FIND_PRODUCT);
       }
-      shipmentObjAddToOrder[shipment][productIndex].quantity = leftValue;
-      newShipmentObjAddToOrder[shipment].push(
-        shipmentObjAddToOrder[shipment][productIndex]
+      allElements[shipment][productIndex].quantity = leftValue;
+      newAllElements[shipment].push(
+        allElements[shipment][productIndex]
       );
     });
 
     // copy obj
-    Object.keys(newShipmentObjAddToOrder).forEach((shipment) => {
-      shipmentObjAddToOrder[shipment] = newShipmentObjAddToOrder[shipment];
+    Object.keys(newAllElements).forEach((shipment) => {
+      allElements[shipment] = newAllElements[shipment];
     });
   }
 
@@ -1099,7 +1099,7 @@ function checkNegative(
  */
 export async function modifyShippingFile(
   file,
-  shipmentObjAddToOrder = {},
+  allElements = {},
   allInputShippingCost = [],
   inputTsvDataArr = []
 ) {
@@ -1174,7 +1174,7 @@ export async function modifyShippingFile(
     lastRowIndex = rowNumber;
   });
 
-  const shipmentKeys = Object.keys(shipmentObjAddToOrder).sort() ?? [];
+  const shipmentKeys = Object.keys(allElements).sort() ?? [];
 
   const shipmentStartColIndex = headerRow.cellCount + 1;
 
@@ -1203,7 +1203,7 @@ export async function modifyShippingFile(
       if (!isEmptyValue(shippingCostObj)) {
         const { isDomestic } = shippingCostObj;
 
-        const shipmentShippingObj = shipmentObjAddToOrder[shipmentKey].find(
+        const shipmentShippingObj = allElements[shipmentKey].find(
           (item) => {
             if (isDomestic) {
               return item.name.includes(OUTPUT_KEY_NAME.DOMESTIC_SHIPPING_COST);

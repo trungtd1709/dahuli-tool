@@ -407,6 +407,7 @@ export const transformShippingCostInput = (
   shippingArr = [],
   shipmentId,
   shipment,
+  originalShipment,
   totalShipmentQuantity
 ) => {
   shippingArr = shippingArr.filter((item) => {
@@ -427,6 +428,7 @@ export const transformShippingCostInput = (
       item,
       shipmentId,
       shipment,
+      originalShipment,
       totalShipmentQuantity
     );
   });
@@ -444,6 +446,7 @@ const transformShippingCostItem = (
   obj,
   shipmentId,
   shipment,
+  originalShipment,
   totalShipmentQuantity
 ) => {
   const {
@@ -482,6 +485,7 @@ const transformShippingCostItem = (
     name,
     shipmentId,
     shipment,
+    originalShipment,
     totalUsd,
     totalCny,
     weight,

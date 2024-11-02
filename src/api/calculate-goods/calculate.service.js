@@ -19,14 +19,15 @@ import {
   getTsvFilesArr,
   mergeTsvData,
   testTransformOrderList1Input,
-  transformShippingCostInput
+  transformShippingCostInput,
 } from "../../helper/data-input-helper/index.js";
 import {
   addCogsFileToZip,
   addOrder1FileToZip,
-  addShipmentFileAndGetAllElements,
+  getAllShipmentElements,
   addShippingFileToZip,
-  removeSkuKey
+  removeSkuKey,
+  addShipmentFileToZip,
 } from "../../helper/data-output-helper/index.js";
 import { INPUT_KEY_NAME } from "../../shared/constant.js";
 import { isEmptyValue, mergeArrays, now } from "../../shared/utils.js";
@@ -36,7 +37,7 @@ import { isEmptyValue, mergeArrays, now } from "../../shared/utils.js";
  * @returns {Promise<>}
  */
 export const calculateGood = async (files = []) => {
-  let mergeSkuList = [];
+  let allSkuList = [];
   let allInputShippingCost = [];
   let shipment;
   const zip = new JSZip();
@@ -49,7 +50,7 @@ export const calculateGood = async (files = []) => {
     let rawInputShippingCost = getRawInputShippingCost(files) ?? [];
     let rawJsonOrder1 = getRawOrder1Data(files) ?? [];
     let shipmentData = getShipmentData(files) ?? [];
-    let shipmentObjAddToOrder = {};
+    let allElements = {};
 
     // tổng các loại sku
     let { totalSkuType, inputTsvDataArr, totalShipmentQuantity } =
@@ -75,6 +76,7 @@ export const calculateGood = async (files = []) => {
         rawInputShippingCost,
         shipmentId,
         shipment,
+        originalShipment,
         totalShipmentQuantity
       );
 
@@ -117,7 +119,7 @@ export const calculateGood = async (files = []) => {
       skuList = calculatePpuPrice(skuList, elementsPrice);
       skuList = addPaymentCostToCogs(skuList, elementsPrice);
 
-      const allElements = await addShipmentFileAndGetAllElements(
+      const allShipmentElements = await getAllShipmentElements(
         skuList,
         inputShippingCost,
         originalShipment,
@@ -125,22 +127,29 @@ export const calculateGood = async (files = []) => {
         elementsPrice,
         zip
       );
-      shipmentObjAddToOrder[originalShipment] = allElements;
+      allElements[originalShipment] = allShipmentElements;
       skuList = removeSkuKey(skuList);
 
-      mergeSkuList = [...mergeSkuList, ...skuList];
+      allSkuList = [...allSkuList, ...skuList];
       allInputShippingCost = [...allInputShippingCost, ...inputShippingCost];
+      console.log(inputShippingCost);
     }
 
-    await addCogsFileToZip(mergeSkuList, zip, shipment);
+    await addCogsFileToZip(allSkuList, zip, shipment);
+    await addOrder1FileToZip(files, zip, allElements);
+    allElements = await addShipmentFileToZip(
+      allElements,
+      allInputShippingCost,
+      allSkuList,
+      zip
+    );
     await addShippingFileToZip(
       files,
       zip,
-      shipmentObjAddToOrder,
+      allElements,
       allInputShippingCost,
       inputTsvDataArr
     );
-    await addOrder1FileToZip(files, zip, shipmentObjAddToOrder);
 
     const zipFile = zip.generateAsync({ type: "nodebuffer" });
     return zipFile;

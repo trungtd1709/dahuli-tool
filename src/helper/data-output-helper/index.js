@@ -89,7 +89,7 @@ const getCogsFileName = (skuList = []) => {
       fileName += "-";
     });
   }
-  fileName += "cogs.xlsx"
+  fileName += "cogs.xlsx";
 
   return fileName;
 };
@@ -193,11 +193,7 @@ const removeObjKey = (skuList, keyName) => {
  * @param {Array.<Express.Multer.File>} files
  * @param {JSZip} zip
  */
-export const addOrder1FileToZip = async (
-  files = [],
-  zip,
-  shipmentObjAddToOrder
-) => {
+export const addOrder1FileToZip = async (files = [], zip, allElements) => {
   //
   let fileIndexNeedToChange = 0;
   const order1Files = files
@@ -221,7 +217,7 @@ export const addOrder1FileToZip = async (
 
     if (i == fileIndexNeedToChange) {
       const { modifiedBuffer, negativeInStockPlaceArr } =
-        await modifyOrder1File(order1File, shipmentObjAddToOrder);
+        await modifyOrder1File(order1File, allElements);
       zip.file(order1File.originalname, modifiedBuffer);
       if (negativeInStockPlaceArr.length > 0) {
         fileIndexNeedToChange += 1;
@@ -239,7 +235,7 @@ export const addOrder1FileToZip = async (
 export const addShippingFileToZip = async (
   files = [],
   zip,
-  shipmentObjAddToOrder,
+  allElements,
   allInputShippingCost,
   inputTsvDataArr
 ) => {
@@ -250,7 +246,7 @@ export const addShippingFileToZip = async (
   for (const shippingFile of shippingFiles) {
     const newShippingBuffer = await modifyShippingFile(
       shippingFile,
-      shipmentObjAddToOrder,
+      allElements,
       allInputShippingCost,
       inputTsvDataArr
     );
@@ -275,7 +271,7 @@ export const addCogsFileToZip = async (skuList, zip) => {
  * Calculates the total price to make each object.
  * @param {Array<ElementPrice>} elementsPrice - The array of element prices.
  */
-export const addShipmentFileAndGetAllElements = async (
+export const getAllShipmentElements = async (
   skuList,
   inputShippingCost,
   originalShipment,
@@ -292,6 +288,7 @@ export const addShipmentFileAndGetAllElements = async (
         customPackageOrder = "",
         totalUsdCustomPackageCost = "",
         totalCnyCustomPackageCost = "",
+        shipment = "",
       } = sku;
       let { elements = [], quantity } = sku;
 
@@ -310,7 +307,7 @@ export const addShipmentFileAndGetAllElements = async (
       elements = elements.map((element) => {
         const elementQuantity = element?.quantity ?? 0;
         const totalElementQuantity = elementQuantity * quantity;
-        return { ...element, quantity: totalElementQuantity };
+        return { ...element, shipment, quantity: totalElementQuantity };
       });
       return elements;
     })
@@ -342,41 +339,127 @@ export const addShipmentFileAndGetAllElements = async (
     return { ...element, usdPrice, cnyPrice, totalCny, totalUsd };
   });
 
-  inputShippingCost.forEach((item) => {
-    const { isDomestic, order = "" } = item;
-    const totalShipmentUsd = item?.totalUsd;
-    const totalShipmentCny = item?.totalCny;
+  // inputShippingCost.forEach((item) => {
+  //   const { isDomestic, order = "" } = item;
+  //   const totalShipmentUsd = item?.totalUsd;
+  //   const totalShipmentCny = item?.totalCny;
 
-    let shipmentSkuQuantity = 0;
-    skuList.forEach((item) => {
-      const { quantity = 0 } = item;
-      shipmentSkuQuantity += quantity;
-    });
+  //   let shipmentSkuQuantity = 0;
+  //   skuList.forEach((item) => {
+  //     const { quantity = 0 } = item;
+  //     shipmentSkuQuantity += quantity;
+  //   });
 
-    const totalCny = `${totalShipmentCny} / ${totalShipmentQuantity} * ${shipmentSkuQuantity}`;
-    const totalUsd = `${totalShipmentUsd} / ${totalShipmentQuantity} * ${shipmentSkuQuantity}`;
+  //   const totalCny = `${totalShipmentCny} / ${totalShipmentQuantity} * ${shipmentSkuQuantity}`;
+  //   const totalUsd = `${totalShipmentUsd} / ${totalShipmentQuantity} * ${shipmentSkuQuantity}`;
 
-    const shippingName = `${
-      isDomestic
-        ? OUTPUT_KEY_NAME.DOMESTIC_SHIPPING_COST
-        : OUTPUT_KEY_NAME.INTERNATIONAL_SHIPPING_COST
-    } ${originalShipment}`;
+  //   const shippingName = `${
+  //     isDomestic
+  //       ? OUTPUT_KEY_NAME.DOMESTIC_SHIPPING_COST
+  //       : OUTPUT_KEY_NAME.INTERNATIONAL_SHIPPING_COST
+  //   } ${originalShipment}`;
 
-    let shippingElement = {
-      name: shippingName,
-      order,
-      quantity: shipmentSkuQuantity,
-    };
-    shippingElement.totalCny = totalShipmentCny ? totalCny : "";
-    shippingElement.totalUsd = totalShipmentUsd ? totalUsd : "";
-    allElements.push(shippingElement);
-  });
+  //   let shippingElement = {
+  //     name: shippingName,
+  //     order,
+  //     quantity: shipmentSkuQuantity,
+  //   };
+  //   shippingElement.totalCny = totalShipmentCny ? totalCny : "";
+  //   shippingElement.totalUsd = totalShipmentUsd ? totalUsd : "";
+  //   allElements.push(shippingElement);
+  // });
 
   skuList = removeSkuKey(skuList);
-  const refactorAllElements = refactorElements(allElements);
-  const shipmentResultFileBuffer = await createShipmentExcelBuffer(
-    refactorAllElements
-  );
-  zip.file(`Shipment - ${originalShipment}.xlsx`, shipmentResultFileBuffer);
+  // const refactorAllElements = refactorElements(allElements);
+  // const shipmentResultFileBuffer = await createShipmentExcelBuffer(
+  //   refactorAllElements
+  // );
+  // zip.file(`Shipment - ${originalShipment}.xlsx`, shipmentResultFileBuffer);
   return allElements;
 };
+
+/**
+ *
+ * @param {JSZip} zip
+ * @returns
+ */
+export const addShipmentFileToZip = async (
+  allElements,
+  allInputShippingCost = [],
+  allSkuList,
+  zip
+) => {
+  let allElementsByShipment = {};
+  Object.keys(allElements).forEach((originalShipment) => {
+    const shipment = originalShipment.split(".")[0];
+    if (isEmptyValue(allElementsByShipment[shipment])) {
+      allElementsByShipment[shipment] = {};
+    }
+    allElementsByShipment[shipment][originalShipment] =
+      allElements[originalShipment];
+  });
+
+  for (const shipment of Object.keys(allElementsByShipment)) {
+    const shipmentElements = allElementsByShipment[shipment];
+
+    // shipment ở đây là S304 chứ k phải S304.1
+    const allShipmentSku = allSkuList.filter(
+      (sku) => sku?.shipment == shipment
+    );
+    const totalSkuShipmentQuantity = allShipmentSku.reduce((acc, sku) => {
+      const { quantity = 0 } = sku;
+      return acc + quantity;
+    }, 0);
+
+    for (const originalShipment of Object.keys(shipmentElements)) {
+      const shipmentShippingCosts = allInputShippingCost.filter(
+        (shippingObj) => {
+          const shippingOriginalShipment = shippingObj?.originalShipment;
+          return shippingOriginalShipment == originalShipment;
+        }
+      );
+
+      shipmentShippingCosts.forEach((item) => {
+        const { isDomestic, order = "" } = item;
+        const totalShipmentUsd = item?.totalUsd;
+        const totalShipmentCny = item?.totalCny;
+
+        let shipmentSkuQuantity = 0;
+        allSkuList
+          .filter((sku) => sku?.originalShipment == originalShipment)
+          .forEach((item) => {
+            const { quantity = 0 } = item;
+            shipmentSkuQuantity += quantity;
+          });
+
+        const totalCny = `${totalShipmentCny} / ${totalSkuShipmentQuantity} * ${shipmentSkuQuantity}`;
+        const totalUsd = `${totalShipmentUsd} / ${totalSkuShipmentQuantity} * ${shipmentSkuQuantity}`;
+
+        const shippingName = `${
+          isDomestic
+            ? OUTPUT_KEY_NAME.DOMESTIC_SHIPPING_COST
+            : OUTPUT_KEY_NAME.INTERNATIONAL_SHIPPING_COST
+        } ${originalShipment}`;
+
+        let shippingElement = {
+          name: shippingName,
+          order,
+          quantity: shipmentSkuQuantity,
+        };
+        shippingElement.totalCny = totalShipmentCny ? totalCny : "";
+        shippingElement.totalUsd = totalShipmentUsd ? totalUsd : "";
+        allElements[originalShipment].push(shippingElement);
+      });
+      const refactorAllElements = refactorElements(
+        allElements[originalShipment]
+      );
+      const shipmentResultFileBuffer = await createShipmentExcelBuffer(
+        refactorAllElements
+      );
+      zip.file(`Shipment - ${originalShipment}.xlsx`, shipmentResultFileBuffer);
+    }
+  }
+  return allElements;
+};
+
+const getShipmentShippingCost = () => {};

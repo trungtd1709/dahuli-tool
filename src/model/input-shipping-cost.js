@@ -3,6 +3,7 @@
     name,
     order,
     shipment,
+    originalShipment,
     shipmentId,
     totalCny,
     totalUsd,
@@ -14,6 +15,7 @@
     this.name = name;
     this.order = order;
     this.shipment = shipment;
+    this.originalShipment = originalShipment;
     this.shipmentId = shipmentId;
     this.totalCny = totalCny;
     this.totalUsd = totalUsd;
@@ -28,6 +30,7 @@
     name,
     order,
     shipment,
+    originalShipment,
     shipmentId,
     totalCny,
     totalUsd,
@@ -40,6 +43,7 @@
       name,
       order,
       shipment,
+      originalShipment,
       shipmentId,
       totalCny,
       totalUsd,
