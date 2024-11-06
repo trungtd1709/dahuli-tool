@@ -190,8 +190,14 @@ export const rmDupEleFrArr = (arr = []) => {
 };
 
 export const getUniqueValueFromObjArr = (arr = [], keyName) => {
-  return [...new Set(arr.map(item => item[keyName]))];
-}
+  return [
+    ...new Set(
+      arr
+        .map(item => item[keyName])
+        .filter(value => !isEmptyValue(value)) // Filter out empty values
+    ),
+  ];
+};
 
 export const sortArrayBaseOnKey = (arr = [], key) => {
   return arr.sort((a, b) => {

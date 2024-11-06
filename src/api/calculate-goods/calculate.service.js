@@ -137,12 +137,14 @@ export const calculateGood = async (files = []) => {
 
     await addCogsFileToZip(allSkuList, zip, shipment);
     await addOrder1FileToZip(files, zip, allElements);
+
     allElements = await addShipmentFileToZip(
       allElements,
       allInputShippingCost,
       allSkuList,
       zip
     );
+    
     await addShippingFileToZip(
       files,
       zip,
