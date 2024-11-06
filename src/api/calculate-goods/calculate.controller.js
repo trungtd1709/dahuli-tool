@@ -8,11 +8,11 @@ export async function calculateSku(req, res) {
   const { files } = req;
   const zipFile = await calculateService.calculateGood(files);
 
-  // Define the path to the Downloads folder
-  const downloadsPath = path.join(os.homedir(), "Downloads", "result.zip");
+  // // Define the path to the Downloads folder
+  // const downloadsPath = path.join(os.homedir(), "Downloads", "result.zip");
 
-  // Save the zip file to the Downloads folder
-  await fs.writeFile(downloadsPath, zipFile);
+  // // Save the zip file to the Downloads folder
+  // await fs.writeFile(downloadsPath, zipFile);
 
   res.setHeader("Content-Type", "application/zip");
   res.setHeader("Content-Disposition", 'attachment; filename="result.zip"');

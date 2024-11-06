@@ -62,11 +62,12 @@ export const isEmptyValue = (value) => {
     value === undefined ||
     value === "" ||
     value === false ||
+    value === "NaN" || // Check for string "NaN"
     (Array.isArray(value) && value.length === 0) || // Check for empty array
     (typeof value === "object" &&
       value !== null &&
       Object.keys(value).length === 0) ||
-    Number.isNaN(value) // Check for NaN
+    Number.isNaN(value) // Check for numeric NaN
   );
 };
 
