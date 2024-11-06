@@ -10,3 +10,4 @@ export const NOT_ENOUGHT_CUSTOM_PACKAGE_QUANTITY = "Không đủ quantity custom
 export const CANT_FIND_PRODUCT = "Không thấy product";
 export const MISSING_ORDER_1_FILE_ORDER = "Tên file order 1 thiếu số thứ tự";
 export const MISSING_DATA_COGS_FILE = "Không có data trong file cogs";
+export const CANT_FIND_USD_PRICE_FOR_ELEMENT = "Không tìm thấy usd price cho element";

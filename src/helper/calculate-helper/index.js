@@ -9,6 +9,7 @@ import {
 import { ElementPrice } from "../../model/index.js";
 import { BadRequestError } from "../../error/bad-request-err.js";
 import {
+  CANT_FIND_USD_PRICE_FOR_ELEMENT,
   MISSING_ELEMENT_DATA,
   NOT_ENOUGHT_CUSTOM_PACKAGE_QUANTITY,
 } from "../../shared/err-const.js";
@@ -50,9 +51,13 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       if (remainingQuantity <= 0) {
         /// ko bỏ comment này
         // newPpuPrice = `${usdPrice} * ${quantity} / quantityCell`;
-        newPpuPrice = usdPrice;
-        eleShipmentTotalCny = `${cnyPrice} * totalElementQuantity`;
-        eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * totalElementQuantity`;
+        newPpuPrice = elementPrice.getUsdFormula();
+        if (!isEmptyValue(elementPrice.getCnyFormula())) {
+          eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * totalElementQuantity`;
+        }
+        if (!isEmptyValue(elementPrice.getUsdFormula())) {
+          eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * totalElementQuantity`;
+        }
       }
       if (remainingQuantity > 0) {
         const newElementPrice = findEleWithLowestFileOrder(
@@ -70,10 +75,21 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         order = `${order} + ${newElementPrice.order}`;
         newElementPrice.setLeftQuantity(remainingQuantity);
         const quantityGoToNewOrder = quantity - remainingQuantity;
+        if (isEmptyValue(newElementPrice.getUsdFormula())) {
+          console.log(newElementPrice.getUsdFormula());
+          throw new BadRequestError(
+            `${CANT_FIND_USD_PRICE_FOR_ELEMENT}: ${newElementPrice.name} in file : ${newElementPrice.fileName}`
+          );
+          console.log("Lỗi ở đây");
+        }
         newPpuPrice = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} / quantityCell + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / quantityCell`;
 
-        eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
-        eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getCnyFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
+        if (!isEmptyValue(elementPrice.getUsdFormula())) {
+          eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
+        }
+        if (!isEmptyValue(elementPrice.getCnyFormula())) {
+          eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getCnyFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
+        }
       }
       element.usdPrice = usdPrice;
       element.order = order;
@@ -206,16 +222,29 @@ export const addCustomizeCost = (skuList, elementsPrice) => {
           )
         );
         if (secondCustomizeObj) {
+          // số lượng element tính ở file order đầu
+          const firstFileQuantity = quantity - remainingQuantity;
+
           secondCustomizeObj.setLeftQuantity(remainingQuantity);
-          customPackageCostFormula = `${customizeObj.getUsdFormula()} * ${
-            quantity - remainingQuantity
-          } / quantityCell + ${secondCustomizeObj.getUsdFormula()} * ${remainingQuantity} / quantityCell`;
-          totalUsdCustomPackageCost = `${customizeObj.getUsdFormula()} * ${
-            quantity - remainingQuantity
-          } + ${secondCustomizeObj.getUsdFormula()} * ${remainingQuantity}`;
-          totalCnyCustomPackageCost = `${customizeObj.getCnyFormula()} * ${
-            quantity - remainingQuantity
-          } + ${secondCustomizeObj.getCnyFormula()} * ${remainingQuantity}`;
+          const secondCustomizeUsdFormula = secondCustomizeObj.getUsdFormula();
+
+          if (
+            !isEmptyValue(customizeObj.getUsdFormula()) &&
+            !isEmptyValue(secondCustomizeUsdFormula)
+          ) {
+            // "270.6 / 660 * 244 / quantityCell + NaN * 76 / quantityCell"
+            customPackageCostFormula = `${customizeObj.getUsdFormula()} * ${firstFileQuantity} / quantityCell + ${secondCustomizeUsdFormula} * ${remainingQuantity} / quantityCell`;
+
+            totalUsdCustomPackageCost = `${customizeObj.getUsdFormula()} * ${firstFileQuantity} + ${secondCustomizeUsdFormula} * ${remainingQuantity}`;
+          }
+
+          if (
+            !isEmptyValue(customizeObj.getCnyFormula()) &&
+            !isEmptyValue(secondCustomizeObj.getCnyFormula())
+          ) {
+            totalCnyCustomPackageCost = `${customizeObj.getCnyFormula()} * ${firstFileQuantity} + ${secondCustomizeObj.getCnyFormula()} * ${remainingQuantity}`;
+          }
+
           item.customPackageOrder = `${item.customPackageOrder} + ${secondCustomizeObj.order}`;
         } else {
           throw new BadRequestError(NOT_ENOUGHT_CUSTOM_PACKAGE_QUANTITY);
@@ -224,8 +253,12 @@ export const addCustomizeCost = (skuList, elementsPrice) => {
       // th này múc luôn
       else {
         customPackageCostFormula = customizeObj.getUsdFormula();
-        totalUsdCustomPackageCost = `${customPackageCostFormula} * ${quantity}`;
-        totalCnyCustomPackageCost = `${customizeObj.getCnyFormula()} * ${quantity}`;
+        if (!isEmptyValue(customPackageCostFormula)) {
+          totalUsdCustomPackageCost = `${customPackageCostFormula} * ${quantity}`;
+        }
+        if (!isEmptyValue(customizeObj.getCnyFormula())) {
+          totalCnyCustomPackageCost = `${customizeObj.getCnyFormula()} * ${quantity}`;
+        }
       }
     }
     return {
@@ -331,7 +364,6 @@ export const addCogsAndAmount = (skuList = []) => {
       itemPaymentCost = "0",
       quantity,
     } = item;
-    const formula = `${ppuPrice} + ${customPackageCost} + ${packingLabelingCost} + ${domesticShippingCost} + ${internationalShippingCost} + ${itemPaymentCost}`;
     // const cogs = eval(formula);
     // const amount = cogs * quantity;
     return { ...item, cogs: "", amount: "" };

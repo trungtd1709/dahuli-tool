@@ -56,6 +56,9 @@ export class ElementPrice {
     if(isEmptyValue(cnyPrice)){
       cnyPrice = null;
     }
+    if(isEmptyValue(usdPrice)){
+      usdPrice = null;
+    }
     if(isEmptyValue(exchangeRate)){
       exchangeRate = null;
     }

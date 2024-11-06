@@ -339,42 +339,7 @@ export const getAllShipmentElements = async (
     return { ...element, usdPrice, cnyPrice, totalCny, totalUsd };
   });
 
-  // inputShippingCost.forEach((item) => {
-  //   const { isDomestic, order = "" } = item;
-  //   const totalShipmentUsd = item?.totalUsd;
-  //   const totalShipmentCny = item?.totalCny;
-
-  //   let shipmentSkuQuantity = 0;
-  //   skuList.forEach((item) => {
-  //     const { quantity = 0 } = item;
-  //     shipmentSkuQuantity += quantity;
-  //   });
-
-  //   const totalCny = `${totalShipmentCny} / ${totalShipmentQuantity} * ${shipmentSkuQuantity}`;
-  //   const totalUsd = `${totalShipmentUsd} / ${totalShipmentQuantity} * ${shipmentSkuQuantity}`;
-
-  //   const shippingName = `${
-  //     isDomestic
-  //       ? OUTPUT_KEY_NAME.DOMESTIC_SHIPPING_COST
-  //       : OUTPUT_KEY_NAME.INTERNATIONAL_SHIPPING_COST
-  //   } ${originalShipment}`;
-
-  //   let shippingElement = {
-  //     name: shippingName,
-  //     order,
-  //     quantity: shipmentSkuQuantity,
-  //   };
-  //   shippingElement.totalCny = totalShipmentCny ? totalCny : "";
-  //   shippingElement.totalUsd = totalShipmentUsd ? totalUsd : "";
-  //   allElements.push(shippingElement);
-  // });
-
   skuList = removeSkuKey(skuList);
-  // const refactorAllElements = refactorElements(allElements);
-  // const shipmentResultFileBuffer = await createShipmentExcelBuffer(
-  //   refactorAllElements
-  // );
-  // zip.file(`Shipment - ${originalShipment}.xlsx`, shipmentResultFileBuffer);
   return allElements;
 };
 
@@ -390,6 +355,8 @@ export const addShipmentFileToZip = async (
   zip
 ) => {
   let allElementsByShipment = {};
+
+  // chia theo các element theo shipment to (S304 chẳng hạn)
   Object.keys(allElements).forEach((originalShipment) => {
     const shipment = originalShipment.split(".")[0];
     if (isEmptyValue(allElementsByShipment[shipment])) {
