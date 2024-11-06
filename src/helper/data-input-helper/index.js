@@ -100,7 +100,7 @@ const transformToElementPrice = (obj) => {
   const usdPrice = evalCalculation(`${totalUsd} / ${quantity}`);
 
   const elementPrice = ElementPrice.fromJson({
-    name,
+    name: name.trim(),
     exchangeRate,
     fileName,
     cnyPrice,
@@ -184,7 +184,7 @@ export const testTransformOrderList1Input = (rawJson = [], shipmentId) => {
       );
 
       const packingLabelingCostObj = ElementPrice.fromJson({
-        name: item?.productName,
+        name: item?.productName?.trim(),
         fileName,
         cnyPrice: packingLabelingCostYuan,
         quantity,

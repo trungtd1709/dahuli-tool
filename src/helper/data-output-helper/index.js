@@ -29,7 +29,7 @@ const checkMultipleShipmentAndChange = (skuList = []) => {
         const shipmentFirstRowNo = shipmentFirstIndex + 2;
         const shipmentLastRowNo = shipmentLastIndex + 2;
 
-        let sku = skuList[i];
+        let sku = skuList[i] ?? {};
         let {
           domesticShippingCost = "",
           internationalShippingCost = "",
@@ -42,19 +42,19 @@ const checkMultipleShipmentAndChange = (skuList = []) => {
         const newFirstCell = `${totalUnitColLetter}${shipmentFirstRowNo}`;
         const newLastCell = `${totalUnitColLetter}${shipmentLastRowNo}`;
 
-        domesticShippingCost = domesticShippingCost.replace(
+        domesticShippingCost = domesticShippingCost.toString().replace(
           originalFirstCell,
           newFirstCell
         );
-        domesticShippingCost = domesticShippingCost.replace(
+        domesticShippingCost = domesticShippingCost.toString().replace(
           originalLastCell,
           newLastCell
         );
-        internationalShippingCost = internationalShippingCost.replace(
+        internationalShippingCost = internationalShippingCost.toString().replace(
           originalFirstCell,
           newFirstCell
         );
-        internationalShippingCost = internationalShippingCost.replace(
+        internationalShippingCost = internationalShippingCost.toString().replace(
           originalLastCell,
           newLastCell
         );

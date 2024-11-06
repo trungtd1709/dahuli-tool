@@ -32,7 +32,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       );
 
       if (!elementPrice) {
-        throw new BadRequestError(MISSING_ELEMENT_DATA);
+        throw new BadRequestError(`${MISSING_ELEMENT_DATA}: ${element.name}`);
       }
 
       const exchangeRate = elementPrice?.exchangeRate;
