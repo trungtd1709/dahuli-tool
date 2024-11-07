@@ -42,22 +42,18 @@ const checkMultipleShipmentAndChange = (skuList = []) => {
         const newFirstCell = `${totalUnitColLetter}${shipmentFirstRowNo}`;
         const newLastCell = `${totalUnitColLetter}${shipmentLastRowNo}`;
 
-        domesticShippingCost = domesticShippingCost.toString().replace(
-          originalFirstCell,
-          newFirstCell
-        );
-        domesticShippingCost = domesticShippingCost.toString().replace(
-          originalLastCell,
-          newLastCell
-        );
-        internationalShippingCost = internationalShippingCost.toString().replace(
-          originalFirstCell,
-          newFirstCell
-        );
-        internationalShippingCost = internationalShippingCost.toString().replace(
-          originalLastCell,
-          newLastCell
-        );
+        domesticShippingCost = domesticShippingCost
+          .toString()
+          .replace(originalFirstCell, newFirstCell);
+        domesticShippingCost = domesticShippingCost
+          .toString()
+          .replace(originalLastCell, newLastCell);
+        internationalShippingCost = internationalShippingCost
+          .toString()
+          .replace(originalFirstCell, newFirstCell);
+        internationalShippingCost = internationalShippingCost
+          .toString()
+          .replace(originalLastCell, newLastCell);
 
         if (i == shipmentFirstIndex) {
           const amountColLetter = OUTPUT_COL_ALPHABET.AMOUNT;
@@ -74,6 +70,16 @@ const checkMultipleShipmentAndChange = (skuList = []) => {
         };
       }
     });
+  }
+  if (shipmentArr.length == 1) {
+    const amountColLetter = OUTPUT_COL_ALPHABET.AMOUNT;
+    const firstAmountCell = `${amountColLetter}2`;
+    const lastAmountCell = `${amountColLetter}${skuList.length + 1}`;
+    const totalAmount = `SUM(${firstAmountCell}:${lastAmountCell})`;
+    skuList[0] = {
+      ...skuList[0],
+      totalAmount,
+    };
   }
 
   return skuList;
