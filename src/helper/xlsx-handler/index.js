@@ -850,7 +850,7 @@ export async function modifyOrder1File(file, allElements = {}) {
         return shipment;
       })
     );
-    removeObjKeyNames(allElements, leftShipments);
+    // removeObjKeyNames(allElements, leftShipments);
     leftShipments.map((shipment) => {
       newAllElements[shipment] = [];
     });
