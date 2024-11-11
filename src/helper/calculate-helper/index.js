@@ -342,30 +342,18 @@ export const addShippingAndPaymentCost = (
       ...item,
       domesticShippingCost: itemDomesticShippingCostFormula,
       internationalShippingCost: itemInternationalShippingCostFormula,
-      // itemPaymentCost,
       itemPaymentCost: itemPaymentCostFormula,
     };
   });
 };
 
 /**
- * Calculates the total price to make each object.
+ * cái này thêm key name thôi
  * @param {Array} skuList - The array of objects.
  * @returns {Array} The array of objects with their total price.
  */
 export const addCogsAndAmount = (skuList = []) => {
   return skuList.map((item) => {
-    const {
-      ppuPrice = "0",
-      customPackageCost = "0",
-      packingLabelingCost = "0",
-      domesticShippingCost = "0",
-      internationalShippingCost = "0",
-      itemPaymentCost = "0",
-      quantity,
-    } = item;
-    // const cogs = eval(formula);
-    // const amount = cogs * quantity;
     return { ...item, cogs: "", amount: "" };
   });
 };

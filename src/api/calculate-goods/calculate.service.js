@@ -18,7 +18,7 @@ import {
   getTotalSkuList,
   getTsvFilesArr,
   mergeTsvData,
-  testTransformOrderList1Input,
+  transformOrder1List,
   transformShippingCostInput,
 } from "../../helper/data-input-helper/index.js";
 import {
@@ -80,7 +80,7 @@ export const calculateGood = async (files = []) => {
         totalShipmentQuantity
       );
 
-      const totalOrder1Data = testTransformOrderList1Input(
+      const totalOrder1Data = transformOrder1List(
         rawJsonOrder1,
         shipmentId
       );
@@ -121,11 +121,7 @@ export const calculateGood = async (files = []) => {
 
       const allShipmentElements = await getAllShipmentElements(
         skuList,
-        inputShippingCost,
-        originalShipment,
-        totalShipmentQuantity,
         elementsPrice,
-        zip
       );
       allElements[originalShipment] = allShipmentElements;
       skuList = removeSkuKey(skuList);

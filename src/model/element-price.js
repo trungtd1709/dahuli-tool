@@ -1,5 +1,6 @@
 import { extractNumberFromFilename } from "../helper/data-input-helper/index.js";
 import { isEmptyValue } from "../shared/utils.js";
+import { XlsxUtils } from "../shared/xlsxUtils.js";
 
 export class ElementPrice {
   constructor({
@@ -16,6 +17,7 @@ export class ElementPrice {
     domesticShippingCost,
     fileOrder,
     paymentCostDivisor,
+    isPaymentFee,
   }) {
     this.name = name;
     this.exchangeRate = exchangeRate;
@@ -29,6 +31,7 @@ export class ElementPrice {
     this.domesticShippingCost = domesticShippingCost;
     this.fileOrder = fileOrder;
     this.paymentCostDivisor = paymentCostDivisor;
+    this.isPaymentFee = isPaymentFee
   }
 
   // Method in the class
@@ -63,6 +66,8 @@ export class ElementPrice {
       exchangeRate = null;
     }
 
+    let isPaymentFee = XlsxUtils.checkIsPaymentFee(name);
+
     return new ElementPrice({
       name,
       exchangeRate,
@@ -76,6 +81,7 @@ export class ElementPrice {
       domesticShippingCost,
       fileOrder,
       paymentCostDivisor,
+      isPaymentFee
     });
   }
 

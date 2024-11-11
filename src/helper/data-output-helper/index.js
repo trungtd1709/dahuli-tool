@@ -5,6 +5,7 @@ import {
   KEY_PREFERENCES,
   OUTPUT_COL_ALPHABET,
   OUTPUT_KEY_NAME,
+  SHIPMENT_OUTPUT_COL_ALPHABET,
   SHIPMENT_OUTPUT_KEY_NAME,
 } from "../../shared/constant.js";
 import { getUniqueValueFromObjArr, isEmptyValue } from "../../shared/utils.js";
@@ -277,15 +278,8 @@ export const addCogsFileToZip = async (skuList, zip) => {
  * Calculates the total price to make each object.
  * @param {Array<ElementPrice>} elementsPrice - The array of element prices.
  */
-export const getAllShipmentElements = async (
-  skuList,
-  inputShippingCost,
-  originalShipment,
-  totalShipmentQuantity,
-  elementsPrice = [],
-  zip
-) => {
-  let allElements = skuList
+export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
+  let allShipmentElements = skuList
     .map((sku) => {
       const {
         customizePackage = "",
@@ -320,8 +314,8 @@ export const getAllShipmentElements = async (
     .flat();
 
   // add up quantity các thành phần
-  allElements = Object.values(
-    allElements.reduce((accumulator, current) => {
+  allShipmentElements = Object.values(
+    allShipmentElements.reduce((accumulator, current) => {
       if (accumulator[current.name]) {
         accumulator[current.name].quantity += current.quantity;
       } else {
@@ -331,7 +325,7 @@ export const getAllShipmentElements = async (
     }, {})
   );
 
-  allElements = allElements.map((element) => {
+  allShipmentElements = allShipmentElements.map((element) => {
     let { name, quantity, usdPrice, cnyPrice, totalCny, totalUsd } = element;
     const elementPriceObj = elementsPrice.find(
       (item) => item?.name?.toLowerCase() == name?.toLowerCase()
@@ -345,8 +339,49 @@ export const getAllShipmentElements = async (
     return { ...element, usdPrice, cnyPrice, totalCny, totalUsd };
   });
 
+  const paymentFeeObj = elementsPrice.find((item) => item.isPaymentFee);
+  if (paymentFeeObj && paymentFeeObj?.paymentCostDivisor) {
+    const { paymentCostDivisor } = paymentFeeObj;
+
+    // tổng usd price của các elements
+    const totalElementUsdPrice = allShipmentElements.reduce(
+      (acc, element, index) => {
+        const rowIndex = index + 2;
+
+        // address của usd price các element khác, tính payment cost dựa trên đó
+        const usdPriceAddress = `${SHIPMENT_OUTPUT_COL_ALPHABET.USD_PRICE}${rowIndex}`;
+        if (!acc) {
+          acc = usdPriceAddress;
+        } else {
+          acc = `${acc} + ${usdPriceAddress}`;
+        }
+        return acc;
+      },
+      ""
+    );
+
+    // Tổng quantity của các element trong file shipment này
+    const totalElementQuantity = allShipmentElements.reduce((acc, element) => {
+      const { quantity = 0 } = element;
+      return acc + quantity;
+    }, 0);
+    const usdPricePaymentFee = `${totalElementUsdPrice} / ${paymentCostDivisor}`;
+    const totalUsdPaymentFee = `${usdPricePaymentFee} * ${totalElementQuantity}`
+
+    const paymentFeeElement = {
+      name: paymentFeeObj?.name,
+      order: paymentFeeObj?.order,
+      cnyPrice: paymentFeeObj?.cnyPrice,
+      totalCny: paymentFeeObj?.totalCny,
+      usdPrice: usdPricePaymentFee,
+      totalUsd: totalUsdPaymentFee,
+      quantity: totalElementQuantity,
+    };
+    allShipmentElements = [...allShipmentElements, paymentFeeElement];
+  }
+
   skuList = removeSkuKey(skuList);
-  return allElements;
+  return allShipmentElements;
 };
 
 /**
@@ -405,8 +440,15 @@ export const addShipmentFileToZip = async (
             shipmentSkuQuantity += quantity;
           });
 
-        const totalCny = `${totalShipmentCny} / ${totalSkuShipmentQuantity} * ${shipmentSkuQuantity}`;
-        const totalUsd = `${totalShipmentUsd} / ${totalSkuShipmentQuantity} * ${shipmentSkuQuantity}`;
+        let totalCny = "";
+        let totalUsd = "";
+        if (totalSkuShipmentQuantity == shipmentSkuQuantity) {
+          totalCny = totalShipmentCny;
+          totalUsd = totalShipmentUsd;
+        } else {
+          totalCny = `${totalShipmentCny} / ${totalSkuShipmentQuantity} * ${shipmentSkuQuantity}`;
+          totalUsd = `${totalShipmentUsd} / ${totalSkuShipmentQuantity} * ${shipmentSkuQuantity}`;
+        }
 
         const shippingName = `${
           isDomestic
@@ -434,5 +476,3 @@ export const addShipmentFileToZip = async (
   }
   return allElements;
 };
-
-const getShipmentShippingCost = () => {};

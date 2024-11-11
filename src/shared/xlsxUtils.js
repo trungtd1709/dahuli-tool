@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
+import { KEY_PREFERENCES } from "./constant.js";
 
-export class xlsxUtils {
+export class XlsxUtils {
   /**
    * @param {ExcelJS.Worksheet} worksheet
    */
@@ -143,4 +144,11 @@ export class xlsxUtils {
       cell.font = { ...cell.font, bold: true }; // Keep other font settings and apply bold
     });
   }
+
+  static checkIsPaymentFee = (productName = "") => {
+    return (
+      productName?.toLowerCase()?.includes(KEY_PREFERENCES.PAYMENT_COST) ||
+      productName?.toLowerCase()?.includes(KEY_PREFERENCES.PAYMENT_FEE)
+    );
+  };
 }

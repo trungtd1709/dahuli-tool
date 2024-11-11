@@ -158,7 +158,7 @@ export const transformPrinttingFeeInput = (rawJson = []) => {
   return printtingFeeInput.filter((item) => item.price);
 };
 
-export const testTransformOrderList1Input = (rawJson = [], shipmentId) => {
+export const transformOrder1List = (rawJson = [], shipmentId) => {
   rawJson = rawJson.filter(
     (item) => item?.productName?.toLowerCase() != CHECK_KEYWORD.TOTAL
   );
