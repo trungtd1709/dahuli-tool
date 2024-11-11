@@ -575,7 +575,7 @@ export const getRawOrder1Data = (files = []) => {
     // thứ tự file
     const fileOrder = extractNumberFromFilename(originalname);
     if(!fileOrder && order1Files.length > 1){
-      throw new BadRequestError(MISSING_ORDER_1_FILE_ORDER);
+      throw new BadRequestError(`${MISSING_ORDER_1_FILE_ORDER}: ${originalname}`);
     }
 
     const rawOrder1Data = xlsxToJSON({
