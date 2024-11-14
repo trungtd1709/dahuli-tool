@@ -19,6 +19,7 @@ import {
   MISSING_DATA_COGS_FILE,
 } from "../../shared/err-const.js";
 import {
+  compareStrings,
   containsAlphabet,
   isEmptyValue,
   now,
@@ -1212,7 +1213,7 @@ export async function modifyShippingFile(
       const rowProductName = row.getCell(productNameColumnIndex).value;
 
       const shippingCostObj = allInputShippingCost.find((item) => {
-        return item.name == rowProductName;
+        return compareStrings(item.name, rowProductName);
       });
 
       const tsvData = inputTsvDataArr.find(
