@@ -27,7 +27,8 @@ export const KEY_PREFERENCES = {
   PAYMENT_COST: "payment cost",
   PAYMENT_FEE: "payment fee",
   QTY: "Qty",
-  SHIPPING: "shipping"
+  SHIPPING: "shipping",
+  COST: "Cost",
 };
 
 export const OUTPUT_KEY_NAME = {
@@ -124,3 +125,7 @@ export const SHIPMENT_OUTPUT_COL_ALPHABET = {
   ORDER: "I",
   NOTE: "J",
 };
+
+export const COLUMN_WIDTH = {
+  COST: 15
+}

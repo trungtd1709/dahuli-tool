@@ -5,6 +5,7 @@ import { NegativeInStockPlace } from "../../model/index.js";
 import {
   CASH_SYMBOL,
   CHECK_KEYWORD,
+  COLUMN_WIDTH,
   FILE_TYPE,
   INPUT_KEY_NAME,
   KEY_PREFERENCES,
@@ -463,7 +464,7 @@ const addStyleToCogsWorksheet = (worksheet, firstRowNum) => {
   worksheet.eachRow((row, rowNumber) => {
     row.eachCell((cell, colNumber) => {
       // Apply red text color to the entire column J (COGS)
-      if (colNumber === 10) {
+      if (colNumber === 11) {
         cell.font = {
           ...cell.font,
           color: { argb: "FF0000" },
@@ -830,6 +831,7 @@ export async function modifyOrder1File(file, allElements = {}) {
 
     const shipmentSumQuantityFormula = `SUM(${shipmentStartColLetter}${rowNumber}:${shipmentLastColLetter}${rowNumber})`;
     let formula = `${totalShipmentQuantityLetter}${rowNumber} - ${shipmentSumQuantityFormula}`;
+
     const inStockCell = row.getCell(inStockColIndex);
 
     if (oldInStockIndex) {
@@ -861,7 +863,12 @@ export async function modifyOrder1File(file, allElements = {}) {
   }
 
   // Add header name for in stock column
-  headerRow.getCell(inStockColIndex).value = SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK;
+  const columnHeaderName = SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK
+  headerRow.getCell(inStockColIndex).value = columnHeaderName;
+
+  // add width for column
+  worksheet.getColumn(inStockColIndex).width = XlsxUtils.getHeaderWidth(columnHeaderName);
+  
   headerRow.getCell(inStockColIndex + 1).value = "";
 
   if (negativeInStockPlaceArr.length > 0) {
@@ -1135,6 +1142,9 @@ export async function modifyShippingFile(
   let lastRowIndex;
   let oldCostInStockIndex;
 
+  // index của cột đầu tiên có thông tin cost
+  let firstCostColumnIndex = null;
+
   const firstRowIndex = "2";
 
   const headerRow = worksheet.getRow(1);
@@ -1151,6 +1161,15 @@ export async function modifyShippingFile(
         INPUT_KEY_NAME.PRODUCT_NAME.toLowerCase()
     ) {
       productNameColumnIndex = colNumber;
+    }
+
+    // tìm cột đầu tiên chứa chữ cost
+    if (
+      colKeyName &&
+      colKeyName.includes(KEY_PREFERENCES.COST) &&
+      !firstCostColumnIndex
+    ) {
+      firstCostColumnIndex = colNumber;
     }
 
     if (
@@ -1202,10 +1221,14 @@ export async function modifyShippingFile(
   shipmentKeys.forEach((shipmentKey, index) => {
     const newColIndex = shipmentStartColIndex + index;
     const newColLetter = XlsxUtils.columnIndexToLetter(newColIndex);
-    headerRow.getCell(newColIndex).value = `Cost ${shipmentKey}`;
+    const headerText = `Cost ${shipmentKey}`;
+    headerRow.getCell(newColIndex).value = headerText;
 
     worksheet.getColumn(newColLetter).numFmt =
       OUTPUT_NUM_DECIMAL_FORMAT["2_DIGITS"];
+
+    worksheet.getColumn(newColLetter).width =
+      XlsxUtils.getHeaderWidth(headerText);
 
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber === 1) return; // Skip header row
@@ -1267,19 +1290,30 @@ export async function modifyShippingFile(
   // Add Cost In Stock value to last column
   const costInStockIndex = headerRow.cellCount + 1;
 
-  headerRow.getCell(costInStockIndex).value =
-    SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
+  const costInStockHeaderText = SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
+  headerRow.getCell(costInStockIndex).value = costInStockHeaderText;
+  worksheet.getColumn(costInStockIndex).width = XlsxUtils.getHeaderWidth(costInStockHeaderText);
+
   worksheet.getColumn(costInStockIndex).eachCell((cell) => {
     // add $ sign
     cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
   });
+
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
     const totalUsdCellAddress = `${totalUsdColumnLetter}${rowNumber}`;
-    const shipmentStartCellAddress = `${shipmentStartColLetter}${rowNumber}`;
-    const shipmentLastCellAddress = `${shipmentLastColLetter}${rowNumber}`;
 
-    const totalCostInStockFormula = `${totalUsdCellAddress} - SUM(${shipmentStartCellAddress}:${shipmentLastCellAddress})`;
+    // ko remove đoạn code dưới
+    // const shipmentStartCellAddress = `${shipmentStartColLetter}${rowNumber}`;
+    // const shipmentLastCellAddress = `${shipmentLastColLetter}${rowNumber}`;
+
+    const costStartIndex = firstCostColumnIndex ?? shipmentStartColIndex;
+    const costStartLetter = XlsxUtils.columnIndexToLetter(costStartIndex);
+
+    const costStartCellAddress = `${costStartLetter}${rowNumber}`;
+    const costLastCellAddress = `${shipmentLastColLetter}${rowNumber}`;
+
+    const totalCostInStockFormula = `${totalUsdCellAddress} - SUM(${costStartCellAddress}:${costLastCellAddress})`;
     const costInStockCell = row.getCell(costInStockIndex);
 
     if (costInStockCell) {

@@ -151,4 +151,8 @@ export class XlsxUtils {
       productName?.toLowerCase()?.includes(KEY_PREFERENCES.PAYMENT_FEE)
     );
   };
+
+  static getHeaderWidth = (headerText) => {
+    return headerText.length + 1;
+  }
 }
