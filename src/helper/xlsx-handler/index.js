@@ -893,9 +893,9 @@ export async function modifyOrder1File(file, allElements = {}) {
     });
 
     // copy obj
-    Object.keys(newAllElements).forEach((shipment) => {
-      allElements[shipment] = newAllElements[shipment];
-    });
+    // Object.keys(newAllElements).forEach((shipment) => {
+    //   allElements[shipment] = newAllElements[shipment];
+    // });
   }
 
   // set giá trị cho hàng total
