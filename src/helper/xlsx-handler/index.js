@@ -464,7 +464,8 @@ const addStyleToCogsWorksheet = (worksheet, firstRowNum) => {
   worksheet.eachRow((row, rowNumber) => {
     row.eachCell((cell, colNumber) => {
       // Apply red text color to the entire column J (COGS)
-      if (colNumber === 11) {
+
+      if (XlsxUtils.columnIndexToLetter(colNumber) === OUTPUT_COL_ALPHABET.COGS) {
         cell.font = {
           ...cell.font,
           color: { argb: "FF0000" },
