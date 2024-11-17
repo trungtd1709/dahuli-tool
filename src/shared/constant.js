@@ -43,7 +43,7 @@ export const OUTPUT_KEY_NAME = {
   INTERNATIONAL_SHIPPING_COST: "International Shipping Cost",
   PAYMENT_COST: "Payment Cost",
   COGS: "COGS",
-  TOTAL_UNIT: "Total Unit",
+  TOTAL_UNIT: "Total Units",
   AMOUNT: "Amount",
   TOTAL_AMOUNT: "Total Amount",
 };
