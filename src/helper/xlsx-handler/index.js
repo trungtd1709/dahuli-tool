@@ -973,7 +973,7 @@ export async function modifyOrder1File(file, allElements = {}) {
 
   headerRow.getCell(costInStockIndex).value = costInstockColName;
 
-  worksheet.getColumn(newColIndex).width =
+  worksheet.getColumn(costInStockIndex).width =
     XlsxUtils.getHeaderWidth(costInstockColName);
   XlsxUtils.centerValueColumn(worksheet, costInStockIndex);
 
