@@ -155,4 +155,11 @@ export class XlsxUtils {
   static getHeaderWidth = (headerText) => {
     return headerText.length + 1;
   }
+
+  static centerValueColumn = (worksheet, colIndex) => {
+    worksheet.getColumn(colIndex).alignment = {
+      horizontal: 'center', // Horizontal alignment (center)
+      vertical: 'middle',   // Vertical alignment (center vertically)
+    };
+  }
 }

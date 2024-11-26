@@ -465,7 +465,9 @@ const addStyleToCogsWorksheet = (worksheet, firstRowNum) => {
     row.eachCell((cell, colNumber) => {
       // Apply red text color to the entire column J (COGS)
 
-      if (XlsxUtils.columnIndexToLetter(colNumber) === OUTPUT_COL_ALPHABET.COGS) {
+      if (
+        XlsxUtils.columnIndexToLetter(colNumber) === OUTPUT_COL_ALPHABET.COGS
+      ) {
         cell.font = {
           ...cell.font,
           color: { argb: "FF0000" },
@@ -790,6 +792,9 @@ export async function modifyOrder1File(file, allElements = {}) {
   shipmentKeys.forEach((shipmentKey, index) => {
     const newColIndex = shipmentStartColIndex + index;
     headerRow.getCell(newColIndex).value = shipmentKey;
+    worksheet.getColumn(newColIndex).width =
+      XlsxUtils.getHeaderWidth(shipmentKey);
+    XlsxUtils.centerValueColumn(worksheet, newColIndex);
 
     // Add data for each row under the new column
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
@@ -864,12 +869,12 @@ export async function modifyOrder1File(file, allElements = {}) {
   }
 
   // Add header name for in stock column
-  const columnHeaderName = SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK
-  headerRow.getCell(inStockColIndex).value = columnHeaderName;
+  const inStockHeaderName = SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK;
+  headerRow.getCell(inStockColIndex).value = inStockHeaderName;
+  worksheet.getColumn(inStockColIndex).width =
+    XlsxUtils.getHeaderWidth(inStockHeaderName);
+  XlsxUtils.centerValueColumn(worksheet, inStockColIndex);
 
-  // add width for column
-  worksheet.getColumn(inStockColIndex).width = XlsxUtils.getHeaderWidth(columnHeaderName);
-  
   headerRow.getCell(inStockColIndex + 1).value = "";
 
   if (negativeInStockPlaceArr.length > 0) {
@@ -926,7 +931,11 @@ export async function modifyOrder1File(file, allElements = {}) {
       cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
       cell.alignment = { horizontal: "right", vertical: "middle" };
     });
-    headerRow.getCell(newColIndex).value = `Cost ${shipmentKey}`;
+    const costKeyName = `Cost ${shipmentKey}`;
+    headerRow.getCell(newColIndex).value = costKeyName;
+    worksheet.getColumn(newColIndex).width =
+      XlsxUtils.getHeaderWidth(costKeyName);
+    XlsxUtils.centerValueColumn(worksheet, newColIndex);
 
     // Add data for each row under the new column
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
@@ -960,12 +969,19 @@ export async function modifyOrder1File(file, allElements = {}) {
   const costInStockIndex = headerRow.cellCount + 1;
   const costInStockLetter = XlsxUtils.columnIndexToLetter(costInStockIndex);
 
-  headerRow.getCell(costInStockIndex).value =
-    SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
+  const costInstockColName = SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
+
+  headerRow.getCell(costInStockIndex).value = costInstockColName;
+
+  worksheet.getColumn(newColIndex).width =
+    XlsxUtils.getHeaderWidth(costInstockColName);
+  XlsxUtils.centerValueColumn(worksheet, costInStockIndex);
+
   worksheet.getColumn(costInStockIndex).eachCell((cell) => {
     // add $ sign
     cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
   });
+
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
 
@@ -1293,7 +1309,9 @@ export async function modifyShippingFile(
 
   const costInStockHeaderText = SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
   headerRow.getCell(costInStockIndex).value = costInStockHeaderText;
-  worksheet.getColumn(costInStockIndex).width = XlsxUtils.getHeaderWidth(costInStockHeaderText);
+  worksheet.getColumn(costInStockIndex).width = XlsxUtils.getHeaderWidth(
+    costInStockHeaderText
+  );
 
   worksheet.getColumn(costInStockIndex).eachCell((cell) => {
     // add $ sign
