@@ -901,7 +901,8 @@ export async function modifyOrder1File(file, allElements = {}) {
       if (productIndex < 0) {
         throw new BadRequestError(CANT_FIND_PRODUCT);
       }
-      allElements[shipment][productIndex].quantity = leftValue;
+      // ko remove comment này
+      // allElements[shipment][productIndex].quantity = leftValue;
       newAllElements[shipment].push(allElements[shipment][productIndex]);
     });
 
