@@ -29,6 +29,7 @@ export const KEY_PREFERENCES = {
   QTY: "Qty",
   SHIPPING: "shipping",
   COST: "Cost",
+  SUB_TOTAL: "SUB TOTAL"
 };
 
 export const OUTPUT_KEY_NAME = {

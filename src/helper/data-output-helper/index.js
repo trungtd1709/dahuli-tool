@@ -384,6 +384,18 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
   return allShipmentElements;
 };
 
+// định dạng 1 element
+// {
+//   name: "Silicone Charger Protector (Pink)",
+//   quantity: 90,
+//   usdPrice: "3.5 / 7.3116",
+//   order: "HNV 2303",
+//   totalUsd: "3.5 / 7.3116 * 90",
+//   totalCny: "3.5 * 90",
+//   shipment: "S308",
+//   cnyPrice: "3.5",
+// }
+
 /**
  *
  * @param {JSZip} zip
@@ -420,6 +432,19 @@ export const addShipmentFileToZip = async (
     }, 0);
 
     for (const originalShipment of Object.keys(shipmentElements)) {
+      const lastElementIndex = allElements[originalShipment].length + 1;
+      const subTotalElement = {
+        name: KEY_PREFERENCES.SUB_TOTAL,
+        quantity: `SUM(${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}2:${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${lastElementIndex})`,
+        // usdPrice: `SUM(${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}2:${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${lastElementIndex})`,
+        // order: "HNV 2303",
+        totalUsd: `SUM(${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}2:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${lastElementIndex})`,
+        totalCny: `SUM(${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}2:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}${lastElementIndex})`,
+        // shipment: "S308",
+        // cnyPrice: "3.5",
+      };
+      allElements[originalShipment].push(subTotalElement);
+
       const shipmentShippingCosts = allInputShippingCost.filter(
         (shippingObj) => {
           const shippingOriginalShipment = shippingObj?.originalShipment;

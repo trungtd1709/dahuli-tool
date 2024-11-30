@@ -583,6 +583,7 @@ export async function createShipmentExcelBuffer(jsonData = []) {
     const order = item[SHIPMENT_OUTPUT_KEY_NAME.ORDER] ?? "";
     const isMoreThanOneOrder = order.includes("+");
 
+    const itemName = item[SHIPMENT_OUTPUT_KEY_NAME.PRODUCT_NAME];
     const itemTotalUsd = item[SHIPMENT_OUTPUT_KEY_NAME.TOTAL_USD];
     const itemTotalCny = item[SHIPMENT_OUTPUT_KEY_NAME.TOTAL_CNY];
     const itemCnyPrice = item[SHIPMENT_OUTPUT_KEY_NAME.CNY_PRICE];
@@ -600,7 +601,7 @@ export async function createShipmentExcelBuffer(jsonData = []) {
     let cnyPriceFormula = itemCnyPrice;
     let usdPriceFormula = "";
 
-    if (itemQuantity) {
+    if (itemQuantity && itemName != KEY_PREFERENCES.SUB_TOTAL) {
       if (isMoreThanOneOrder) {
         usdPriceFormula = itemUsdPrice;
       } else {
@@ -625,20 +626,23 @@ export async function createShipmentExcelBuffer(jsonData = []) {
     setCellFormula(worksheet, totalUsdCellAdd, totalUsdFormula);
     setCellFormula(worksheet, cnyPriceCellAdd, cnyPriceFormula);
     setCellFormula(worksheet, usdPriceCellAdd, usdPriceFormula);
+    setCellFormula(worksheet, quantityCellAdd, itemQuantity);
   });
+
+  const subTotalIndex = jsonData.findIndex((item) => item?.[SHIPMENT_OUTPUT_KEY_NAME.PRODUCT_NAME] == KEY_PREFERENCES.SUB_TOTAL) + 2;
 
   const lastRowIndex = jsonData.length + 1;
   const sumQuantityFormula = `SUM(${
     SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY
-  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${lastRowIndex})`;
+  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${lastRowIndex}) - ${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${subTotalIndex}`;
 
   const sumTotalCnyFormula = `SUM(${
     SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY
-  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}${lastRowIndex})`;
+  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}${lastRowIndex}) - ${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}${subTotalIndex}`;
 
   const sumTotalUsdFormula = `SUM(${
     SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD
-  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${lastRowIndex})`;
+  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${lastRowIndex}) - ${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${subTotalIndex}`;
 
   const totalRowIndex = lastRowIndex + 1;
   const totalQuantityCellAdd = `${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${totalRowIndex}`;
