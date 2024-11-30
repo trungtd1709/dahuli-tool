@@ -128,7 +128,7 @@ export const calculateGood = async (files = []) => {
 
       allSkuList = [...allSkuList, ...skuList];
       allInputShippingCost = [...allInputShippingCost, ...inputShippingCost];
-      console.log(inputShippingCost);
+      // console.log(inputShippingCost); 
     }
 
     await addCogsFileToZip(allSkuList, zip, shipment);

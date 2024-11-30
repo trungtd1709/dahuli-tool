@@ -20,11 +20,31 @@ import _ from "lodash";
 
 /// Nếu đợt file gồm nhiều shipment thì phải đổi công thức
 const checkMultipleShipmentAndChange = (skuList = []) => {
-  const shipmentArr = getUniqueValueFromObjArr(skuList, "shipment");
+  const fillInByOriginalShipment = true;
+  const shipmentArr = getUniqueValueFromObjArr(
+    skuList,
+    fillInByOriginalShipment ? "originalShipment" : "shipment"
+  );
+
   if (shipmentArr.length > 1) {
     shipmentArr.map((shipment) => {
-      const shipmentFirstIndex = _.findIndex(skuList, { shipment });
-      const shipmentLastIndex = _.findLastIndex(skuList, { shipment });
+      // orginal shipment thì điền total unit và total amount trong COGS theo shipment nhỏ, ví dụ S465.1
+      // shipment thì điền total unit và total amount trong COGS theo shipment, ví dụ S306
+
+      const predicate = (sku) => {
+        return fillInByOriginalShipment
+          ? sku?.originalShipment === shipment
+          : sku?.shipment === shipment;
+      };
+
+      const shipmentFirstIndex = _.findIndex(skuList, (sku) => {
+        return predicate(sku);
+      });
+
+      const shipmentLastIndex = _.findLastIndex(skuList, (sku) => {
+        return predicate(sku);
+      });
+
       for (let i = shipmentFirstIndex; i <= shipmentLastIndex; i++) {
         // cột đầu tiên trong excel nên + 2
         const shipmentFirstRowNo = shipmentFirstIndex + 2;
@@ -72,6 +92,7 @@ const checkMultipleShipmentAndChange = (skuList = []) => {
       }
     });
   }
+
   if (shipmentArr.length == 1) {
     const amountColLetter = OUTPUT_COL_ALPHABET.AMOUNT;
     const firstAmountCell = `${amountColLetter}2`;
@@ -366,7 +387,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
       return acc + quantity;
     }, 0);
     const usdPricePaymentFee = `${totalElementUsdPrice} / ${paymentCostDivisor}`;
-    const totalUsdPaymentFee = `${usdPricePaymentFee} * ${totalElementQuantity}`
+    const totalUsdPaymentFee = `${usdPricePaymentFee} * ${totalElementQuantity}`;
 
     const paymentFeeElement = {
       name: paymentFeeObj?.name,
