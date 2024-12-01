@@ -24,6 +24,10 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
   return skuList.map((sku) => {
     let ppuPrice = sku.elements.reduce((acc, element) => {
       let newPpuPrice = "";
+      const { SKU } = sku;
+
+      // quantity của 1 element trong SKU
+      const elementQuantity = parseInt(element?.quantity) ?? 1;
       const elementPrice = findEleWithLowestFileOrder(
         elementsPrice.filter(
           (el) =>
@@ -40,7 +44,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       const cnyPrice = elementPrice.getCnyFormula();
       const usdPrice = elementPrice.getUsdFormula();
       const skuQuantity = sku?.quantity ?? 0;
-      const quantity = (parseInt(element.quantity) || 1) * skuQuantity;
+      const quantity = elementQuantity * skuQuantity;
 
       const remainingQuantity = elementPrice.setLeftQuantity(quantity);
 
@@ -51,7 +55,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       if (remainingQuantity <= 0) {
         /// ko bỏ comment này
         // newPpuPrice = `${usdPrice} * ${quantity} / quantityCell`;
-        newPpuPrice = elementPrice.getUsdFormula();
+        newPpuPrice = `${elementPrice.getUsdFormula()} * ${elementQuantity}`;
         if (!isEmptyValue(elementPrice.getCnyFormula())) {
           eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * totalElementQuantity`;
         }
@@ -80,10 +84,12 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
           throw new BadRequestError(
             `${CANT_FIND_USD_PRICE_FOR_ELEMENT}: ${newElementPrice.name} in file : ${newElementPrice.fileName}`
           );
-          console.log("Lỗi ở đây");
         }
         newPpuPrice = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} / quantityCell + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / quantityCell`;
 
+        if (SKU == "FG-BVUM-HOJX") {
+          console.log("test");
+        }
         if (!isEmptyValue(elementPrice.getUsdFormula())) {
           eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
         }
@@ -106,6 +112,10 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       if (domesticShippingCost) {
         const usdDomesticShippingCost = `${domesticShippingCost} / ${exchangeRate}`;
         totalElementsPrice = `(${usdPrice} + ${usdDomesticShippingCost}) * ${quantity}`;
+      }
+
+      if (SKU == "FG-BVUM-HOJX") {
+        console.log("test");
       }
 
       if (!acc) {
