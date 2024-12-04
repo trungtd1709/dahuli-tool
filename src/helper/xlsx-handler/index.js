@@ -38,7 +38,7 @@ export const xlsxToJSON = ({
   file,
   sheetIndex = 0,
   exchangeRateKeyName,
-  paymentCostKeyName,
+  paymentCostKeyName, // cái này là mảng
   isShippingFile = false, // check xem có phải file order 4 (shipping cost) ko
 }) => {
   try {
@@ -191,8 +191,12 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
 
 // lấy số sau dấu /
 function extractDivisor(formula) {
-  const match = formula.match(/\/\s*([\d,\.]+)/);
-  return match ? match[1].trim() : null;
+  if (formula.includes("SUM")) {
+    const match = formula.match(/\/\s*([\d,\.]+)/);
+    return match ? match[1].trim() : null;
+  } else {
+    return null;
+  }
 }
 
 /**

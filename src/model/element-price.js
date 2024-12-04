@@ -28,6 +28,7 @@ export class ElementPrice {
     this.cnyPrice = cnyPrice;
     this.quantity = quantity;
     this.leftQuantity = leftQuantity;
+    this.paymentCostLeftQuantity = leftQuantity;
     this.domesticShippingCost = domesticShippingCost;
     this.fileOrder = fileOrder;
     this.paymentCostDivisor = paymentCostDivisor;
@@ -78,6 +79,7 @@ export class ElementPrice {
       packingLabelingCost,
       quantity,
       leftQuantity,
+      paymentCostLeftQuantity: quantity,
       domesticShippingCost,
       fileOrder,
       paymentCostDivisor,
@@ -123,6 +125,28 @@ export class ElementPrice {
 
   getLeftQuantity(){
     return this.leftQuantity;
+  }
+
+  getPaymentCostLeftQuantity(){
+    return this.leftQuantity;
+  }
+
+  setPaymentCostLeftQuantity(quantity) {
+    if (quantity) {
+      let newLeftQuantity = this.paymentCostLeftQuantity - quantity;
+      // >= 0 thì xử lý như bình thường
+      if (newLeftQuantity >= 0) {
+        this.paymentCostLeftQuantity = newLeftQuantity;
+        return 0;
+      }
+      // < 0 thì set leftQuantity = 0 r xử lý tiếp
+      else {
+        this.paymentCostLeftQuantity = 0;
+        return -newLeftQuantity;
+      }
+    } else {
+      return 0;
+    }
   }
 
   getUsdFormula() {

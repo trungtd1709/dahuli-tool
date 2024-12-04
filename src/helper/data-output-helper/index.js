@@ -139,12 +139,19 @@ const refactorSkuListFunc = (skuList = []) => {
       domesticShippingCost,
       internationalShippingCost,
       itemPaymentCost,
+      shippingPaymentCost,
       cogs,
       amount,
       totalAmount,
       totalQuantity,
       originalShipment,
     } = item;
+
+    let paymentCost = itemPaymentCost ?? shippingPaymentCost;
+
+    if (itemPaymentCost && shippingPaymentCost) {
+      paymentCost = `${itemPaymentCost} + ${shippingPaymentCost}`;
+    }
 
     const refactorObj = {
       [OUTPUT_KEY_NAME.SKU]: SKU,
@@ -156,7 +163,7 @@ const refactorSkuListFunc = (skuList = []) => {
       [OUTPUT_KEY_NAME.PACKING_LABELING_COST]: packingLabelingCost,
       [OUTPUT_KEY_NAME.DOMESTIC_SHIPPING_COST]: domesticShippingCost,
       [OUTPUT_KEY_NAME.INTERNATIONAL_SHIPPING_COST]: internationalShippingCost,
-      [OUTPUT_KEY_NAME.PAYMENT_COST]: itemPaymentCost,
+      [OUTPUT_KEY_NAME.PAYMENT_COST]: paymentCost,
       [OUTPUT_KEY_NAME.COGS]: cogs,
       [OUTPUT_KEY_NAME.TOTAL_UNIT]: totalQuantity,
       [OUTPUT_KEY_NAME.AMOUNT]: amount,

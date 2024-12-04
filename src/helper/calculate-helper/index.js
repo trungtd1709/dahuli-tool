@@ -179,10 +179,18 @@ export const addPaymentCostToCogs = (skuList, elementsPrice) => {
   return skuList.map((sku, index) => {
     sku.elements.forEach((element) => {
       const elementName = element?.name;
-      const elementExist =
-        elementsPrice.find((item) => item.name == elementName) ?? {};
-      const { paymentCostDivisor } = elementExist;
+      const elementPrice =
+        elementsPrice.find(
+          (item) => item.name == elementName && item.paymentCostLeftQuantity > 0
+        ) ?? {};
+      const { paymentCostDivisor } = elementPrice;
       if (paymentCostDivisor) {
+        // if(paymentCostDivisor == '200'){
+        //   console.log('jhgbjhkerbjkebrjher');
+        // }
+        elementPrice.setPaymentCostLeftQuantity(
+          element.quantity * sku.quantity
+        );
         const itemPaymentCostFormula = `${OUTPUT_COL_ALPHABET.PPU}${
           index + 2
         }/${paymentCostDivisor}`;
@@ -345,14 +353,26 @@ export const addShippingAndPaymentCost = (
     const domesticShippingCostCell = `${OUTPUT_COL_ALPHABET.DOMESTIC_SHIPPING_COST}${rowIndex}`;
     const internationalShippingCostCell = `${OUTPUT_COL_ALPHABET.INTERNATIONAL_SHIPPING_COST}${rowIndex}`;
 
-    const itemPaymentCostFormula = isEmptyValue(paymentCostDivisor)
-      ? ""
-      : `(${domesticShippingCostCell} + ${internationalShippingCostCell}) / ${paymentCostDivisor}`;
+    let shippingPaymentCostFormula;
+    if (!isEmptyValue(paymentCostDivisor)) {
+      if (itemDomesticShippingCostFormula) {
+        shippingPaymentCostFormula = `${domesticShippingCostCell} / ${paymentCostDivisor}`;
+      }
+      if (itemInternationalShippingCostFormula) {
+        shippingPaymentCostFormula = `${internationalShippingCostCell} / ${paymentCostDivisor}`;
+      }
+      if (itemDomesticShippingCostFormula && itemInternationalShippingCostFormula) {
+        shippingPaymentCostFormula = `(${domesticShippingCostCell} + ${internationalShippingCostCell}) / ${paymentCostDivisor}`;
+      }
+    }
+    // const shippingPaymentCostFormula = isEmptyValue(paymentCostDivisor)
+    //   ? ""
+    //   : `(${domesticShippingCostCell} + ${internationalShippingCostCell}) / ${paymentCostDivisor}`;
     return {
       ...item,
       domesticShippingCost: itemDomesticShippingCostFormula,
       internationalShippingCost: itemInternationalShippingCostFormula,
-      itemPaymentCost: itemPaymentCostFormula,
+      shippingPaymentCost: shippingPaymentCostFormula,
     };
   });
 };
