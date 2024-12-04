@@ -300,54 +300,56 @@ export const addShippingAndPaymentCost = (
   shippingCostArr = [],
   totalSkuType
 ) => {
-  const { shipmentId } = skuList[0];
-
-  const domesticShippingCostObj = shippingCostArr.find(
-    ({ shipmentId: id, isDomestic }) => id === shipmentId && isDomestic
-  );
-  const internationalShippingCostObj = shippingCostArr.find(
-    ({ shipmentId: id, isDomestic }) => id === shipmentId && isDomestic == false
-  );
-
-  const dataFirstRow = 2; // trong excel row đầu tiên index = 2
-  const totalUnitColAlphabet = OUTPUT_COL_ALPHABET.TOTAL_UNIT;
-  const totalShipmentQuantityFormula = `SUM(${totalUnitColAlphabet}${dataFirstRow}:${totalUnitColAlphabet}${
-    totalSkuType + 1
-  })`;
-  // + 1 row bù cho row column name
-
-  const totalShipmentQuantityDomestic =
-    domesticShippingCostObj?.totalShipmentQuantity && totalSkuType
-      ? totalShipmentQuantityFormula
-      : null;
-  const totalShipmentQuantityInternational =
-    internationalShippingCostObj?.totalShipmentQuantity && totalSkuType
-      ? totalShipmentQuantityFormula
-      : null;
-
-  const shipmentDomesticCost = domesticShippingCostObj?.totalUsd ?? 0;
-  const shipmentInternationalCost = internationalShippingCostObj?.totalUsd ?? 0;
-
-  const totalUnitCellDomestic =
-    totalShipmentQuantityDomestic ??
-    `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${dataFirstRow}`;
-  const totalUnitCellInternational =
-    totalShipmentQuantityInternational ??
-    `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${dataFirstRow}`;
-
-  const itemDomesticShippingCostFormula = domesticShippingCostObj
-    ? `${shipmentDomesticCost} / ${totalUnitCellDomestic}`
-    : 0;
-
-  const itemInternationalShippingCostFormula = internationalShippingCostObj
-    ? `${shipmentInternationalCost} / ${totalUnitCellInternational}`
-    : 0;
-
-  const paymentCostDivisor =
-    domesticShippingCostObj?.paymentCostDivisor ??
-    internationalShippingCostObj?.paymentCostDivisor;
-
   return skuList.map((item, index) => {
+    const { shipmentId } = skuList[index];
+
+    const domesticShippingCostObj = shippingCostArr.find(
+      ({ shipmentId: id, isDomestic }) => id === shipmentId && isDomestic
+    );
+    const internationalShippingCostObj = shippingCostArr.find(
+      ({ shipmentId: id, isDomestic }) =>
+        id === shipmentId && isDomestic == false
+    );
+
+    const dataFirstRow = 2; // trong excel row đầu tiên index = 2
+    const totalUnitColAlphabet = OUTPUT_COL_ALPHABET.TOTAL_UNIT;
+    const totalShipmentQuantityFormula = `SUM(${totalUnitColAlphabet}${dataFirstRow}:${totalUnitColAlphabet}${
+      totalSkuType + 1
+    })`;
+    // + 1 row bù cho row column name
+
+    const totalShipmentQuantityDomestic =
+      domesticShippingCostObj?.totalShipmentQuantity && totalSkuType
+        ? totalShipmentQuantityFormula
+        : null;
+    const totalShipmentQuantityInternational =
+      internationalShippingCostObj?.totalShipmentQuantity && totalSkuType
+        ? totalShipmentQuantityFormula
+        : null;
+
+    const shipmentDomesticCost = domesticShippingCostObj?.totalUsd ?? 0;
+    const shipmentInternationalCost =
+      internationalShippingCostObj?.totalUsd ?? 0;
+
+    const totalUnitCellDomestic =
+      totalShipmentQuantityDomestic ??
+      `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${dataFirstRow}`;
+    const totalUnitCellInternational =
+      totalShipmentQuantityInternational ??
+      `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${dataFirstRow}`;
+
+    const itemDomesticShippingCostFormula = domesticShippingCostObj
+      ? `${shipmentDomesticCost} / ${totalUnitCellDomestic}`
+      : 0;
+
+    const itemInternationalShippingCostFormula = internationalShippingCostObj
+      ? `${shipmentInternationalCost} / ${totalUnitCellInternational}`
+      : 0;
+
+    const paymentCostDivisor =
+      domesticShippingCostObj?.paymentCostDivisor ??
+      internationalShippingCostObj?.paymentCostDivisor;
+
     // first row trong excel phải + 2
     const rowIndex = index + 2;
     const domesticShippingCostCell = `${OUTPUT_COL_ALPHABET.DOMESTIC_SHIPPING_COST}${rowIndex}`;
@@ -361,7 +363,10 @@ export const addShippingAndPaymentCost = (
       if (itemInternationalShippingCostFormula) {
         shippingPaymentCostFormula = `${internationalShippingCostCell} / ${paymentCostDivisor}`;
       }
-      if (itemDomesticShippingCostFormula && itemInternationalShippingCostFormula) {
+      if (
+        itemDomesticShippingCostFormula &&
+        itemInternationalShippingCostFormula
+      ) {
         shippingPaymentCostFormula = `(${domesticShippingCostCell} + ${internationalShippingCostCell}) / ${paymentCostDivisor}`;
       }
     }

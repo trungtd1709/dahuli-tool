@@ -235,7 +235,8 @@ export const transformOrder1List = (rawJson = [], shipmentId) => {
     if (!item?.quantity && productName?.includes(prevProductName)) {
       const prevQuantity = prevProductQuantity.toString();
       const itemShippingFee = evalCalculation(`${totalCny} / ${prevQuantity}`);
-      rawJson[index - 1][INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST] = itemShippingFee;
+      rawJson[index - 1][INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST] =
+        itemShippingFee;
     }
   }
 
@@ -338,7 +339,8 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
     if (!item?.quantity && productName?.includes(prevProductName)) {
       const prevQuantity = prevProductQuantity.toString();
       const itemShippingFee = evalCalculation(`${totalCny} / ${prevQuantity}`);
-      rawJson[index - 1][INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST] = itemShippingFee;
+      rawJson[index - 1][INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST] =
+        itemShippingFee;
     }
   }
 
@@ -412,8 +414,9 @@ export const transformShippingCostInput = (
 ) => {
   shippingArr = shippingArr.filter((item) => {
     return (
-      item.productName.includes(shipmentId) ||
-      item.productName.includes(shipment)
+      // item.productName.includes(shipmentId) ||
+      // item.productName.includes(shipment) ||
+      item.productName.includes(originalShipment)
     );
   });
 
@@ -545,7 +548,10 @@ export const getRawInputShippingCost = (files = []) => {
       const { order } = shippingFile;
       const rawJson = xlsxToJSON({
         file: shippingFile,
-        paymentCostKeyName: INPUT_KEY_NAME.TOTAL_USD,
+        paymentCostKeyName: [
+          INPUT_KEY_NAME.TOTAL_USD,
+          INPUT_KEY_NAME.TOTAL_CNY,
+        ],
         exchangeRateKeyName: INPUT_KEY_NAME.TOTAL_USD,
         isShippingFile: true,
       }).map((item) => {
@@ -574,13 +580,18 @@ export const getRawOrder1Data = (files = []) => {
 
     // thứ tự file
     const fileOrder = extractNumberFromFilename(originalname);
-    if(!fileOrder && order1Files.length > 1){
-      throw new BadRequestError(`${MISSING_ORDER_1_FILE_ORDER}: ${originalname}`);
+    if (!fileOrder && order1Files.length > 1) {
+      throw new BadRequestError(
+        `${MISSING_ORDER_1_FILE_ORDER}: ${originalname}`
+      );
     }
 
     const rawOrder1Data = xlsxToJSON({
       file: order1File,
-      paymentCostKeyName: INPUT_KEY_NAME.TOTAL_USD,
+      paymentCostKeyName: [
+        INPUT_KEY_NAME.TOTAL_USD,
+        INPUT_KEY_NAME.TOTAL_CNY,
+      ],
       exchangeRateKeyName: INPUT_KEY_NAME.TOTAL_USD,
     }).map((item) => {
       return { ...item, order, fileName: originalname };

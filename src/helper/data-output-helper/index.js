@@ -408,7 +408,6 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
     allShipmentElements = [...allShipmentElements, paymentFeeElement];
   }
 
-  skuList = removeSkuKey(skuList);
   return allShipmentElements;
 };
 

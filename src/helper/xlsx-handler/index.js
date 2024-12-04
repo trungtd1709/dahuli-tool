@@ -132,21 +132,21 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
     return;
   }
   const range = XLSX.utils.decode_range(worksheet["!ref"]);
-  let paymentCostColumnIndex = -1;
+  let paymentCostColumnsIndex = [];
   let productNameColumnIndex = -1;
 
   for (let C = range.s.c; C <= range.e.c; ++C) {
     const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
     const cell = worksheet[cellAddress];
-    if (cell && cell.v === paymentCostKeyName) {
-      paymentCostColumnIndex = C;
+    if (cell && paymentCostKeyName.includes(cell.v)) {
+      paymentCostColumnsIndex.push(C);
     }
     if (cell && cell.v === INPUT_KEY_NAME.PRODUCT_NAME) {
       productNameColumnIndex = C;
     }
   }
 
-  if (paymentCostColumnIndex === -1) {
+  if (isEmptyValue(paymentCostColumnsIndex)) {
     console.error(
       `Key name '${paymentCostKeyName}' not found in the first row.`
     );
@@ -158,7 +158,8 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
     );
   }
 
-  if (paymentCostColumnIndex >= 0) {
+  for (const paymentCostColumnIndex of paymentCostColumnsIndex) {
+    // if (paymentCostColumnIndex >= 0) {
     for (let R = range.s.r + 1; R <= range.e.r; ++R) {
       // Start from the second row
       const productNameCellAddress = XLSX.utils.encode_cell({
@@ -179,11 +180,13 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
           const formula = paymentCell.f;
           // định dạng formula "SUM(E2:E5)/99"
           const paymentCostDivisor = extractDivisor(formula);
-          if (paymentCostDivisor) {
+          // trick lỏ > 20
+          if (paymentCostDivisor && parseInt(paymentCostDivisor) > 20) {
             return paymentCostDivisor;
           }
         }
       }
+      // }
     }
   }
   return;
@@ -191,12 +194,12 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
 
 // lấy số sau dấu /
 function extractDivisor(formula) {
-  if (formula.includes("SUM")) {
+  // if (formula.includes("SUM")) {
     const match = formula.match(/\/\s*([\d,\.]+)/);
     return match ? match[1].trim() : null;
-  } else {
-    return null;
-  }
+  // } else {
+  //   return null;
+  // }
 }
 
 /**
@@ -633,20 +636,31 @@ export async function createShipmentExcelBuffer(jsonData = []) {
     setCellFormula(worksheet, quantityCellAdd, itemQuantity);
   });
 
-  const subTotalIndex = jsonData.findIndex((item) => item?.[SHIPMENT_OUTPUT_KEY_NAME.PRODUCT_NAME] == KEY_PREFERENCES.SUB_TOTAL) + 2;
+  const subTotalIndex =
+    jsonData.findIndex(
+      (item) =>
+        item?.[SHIPMENT_OUTPUT_KEY_NAME.PRODUCT_NAME] ==
+        KEY_PREFERENCES.SUB_TOTAL
+    ) + 2;
 
   const lastRowIndex = jsonData.length + 1;
   const sumQuantityFormula = `SUM(${
     SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY
-  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${lastRowIndex}) - ${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${subTotalIndex}`;
+  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${lastRowIndex}) - ${
+    SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY
+  }${subTotalIndex}`;
 
   const sumTotalCnyFormula = `SUM(${
     SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY
-  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}${lastRowIndex}) - ${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}${subTotalIndex}`;
+  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}${lastRowIndex}) - ${
+    SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY
+  }${subTotalIndex}`;
 
   const sumTotalUsdFormula = `SUM(${
     SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD
-  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${lastRowIndex}) - ${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${subTotalIndex}`;
+  }${2}:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${lastRowIndex}) - ${
+    SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD
+  }${subTotalIndex}`;
 
   const totalRowIndex = lastRowIndex + 1;
   const totalQuantityCellAdd = `${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${totalRowIndex}`;

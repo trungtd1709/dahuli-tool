@@ -117,19 +117,20 @@ export const calculateGood = async (files = []) => {
       skuList = addCogsAndAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
       skuList = calculatePpuPrice(skuList, elementsPrice);
-      skuList = addPaymentCostToCogs(skuList, elementsPrice);
+      // skuList = addPaymentCostToCogs(skuList, elementsPrice);
 
       const allShipmentElements = await getAllShipmentElements(
         skuList,
         elementsPrice,
       );
       allElements[originalShipment] = allShipmentElements;
-      skuList = removeSkuKey(skuList);
-
+      
       allSkuList = [...allSkuList, ...skuList];
       allInputShippingCost = [...allInputShippingCost, ...inputShippingCost];
       // console.log(inputShippingCost); 
     }
+    allSkuList = addPaymentCostToCogs(allSkuList, elementsPrice);
+    allSkuList = removeSkuKey(allSkuList);
 
     await addCogsFileToZip(allSkuList, zip, shipment);
     await addOrder1FileToZip(files, zip, allElements);
