@@ -1,6 +1,7 @@
 import _ from "lodash";
 import { INPUT_KEY_NAME, OUTPUT_COL_ALPHABET } from "../../shared/constant.js";
 import {
+  compareStringsIgnoreSpaces,
   evalCalculation,
   isEmptyValue,
   removeValueAndSplash,
@@ -31,7 +32,8 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       const elementPrice = findEleWithLowestFileOrder(
         elementsPrice.filter(
           (el) =>
-            el.name.toLowerCase() === element.name.toLowerCase() &&
+            // el.name.toLowerCase() === element.name.toLowerCase() &&
+            compareStringsIgnoreSpaces(el.name, element.name) &&
             el.leftQuantity > 0
         )
       );
@@ -87,9 +89,10 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         }
         newPpuPrice = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} / quantityCell + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / quantityCell`;
 
-        if (SKU == "FG-BVUM-HOJX") {
-          console.log("test");
-        }
+        console.log(elementPrice.getUsdFormula());
+        // if (SKU == "CY-CI3D-CHYK") {
+        //   console.log("test");
+        // }
         if (!isEmptyValue(elementPrice.getUsdFormula())) {
           eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
         }
@@ -102,21 +105,21 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       element.totalUsd = eleShipmentTotalUsd;
       element.totalCny = eleShipmentTotalCny;
 
-      let totalElementsPrice = usdPrice;
-      if (quantity > 1) {
-        totalElementsPrice = `${usdPrice} * ${quantity}`;
-      }
+      // let totalElementsPrice = usdPrice;
+      // if (quantity > 1) {
+      //   totalElementsPrice = `${usdPrice} * ${quantity}`;
+      // }
 
-      const domesticShippingCost =
-        elementPrice?.[INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST];
-      if (domesticShippingCost) {
-        const usdDomesticShippingCost = `${domesticShippingCost} / ${exchangeRate}`;
-        totalElementsPrice = `(${usdPrice} + ${usdDomesticShippingCost}) * ${quantity}`;
-      }
+      // const domesticShippingCost =
+      //   elementPrice?.[INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST];
+      // if (domesticShippingCost) {
+      //   const usdDomesticShippingCost = `${domesticShippingCost} / ${exchangeRate}`;
+      //   totalElementsPrice = `(${usdPrice} + ${usdDomesticShippingCost}) * ${quantity}`;
+      // }
 
-      if (SKU == "FG-BVUM-HOJX") {
-        console.log("test");
-      }
+      // if (SKU == "FG-BVUM-HOJX") {
+      //   console.log("test");
+      // }
 
       if (!acc) {
         return newPpuPrice;
@@ -155,15 +158,17 @@ export const addPackingCost = (skuList, elementsPrice) => {
   return skuList.map((item) => {
     const packing = item?.packing?.toLowerCase();
     const packingObj =
-      elementsPrice.find((item) => item.name?.toLowerCase() == packing) ?? {};
+      elementsPrice.find((item) =>
+        compareStringsIgnoreSpaces(item.name, packing)
+      ) ?? {};
 
-    let { exchangeRate, price } = packingObj;
-    if (exchangeRate && price) {
-      price = `${price} / ${exchangeRate}`;
+    let packingLabelingCost;
+    if (!isEmptyValue(packingObj)) {
+      packingLabelingCost = packingObj.getUsdFormula();
     }
 
-    if (!_.isEmpty(price)) {
-      return { ...item, packingLabelingCost: price };
+    if (!_.isEmpty(packingLabelingCost)) {
+      return { ...item, packingLabelingCost };
     }
     return item;
   });
@@ -191,12 +196,12 @@ export const addPaymentCostToCogs = (skuList, elementsPrice) => {
         elementPrice.setPaymentCostLeftQuantity(
           element.quantity * sku.quantity
         );
-        const itemPaymentCostFormula = `${OUTPUT_COL_ALPHABET.PPU}${
+        const ppuPaymentCostFormula = `${OUTPUT_COL_ALPHABET.PPU}${
           index + 2
         }/${paymentCostDivisor}`;
         sku = {
           ...sku,
-          itemPaymentCost: itemPaymentCostFormula,
+          ppuPaymentCost: ppuPaymentCostFormula,
         };
       }
     });
@@ -210,13 +215,15 @@ export const addPaymentCostToCogs = (skuList, elementsPrice) => {
  * @param {Array<ElementPrice>} elementsPrice - The array of element prices.
  * @returns {Array} The array of objects with their total price.
  */
-export const addCustomizeCost = (skuList, elementsPrice) => {
-  return skuList.map((item) => {
+export const addCustomizeAndPaymentCost = (skuList, elementsPrice) => {
+  return skuList.map((item, index) => {
+    const { SKU } = item;
     const customizePackage = item?.customizePackage;
     const customizeObj = findEleWithLowestFileOrder(
       elementsPrice.filter(
         (el) =>
-          el.name?.toLowerCase() == customizePackage?.toLowerCase() &&
+          // el.name?.toLowerCase() == customizePackage?.toLowerCase() &&
+          compareStringsIgnoreSpaces(el.name, customizePackage) &&
           el.leftQuantity > 0
       )
     );
@@ -224,12 +231,22 @@ export const addCustomizeCost = (skuList, elementsPrice) => {
     let cnyCustomPackageCost = "";
     const quantity = item?.quantity;
     let customPackageCostFormula = "0";
+    let customPackageCostPaymentCost;
     let totalCnyCustomPackageCost;
     let totalUsdCustomPackageCost;
+    const customPackageCostCellAddress = `${
+      OUTPUT_COL_ALPHABET.CUSTOM_PACKAGE_COST
+    }${index + 2}`;
 
     if (!_.isEmpty(customizeObj)) {
+      const { paymentCostDivisor } = customizeObj;
+      if (!isEmptyValue(paymentCostDivisor)) {
+        customPackageCostPaymentCost = `${customPackageCostCellAddress} / ${paymentCostDivisor}`;
+      }
+
       item.customPackageOrder = customizeObj?.order;
       cnyCustomPackageCost = customizeObj.cnyPrice;
+
       const remainingQuantity = customizeObj.setLeftQuantity(quantity);
       if (remainingQuantity > 0) {
         const secondCustomizeObj = findEleWithLowestFileOrder(
@@ -242,6 +259,15 @@ export const addCustomizeCost = (skuList, elementsPrice) => {
         if (secondCustomizeObj) {
           // số lượng element tính ở file order đầu
           const firstFileQuantity = quantity - remainingQuantity;
+          const secondFilePaymentCostDivisor =
+            secondCustomizeObj.getPaymentCostDivisor();
+
+          if (
+            !isEmptyValue(paymentCostDivisor) &&
+            !isEmptyValue(secondFilePaymentCostDivisor)
+          ) {
+            customPackageCostPaymentCost = `${customPackageCostCellAddress} / ${paymentCostDivisor} * ${firstFileQuantity} / ${quantity} + ${customPackageCostCellAddress} / ${paymentCostDivisor} * ${remainingQuantity} / ${quantity}`;
+          }
 
           secondCustomizeObj.setLeftQuantity(remainingQuantity);
           const secondCustomizeUsdFormula = secondCustomizeObj.getUsdFormula();
@@ -265,9 +291,12 @@ export const addCustomizeCost = (skuList, elementsPrice) => {
 
           item.customPackageOrder = `${item.customPackageOrder} + ${secondCustomizeObj.order}`;
         } else {
-          throw new BadRequestError(NOT_ENOUGHT_CUSTOM_PACKAGE_QUANTITY);
+          throw new BadRequestError(
+            `${NOT_ENOUGHT_CUSTOM_PACKAGE_QUANTITY}: ${remainingQuantity} cho ${customizeObj.name}`
+          );
         }
       }
+
       // th này múc luôn
       else {
         customPackageCostFormula = customizeObj.getUsdFormula();
@@ -282,6 +311,7 @@ export const addCustomizeCost = (skuList, elementsPrice) => {
     return {
       ...item,
       customPackageCost: customPackageCostFormula,
+      customPackageCostPaymentCost,
       cnyCustomPackageCost,
       totalUsdCustomPackageCost,
       totalCnyCustomPackageCost,
@@ -313,30 +343,13 @@ export const addShippingAndPaymentCost = (
 
     const dataFirstRow = 2; // trong excel row đầu tiên index = 2
     const totalUnitColAlphabet = OUTPUT_COL_ALPHABET.TOTAL_UNIT;
-    const totalShipmentQuantityFormula = `SUM(${totalUnitColAlphabet}${dataFirstRow}:${totalUnitColAlphabet}${
-      totalSkuType + 1
-    })`;
-    // + 1 row bù cho row column name
-
-    const totalShipmentQuantityDomestic =
-      domesticShippingCostObj?.totalShipmentQuantity && totalSkuType
-        ? totalShipmentQuantityFormula
-        : null;
-    const totalShipmentQuantityInternational =
-      internationalShippingCostObj?.totalShipmentQuantity && totalSkuType
-        ? totalShipmentQuantityFormula
-        : null;
 
     const shipmentDomesticCost = domesticShippingCostObj?.totalUsd ?? 0;
     const shipmentInternationalCost =
       internationalShippingCostObj?.totalUsd ?? 0;
 
-    const totalUnitCellDomestic =
-      totalShipmentQuantityDomestic ??
-      `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${dataFirstRow}`;
-    const totalUnitCellInternational =
-      totalShipmentQuantityInternational ??
-      `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${dataFirstRow}`;
+    const totalUnitCellDomestic = `${totalUnitColAlphabet}${dataFirstRow}`;
+    const totalUnitCellInternational = `${totalUnitColAlphabet}${dataFirstRow}`;
 
     const itemDomesticShippingCostFormula = domesticShippingCostObj
       ? `${shipmentDomesticCost} / ${totalUnitCellDomestic}`

@@ -3,7 +3,7 @@ import _ from "lodash";
 import { BadRequestError } from "../../error/bad-request-err.js";
 import {
   addCogsAndAmount,
-  addCustomizeCost,
+  addCustomizeAndPaymentCost,
   addPackingCost,
   addPaymentCostToCogs,
   addShippingAndPaymentCost,
@@ -107,13 +107,13 @@ export const calculateGood = async (files = []) => {
       skuList = skuList.map((item) => {
         return { ...item, shipmentId, originalShipment };
       });
-      skuList = addCustomizeCost(skuList, elementsPrice);
+      // skuList = addCustomizeAndPaymentCost(skuList, elementsPrice);
       skuList = addPackingCost(skuList, elementsPrice);
-      skuList = addShippingAndPaymentCost(
-        skuList,
-        inputShippingCost,
-        totalSkuType
-      );
+      // skuList = addShippingAndPaymentCost(
+      //   skuList,
+      //   inputShippingCost,
+      //   totalSkuType
+      // );
       skuList = addCogsAndAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
       skuList = calculatePpuPrice(skuList, elementsPrice);
@@ -129,6 +129,12 @@ export const calculateGood = async (files = []) => {
       allInputShippingCost = [...allInputShippingCost, ...inputShippingCost];
       // console.log(inputShippingCost); 
     }
+    allSkuList = addCustomizeAndPaymentCost(allSkuList, elementsPrice);
+    allSkuList = addShippingAndPaymentCost(
+      allSkuList,
+      allInputShippingCost,
+      totalSkuType
+    );
     allSkuList = addPaymentCostToCogs(allSkuList, elementsPrice);
     allSkuList = removeSkuKey(allSkuList);
 

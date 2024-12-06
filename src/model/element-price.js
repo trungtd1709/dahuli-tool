@@ -1,5 +1,5 @@
 import { extractNumberFromFilename } from "../helper/data-input-helper/index.js";
-import { isEmptyValue } from "../shared/utils.js";
+import { isEmptyValue, removeNewlines } from "../shared/utils.js";
 import { XlsxUtils } from "../shared/xlsxUtils.js";
 
 export class ElementPrice {
@@ -68,9 +68,10 @@ export class ElementPrice {
     }
 
     let isPaymentFee = XlsxUtils.checkIsPaymentFee(name);
+    
 
     return new ElementPrice({
-      name,
+      name: removeNewlines(name),
       exchangeRate,
       fileName,
       usdPrice,

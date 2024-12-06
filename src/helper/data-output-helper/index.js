@@ -138,8 +138,9 @@ const refactorSkuListFunc = (skuList = []) => {
       packingLabelingCost,
       domesticShippingCost,
       internationalShippingCost,
-      itemPaymentCost,
+      ppuPaymentCost,
       shippingPaymentCost,
+      customPackageCostPaymentCost,
       cogs,
       amount,
       totalAmount,
@@ -147,11 +148,13 @@ const refactorSkuListFunc = (skuList = []) => {
       originalShipment,
     } = item;
 
-    let paymentCost = itemPaymentCost ?? shippingPaymentCost;
-
-    if (itemPaymentCost && shippingPaymentCost) {
-      paymentCost = `${itemPaymentCost} + ${shippingPaymentCost}`;
-    }
+    let paymentCost = [
+      ppuPaymentCost,
+      shippingPaymentCost,
+      customPackageCostPaymentCost,
+    ]
+      .filter(Boolean) // Filter out falsy values
+      .join(" + ");
 
     const refactorObj = {
       [OUTPUT_KEY_NAME.SKU]: SKU,

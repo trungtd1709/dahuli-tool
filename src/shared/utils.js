@@ -42,6 +42,15 @@ export const evalCalculation = (expression) => {
 
   if (decimalPart && decimalPart.length > 4) {
     if (
+      decimalPart[decimalPart.length - 2] == "0" &&
+      decimalPart[decimalPart.length - 3] == "0" &&
+      decimalPart[decimalPart.length - 4] == "0" &&
+      decimalPart[decimalPart.length - 5] == "0"
+    ) {
+      let trimmedResult = parseFloat(result.toString().slice(0, -1)).toString();
+      return trimmedResult;
+    }
+    if (
       decimalPart[decimalPart.length - 2] == "9" &&
       decimalPart[decimalPart.length - 3] == "9" &&
       decimalPart[decimalPart.length - 4] == "9"
@@ -192,9 +201,7 @@ export const rmDupEleFrArr = (arr = []) => {
 export const getUniqueValueFromObjArr = (arr = [], keyName) => {
   return [
     ...new Set(
-      arr
-        .map(item => item[keyName])
-        .filter(value => !isEmptyValue(value)) // Filter out empty values
+      arr.map((item) => item[keyName]).filter((value) => !isEmptyValue(value)) // Filter out empty values
     ),
   ];
 };
@@ -213,21 +220,21 @@ export const sortArrayBaseOnKey = (arr = [], key) => {
 
 export function getMaxIndexKeyValue(obj, keyName) {
   // Step 1: Extract keys matching the pattern "In Stock" or "In Stock_X"
-  const keys = Object.keys(obj).filter(key => key.startsWith(keyName));
-  
-  let maxIndex = -1;
-  let maxKey = keyName; 
+  const keys = Object.keys(obj).filter((key) => key.startsWith(keyName));
 
-  keys.forEach(key => {
-      // Check if the key has an index and extract it
-      const match = key.match(/In Stock(?:_(\d+))?/);
-      if (match) {
-          const index = match[1] ? parseInt(match[1], 10) : -1;
-          if (index > maxIndex) {
-              maxIndex = index;
-              maxKey = key;
-          }
+  let maxIndex = -1;
+  let maxKey = keyName;
+
+  keys.forEach((key) => {
+    // Check if the key has an index and extract it
+    const match = key.match(/In Stock(?:_(\d+))?/);
+    if (match) {
+      const index = match[1] ? parseInt(match[1], 10) : -1;
+      if (index > maxIndex) {
+        maxIndex = index;
+        maxKey = key;
       }
+    }
   });
 
   // Step 3: Return the value associated with the key having the biggest index
@@ -235,7 +242,7 @@ export function getMaxIndexKeyValue(obj, keyName) {
 }
 
 export function containsAlphabet(str) {
-  if(!str){
+  if (!str) {
     return false;
   }
   const regex = /[a-zA-Z]/;
@@ -243,13 +250,42 @@ export function containsAlphabet(str) {
 }
 
 export function removeDivideByNumber(str, number) {
-  const regex = new RegExp(`/\\s*${number}`, 'g');
-  return str.replace(regex, '');
+  const regex = new RegExp(`/\\s*${number}`, "g");
+  return str.replace(regex, "");
 }
 
 export function compareStrings(str1, str2) {
-  const normalizedStr1 = str1.replace(/\r\n/g, '\n').trim().toLowerCase();
-  const normalizedStr2 = str2.replace(/\r\n/g, '\n').trim().toLowerCase();
+  const normalizedStr1 = str1.replace(/\r\n/g, "\n").trim().toLowerCase();
+  const normalizedStr2 = str2.replace(/\r\n/g, "\n").trim().toLowerCase();
 
   return normalizedStr1 === normalizedStr2;
+}
+
+/**
+ * Removes all newline characters (\n and \r\n) from a string.
+ *
+ * @param {string} str - The string from which newlines will be removed.
+ * @returns {string} - The string with all newline characters removed.
+ */
+export function removeNewlines(str) {
+  return str.replace(/[\n\r]+/g, "");
+}
+
+/**
+ * Compares two strings without considering spaces.
+ *
+ * @param {string} str1 - The first string to compare.
+ * @param {string} str2 - The second string to compare.
+ * @returns {boolean} - Returns true if the strings are equal ignoring spaces, false otherwise.
+ */
+export function compareStringsIgnoreSpaces(str1, str2) {
+  // Remove all spaces from both strings
+  if (!str1 || !str2) {
+    return false;
+  }
+  const cleanedStr1 = str1.replace(/\s+/g, "");
+  const cleanedStr2 = str2.replace(/\s+/g, "");
+
+  // Compare the cleaned strings
+  return cleanedStr1?.toLowerCase() === cleanedStr2?.toLowerCase();
 }

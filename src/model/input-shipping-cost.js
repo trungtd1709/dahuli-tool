@@ -1,4 +1,6 @@
- export class InputShippingCost {
+import { removeNewlines } from "../shared/utils.js";
+
+export class InputShippingCost {
   constructor({
     name,
     order,
@@ -39,8 +41,9 @@
     paymentCostDivisor,
     isDomestic,
   }) {
+    removeNewlines;
     return new InputShippingCost({
-      name,
+      name: removeNewlines(name),
       order,
       shipment,
       originalShipment,
