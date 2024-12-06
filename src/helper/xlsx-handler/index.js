@@ -615,6 +615,9 @@ export async function createShipmentExcelBuffer(jsonData = []) {
         if (totalUsdFormula) {
           usdPriceFormula = `${totalUsdCellAdd} / ${quantityCellAdd}`;
         }
+        else{
+          usdPriceFormula = itemUsdPrice;
+        }
       }
       if (!totalUsdFormula && usdPriceFormula) {
         totalUsdFormula = `${usdPriceFormula} * ${itemQuantity}`;

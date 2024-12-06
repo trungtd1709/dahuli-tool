@@ -197,6 +197,7 @@ export const refactorElements = (allElements = []) => {
       totalUsd,
       order = "",
     } = element;
+
     return {
       [SHIPMENT_OUTPUT_KEY_NAME.NO]: index + 1,
       [SHIPMENT_OUTPUT_KEY_NAME.PRODUCT_NAME]: name,
@@ -361,6 +362,9 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
     const elementPriceObj = elementsPrice.find(
       (item) => item?.name?.toLowerCase() == name?.toLowerCase()
     );
+    if (name == "Package - X0028QC9OP") {
+      console.log("object");
+    }
     totalCny = totalCny.replace("totalElementQuantity", quantity);
     totalUsd = totalUsd.replace("totalElementQuantity", quantity);
     if (!isEmptyValue(elementPriceObj)) {
@@ -463,6 +467,8 @@ export const addShipmentFileToZip = async (
 
     for (const originalShipment of Object.keys(shipmentElements)) {
       const lastElementIndex = allElements[originalShipment].length + 1;
+
+      // SUBTOTAL
       const subTotalElement = {
         name: KEY_PREFERENCES.SUB_TOTAL,
         quantity: `SUM(${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}2:${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${lastElementIndex})`,
@@ -475,35 +481,47 @@ export const addShipmentFileToZip = async (
       };
       allElements[originalShipment].push(subTotalElement);
 
+      // SHIPPING COST
       const shipmentShippingCosts = allInputShippingCost.filter(
         (shippingObj) => {
-          const shippingOriginalShipment = shippingObj?.originalShipment;
-          return shippingOriginalShipment == originalShipment;
+          return (
+            shippingObj?.originalShipment == originalShipment ||
+            shippingObj?.shipment == originalShipment
+          );
         }
       );
 
-      shipmentShippingCosts.forEach((item) => {
-        const { isDomestic, order = "" } = item;
-        const totalShipmentUsd = item?.totalUsd;
-        const totalShipmentCny = item?.totalCny;
+      shipmentShippingCosts.forEach((shipmentShippingCost) => {
+        const { isDomestic, order = "" } = shipmentShippingCost;
+        const totalShipmentUsd = shipmentShippingCost?.totalUsd;
+        const totalShipmentCny = shipmentShippingCost?.totalCny;
 
         let shipmentSkuQuantity = 0;
-        allSkuList
+
+        if(shipmentShippingCost.shipment == shipmentShippingCost.originalShipment){
+
+          allSkuList
           .filter((sku) => sku?.originalShipment == originalShipment)
-          .forEach((item) => {
-            const { quantity = 0 } = item;
+          .forEach((shipmentShippingCost) => {
+            const { quantity = 0 } = shipmentShippingCost;
             shipmentSkuQuantity += quantity;
           });
+        }
 
         let totalCny = "";
         let totalUsd = "";
-        if (totalSkuShipmentQuantity == shipmentSkuQuantity) {
-          totalCny = totalShipmentCny;
-          totalUsd = totalShipmentUsd;
-        } else {
-          totalCny = `${totalShipmentCny} / ${totalSkuShipmentQuantity} * ${shipmentSkuQuantity}`;
-          totalUsd = `${totalShipmentUsd} / ${totalSkuShipmentQuantity} * ${shipmentSkuQuantity}`;
-        }
+
+        totalCny = totalShipmentCny;
+        totalUsd = totalShipmentUsd;
+
+        // ko remove comment nay
+        // if (totalSkuShipmentQuantity == shipmentSkuQuantity) {
+        //   totalCny = totalShipmentCny;
+        //   totalUsd = totalShipmentUsd;
+        // } else {
+        //   totalCny = `${totalShipmentCny} / ${totalSkuShipmentQuantity} * ${shipmentSkuQuantity}`;
+        //   totalUsd = `${totalShipmentUsd} / ${totalSkuShipmentQuantity} * ${shipmentSkuQuantity}`;
+        // }
 
         const shippingName = `${
           isDomestic
@@ -516,10 +534,13 @@ export const addShipmentFileToZip = async (
           order,
           quantity: shipmentSkuQuantity,
         };
+    
         shippingElement.totalCny = totalShipmentCny ? totalCny : "";
         shippingElement.totalUsd = totalShipmentUsd ? totalUsd : "";
         allElements[originalShipment].push(shippingElement);
       });
+      // END OF SHIPPING COST
+
       const refactorAllElements = refactorElements(
         allElements[originalShipment]
       );

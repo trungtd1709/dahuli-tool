@@ -415,8 +415,8 @@ export const transformShippingCostInput = (
   shippingArr = shippingArr.filter((item) => {
     return (
       // item.productName.includes(shipmentId) ||
-      // item.productName.includes(shipment) ||
-      item.productName.includes(originalShipment)
+      item.productName.includes(shipment)
+      // item.productName.includes(originalShipment)
     );
   });
 
@@ -425,6 +425,17 @@ export const transformShippingCostInput = (
       .toLowerCase()
       .includes(KEY_PREFERENCES.PAYMENT_COST);
   });
+
+  if (shipment != originalShipment) {
+    const isOriginalShipmentExist = shippingArr.find((item) => {
+      return item.productName.includes(originalShipment);
+    });
+    if (isOriginalShipmentExist) {
+      shippingArr = shippingArr.filter((item) => {
+        return item.productName.includes(originalShipment);
+      });
+    }
+  }
 
   return shippingArr.map((item) => {
     return transformShippingCostItem(
@@ -588,10 +599,7 @@ export const getRawOrder1Data = (files = []) => {
 
     const rawOrder1Data = xlsxToJSON({
       file: order1File,
-      paymentCostKeyName: [
-        INPUT_KEY_NAME.TOTAL_USD,
-        INPUT_KEY_NAME.TOTAL_CNY,
-      ],
+      paymentCostKeyName: [INPUT_KEY_NAME.TOTAL_USD, INPUT_KEY_NAME.TOTAL_CNY],
       exchangeRateKeyName: INPUT_KEY_NAME.TOTAL_USD,
     }).map((item) => {
       return { ...item, order, fileName: originalname };
