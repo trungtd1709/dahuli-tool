@@ -26,10 +26,11 @@ export const KEY_PREFERENCES = {
   LABELING: "labeling",
   PAYMENT_COST: "payment cost",
   PAYMENT_FEE: "payment fee",
+  PAYMENT: "payment",
   QTY: "Qty",
   SHIPPING: "shipping",
   COST: "Cost",
-  SUB_TOTAL: "SUB TOTAL"
+  SUB_TOTAL: "SUBTOTAL"
 };
 
 export const OUTPUT_KEY_NAME = {

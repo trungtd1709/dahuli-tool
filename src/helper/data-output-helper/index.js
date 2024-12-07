@@ -374,6 +374,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
     return { ...element, usdPrice, cnyPrice, totalCny, totalUsd };
   });
 
+  // PAYMENT FEE
   const paymentFeeObj = elementsPrice.find((item) => item.isPaymentFee);
   if (paymentFeeObj && paymentFeeObj?.paymentCostDivisor) {
     const { paymentCostDivisor } = paymentFeeObj;
@@ -400,7 +401,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
       const { quantity = 0 } = element;
       return acc + quantity;
     }, 0);
-    const usdPricePaymentFee = `${totalElementUsdPrice} / ${paymentCostDivisor}`;
+    const usdPricePaymentFee = `(${totalElementUsdPrice}) / ${paymentCostDivisor}`;
     const totalUsdPaymentFee = `${usdPricePaymentFee} * ${totalElementQuantity}`;
 
     const paymentFeeElement = {
@@ -414,6 +415,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
     };
     allShipmentElements = [...allShipmentElements, paymentFeeElement];
   }
+  // END OF PAYMENT FEE
 
   return allShipmentElements;
 };
@@ -466,9 +468,23 @@ export const addShipmentFileToZip = async (
     }, 0);
 
     for (const originalShipment of Object.keys(shipmentElements)) {
-      const lastElementIndex = allElements[originalShipment].length + 1;
+      const paymentCostObjIndex = allElements[originalShipment].findIndex(
+        (item) => {
+          return item.name.toLowerCase().includes(KEY_PREFERENCES.PAYMENT);
+        }
+      );
+      let paymentCostObj;
+      // get the payment obj out of the array
+      if (paymentCostObjIndex) {
+        console.log(paymentCostObjIndex);
+        paymentCostObj = allElements[originalShipment].splice(
+          paymentCostObjIndex,
+          1
+        )[0];
+      }
 
       // SUBTOTAL
+      const lastElementIndex = allElements[originalShipment].length + 1;
       const subTotalElement = {
         name: KEY_PREFERENCES.SUB_TOTAL,
         quantity: `SUM(${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}2:${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${lastElementIndex})`,
@@ -480,6 +496,7 @@ export const addShipmentFileToZip = async (
         // cnyPrice: "3.5",
       };
       allElements[originalShipment].push(subTotalElement);
+      // END OF SUBTOTAL
 
       // SHIPPING COST
       const shipmentShippingCosts = allInputShippingCost.filter(
@@ -498,14 +515,15 @@ export const addShipmentFileToZip = async (
 
         let shipmentSkuQuantity = 0;
 
-        if(shipmentShippingCost.shipment == shipmentShippingCost.originalShipment){
-
+        if (
+          shipmentShippingCost.shipment == shipmentShippingCost.originalShipment
+        ) {
           allSkuList
-          .filter((sku) => sku?.originalShipment == originalShipment)
-          .forEach((shipmentShippingCost) => {
-            const { quantity = 0 } = shipmentShippingCost;
-            shipmentSkuQuantity += quantity;
-          });
+            .filter((sku) => sku?.originalShipment == originalShipment)
+            .forEach((shipmentShippingCost) => {
+              const { quantity = 0 } = shipmentShippingCost;
+              shipmentSkuQuantity += quantity;
+            });
         }
 
         let totalCny = "";
@@ -534,12 +552,34 @@ export const addShipmentFileToZip = async (
           order,
           quantity: shipmentSkuQuantity,
         };
-    
+
         shippingElement.totalCny = totalShipmentCny ? totalCny : "";
         shippingElement.totalUsd = totalShipmentUsd ? totalUsd : "";
         allElements[originalShipment].push(shippingElement);
       });
       // END OF SHIPPING COST
+
+      // START OF PAYMENT COST
+      if (paymentCostObj) {
+        const currentElementArrLength = allElements[originalShipment].length;
+        const paymentIndex = currentElementArrLength + 1;
+        const totalUsdCell = `${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${paymentIndex}`;
+        const quantityCell = `${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${paymentIndex}`;
+        let priceUsd;
+
+        if (paymentCostObj?.totalUsd && paymentCostObj?.quantity) {
+          priceUsd = `${totalUsdCell}/${quantityCell}`;
+        }
+        const newPaymentObj = {
+          name: paymentCostObj?.name,
+          quantity: paymentCostObj?.quantity,
+          priceUsd,
+          totalUsd: paymentCostObj?.totalUsd,
+        };
+        allElements[originalShipment].push(newPaymentObj);
+      }
+
+      // END OF PAYMENT COST
 
       const refactorAllElements = refactorElements(
         allElements[originalShipment]

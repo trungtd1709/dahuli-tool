@@ -123,11 +123,10 @@ export const calculateGood = async (files = []) => {
         skuList,
         elementsPrice,
       );
-      allElements[originalShipment] = allShipmentElements;
       
+      allElements[originalShipment] = allShipmentElements;      
       allSkuList = [...allSkuList, ...skuList];
       allInputShippingCost = [...allInputShippingCost, ...inputShippingCost];
-      // console.log(inputShippingCost); 
     }
     allSkuList = addCustomizeAndPaymentCost(allSkuList, elementsPrice);
     allSkuList = addShippingAndPaymentCost(
