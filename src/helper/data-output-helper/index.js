@@ -8,7 +8,11 @@ import {
   SHIPMENT_OUTPUT_COL_ALPHABET,
   SHIPMENT_OUTPUT_KEY_NAME,
 } from "../../shared/constant.js";
-import { getUniqueValueFromObjArr, isEmptyValue } from "../../shared/utils.js";
+import {
+  compareStringsIgnoreSpaces,
+  getUniqueValueFromObjArr,
+  isEmptyValue,
+} from "../../shared/utils.js";
 import {
   cogsJsonToXlsx,
   createShipmentExcelBuffer,
@@ -374,36 +378,70 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
   // PAYMENT FEE
   const paymentFeeObj = elementsPrice.find((item) => item.isPaymentFee);
   if (paymentFeeObj && paymentFeeObj?.paymentCostDivisor) {
-    const { paymentCostDivisor } = paymentFeeObj;
+    // const { paymentCostDivisor } = paymentFeeObj;
 
     // tổng usd price của các elements
-    // const totalElementUsdPrice = allShipmentElements.reduce(
-    //   (acc, element, index) => {
-    //     const rowIndex = index + 2;
+    const totalUsdPaymentFee = allShipmentElements.reduce(
+      (acc, element, index) => {
+        const rowIndex = index + 2;
+        const totalUsdPriceAddress = `${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${rowIndex}`;
+        const { name } = element;
+        const elementPrice = elementsPrice.find((item) => {
+          return (
+            compareStringsIgnoreSpaces(item?.name, name) &&
+            item.getShipmentLeftQuantity() > 0
+          );
+        });
+        let paymentCost;
+        if (elementPrice) {
+          const paymentCostDivisor = elementPrice.getPaymentCostDivisor();
+          if (paymentCostDivisor) {
+            const quantity = element?.quantity;
+            const leftQuantity = elementPrice.setShipmentLeftQuantity(
+              element.quantity
+            );
+            paymentCost = `${totalUsdPriceAddress} / ${paymentCostDivisor}`;
 
-    //     // address của usd price các element khác, tính payment cost dựa trên đó
-    //     const totalUsdPriceAddress = `${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${rowIndex}`;
-    //     if (!acc) {
-    //       acc = totalUsdPriceAddress;
-    //     } else {
-    //       acc = `${acc} + ${totalUsdPriceAddress}`;
-    //     }
-    //     return acc;
-    //   },
-    //   ""
-    // );
-    const totalElementUsdPrice = `SUM(${
-      SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD
-    }2:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${
-      allShipmentElements.length + 1
-    })`;
+            if (leftQuantity > 0) {
+              const nextElePrice = elementsPrice.find((item) => {
+                return (
+                  compareStringsIgnoreSpaces(item?.name, name) &&
+                  item.getShipmentLeftQuantity() > 0
+                );
+              });
+              if (nextElePrice) {
+                nextElePrice.setShipmentLeftQuantity(leftQuantity);
+                const nextElePaymentCostDivisor =
+                  nextElePrice.getPaymentCostDivisor();
+                const quantityInOldEle = quantity - leftQuantity;
+                paymentCost = `${totalUsdPriceAddress} / ${quantity} * ${quantityInOldEle} / ${paymentCostDivisor} + ${totalUsdPriceAddress} / ${quantity} * ${leftQuantity} / ${nextElePaymentCostDivisor}`;
+              }
+            }
+          }
+        }
+
+        // address của usd price các element khác, tính payment cost dựa trên đó
+        if (!acc) {
+          acc = paymentCost;
+        } else {
+          acc = `${acc} + ${paymentCost}`;
+        }
+        return acc;
+      },
+      ""
+    );
+    // const totalElementUsdPrice = `SUM(${
+    //   SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD
+    // }2:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${
+    //   allShipmentElements.length + 1
+    // })`;
 
     // Tổng quantity của các element trong file shipment này
     const totalElementQuantity = allShipmentElements.reduce((acc, element) => {
       const { quantity = 0 } = element;
       return acc + quantity;
     }, 0);
-    const totalUsdPaymentFee = `${totalElementUsdPrice} / ${paymentCostDivisor}`;
+    // const totalUsdPaymentFee = `${totalElementUsdPrice} / ${paymentCostDivisor}`;
     const usdPricePaymentFee = `${totalUsdPaymentFee} / ${totalElementQuantity}`;
 
     const paymentFeeElement = {

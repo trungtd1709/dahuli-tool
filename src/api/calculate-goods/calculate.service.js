@@ -123,7 +123,7 @@ export const calculateGood = async (files = []) => {
         skuList,
         elementsPrice,
       );
-      
+
       allElements[originalShipment] = allShipmentElements;      
       allSkuList = [...allSkuList, ...skuList];
       allInputShippingCost = [...allInputShippingCost, ...inputShippingCost];
@@ -144,7 +144,7 @@ export const calculateGood = async (files = []) => {
       allElements,
       allInputShippingCost,
       allSkuList,
-      zip
+      zip,
     );
     
     await addShippingFileToZip(
