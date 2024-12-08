@@ -362,9 +362,6 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
     const elementPriceObj = elementsPrice.find(
       (item) => item?.name?.toLowerCase() == name?.toLowerCase()
     );
-    if (name == "Package - X0028QC9OP") {
-      console.log("object");
-    }
     totalCny = totalCny.replace("totalElementQuantity", quantity);
     totalUsd = totalUsd.replace("totalElementQuantity", quantity);
     if (!isEmptyValue(elementPriceObj)) {
@@ -380,29 +377,34 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
     const { paymentCostDivisor } = paymentFeeObj;
 
     // tổng usd price của các elements
-    const totalElementUsdPrice = allShipmentElements.reduce(
-      (acc, element, index) => {
-        const rowIndex = index + 2;
+    // const totalElementUsdPrice = allShipmentElements.reduce(
+    //   (acc, element, index) => {
+    //     const rowIndex = index + 2;
 
-        // address của usd price các element khác, tính payment cost dựa trên đó
-        const usdPriceAddress = `${SHIPMENT_OUTPUT_COL_ALPHABET.USD_PRICE}${rowIndex}`;
-        if (!acc) {
-          acc = usdPriceAddress;
-        } else {
-          acc = `${acc} + ${usdPriceAddress}`;
-        }
-        return acc;
-      },
-      ""
-    );
+    //     // address của usd price các element khác, tính payment cost dựa trên đó
+    //     const totalUsdPriceAddress = `${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${rowIndex}`;
+    //     if (!acc) {
+    //       acc = totalUsdPriceAddress;
+    //     } else {
+    //       acc = `${acc} + ${totalUsdPriceAddress}`;
+    //     }
+    //     return acc;
+    //   },
+    //   ""
+    // );
+    const totalElementUsdPrice = `SUM(${
+      SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD
+    }2:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${
+      allShipmentElements.length + 1
+    })`;
 
     // Tổng quantity của các element trong file shipment này
     const totalElementQuantity = allShipmentElements.reduce((acc, element) => {
       const { quantity = 0 } = element;
       return acc + quantity;
     }, 0);
-    const usdPricePaymentFee = `(${totalElementUsdPrice}) / ${paymentCostDivisor}`;
-    const totalUsdPaymentFee = `${usdPricePaymentFee} * ${totalElementQuantity}`;
+    const totalUsdPaymentFee = `${totalElementUsdPrice} / ${paymentCostDivisor}`;
+    const usdPricePaymentFee = `${totalUsdPaymentFee} / ${totalElementQuantity}`;
 
     const paymentFeeElement = {
       name: paymentFeeObj?.name,
