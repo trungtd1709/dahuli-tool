@@ -29,7 +29,7 @@ export class ElementPrice {
     this.quantity = quantity;
     this.leftQuantity = leftQuantity;
     this.paymentCostLeftQuantity = leftQuantity;
-    this.shipmentLeftQuantity = leftQuantity;
+    this.shipmentPaymentLeftQuantity = leftQuantity;
     this.domesticShippingCost = domesticShippingCost;
     this.fileOrder = fileOrder;
     this.paymentCostDivisor = paymentCostDivisor;
@@ -82,7 +82,7 @@ export class ElementPrice {
       quantity,
       leftQuantity,
       paymentCostLeftQuantity: leftQuantity,
-      shipmentLeftQuantity: leftQuantity,
+      shipmentPaymentLeftQuantity: leftQuantity,
       domesticShippingCost,
       fileOrder,
       paymentCostDivisor,
@@ -134,8 +134,8 @@ export class ElementPrice {
     return this.paymentCostLeftQuantity;
   }
 
-  getShipmentLeftQuantity(){
-    return this.shipmentLeftQuantity;
+  getShipmentPaymentLeftQuantity(){
+    return this.shipmentPaymentLeftQuantity;
   }
 
   setPaymentCostLeftQuantity(quantity) {
@@ -156,17 +156,17 @@ export class ElementPrice {
     }
   }
 
-  setShipmentLeftQuantity(quantity) {
+  setShipmentPaymentLeftQuantity(quantity) {
     if (quantity) {
-      let newLeftQuantity = this.shipmentLeftQuantity - quantity;
+      let newLeftQuantity = this.shipmentPaymentLeftQuantity - quantity;
       // >= 0 thì xử lý như bình thường
       if (newLeftQuantity >= 0) {
-        this.shipmentLeftQuantity = newLeftQuantity;
+        this.shipmentPaymentLeftQuantity = newLeftQuantity;
         return 0;
       }
       // < 0 thì set leftQuantity = 0 r xử lý tiếp
       else {
-        this.shipmentLeftQuantity = 0;
+        this.shipmentPaymentLeftQuantity = 0;
         return -newLeftQuantity;
       }
     } else {

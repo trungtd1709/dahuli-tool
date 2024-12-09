@@ -389,7 +389,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
         const elementPrice = elementsPrice.find((item) => {
           return (
             compareStringsIgnoreSpaces(item?.name, name) &&
-            item.getShipmentLeftQuantity() > 0
+            item.getShipmentPaymentLeftQuantity() > 0
           );
         });
         let paymentCost;
@@ -397,7 +397,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
           const paymentCostDivisor = elementPrice.getPaymentCostDivisor();
           if (paymentCostDivisor) {
             const quantity = element?.quantity;
-            const leftQuantity = elementPrice.setShipmentLeftQuantity(
+            const leftQuantity = elementPrice.setShipmentPaymentLeftQuantity(
               element.quantity
             );
             paymentCost = `${totalUsdPriceAddress} / ${paymentCostDivisor}`;
@@ -406,11 +406,11 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
               const nextElePrice = elementsPrice.find((item) => {
                 return (
                   compareStringsIgnoreSpaces(item?.name, name) &&
-                  item.getShipmentLeftQuantity() > 0
+                  item.getShipmentPaymentLeftQuantity() > 0
                 );
               });
               if (nextElePrice) {
-                nextElePrice.setShipmentLeftQuantity(leftQuantity);
+                nextElePrice.setShipmentPaymentLeftQuantity(leftQuantity);
                 const nextElePaymentCostDivisor =
                   nextElePrice.getPaymentCostDivisor();
                 const quantityInOldEle = quantity - leftQuantity;
