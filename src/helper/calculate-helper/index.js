@@ -266,7 +266,7 @@ export const addCustomizeAndPaymentCost = (skuList, elementsPrice) => {
             !isEmptyValue(paymentCostDivisor) &&
             !isEmptyValue(secondFilePaymentCostDivisor)
           ) {
-            customPackageCostPaymentCost = `${customPackageCostCellAddress} / ${paymentCostDivisor} * ${firstFileQuantity} / ${quantity} + ${customPackageCostCellAddress} / ${paymentCostDivisor} * ${remainingQuantity} / ${quantity}`;
+            customPackageCostPaymentCost = `${customPackageCostCellAddress} / ${paymentCostDivisor} * ${firstFileQuantity} / ${quantity} + ${customPackageCostCellAddress} / ${secondFilePaymentCostDivisor} * ${remainingQuantity} / ${quantity}`;
           }
 
           secondCustomizeObj.setLeftQuantity(remainingQuantity);
@@ -278,7 +278,6 @@ export const addCustomizeAndPaymentCost = (skuList, elementsPrice) => {
           ) {
             // "270.6 / 660 * 244 / quantityCell + NaN * 76 / quantityCell"
             customPackageCostFormula = `${customizeObj.getUsdFormula()} * ${firstFileQuantity} / quantityCell + ${secondCustomizeUsdFormula} * ${remainingQuantity} / quantityCell`;
-
             totalUsdCustomPackageCost = `${customizeObj.getUsdFormula()} * ${firstFileQuantity} + ${secondCustomizeUsdFormula} * ${remainingQuantity}`;
           }
 

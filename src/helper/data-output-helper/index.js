@@ -516,7 +516,6 @@ export const addShipmentFileToZip = async (
       let paymentCostObj;
       // get the payment obj out of the array
       if (paymentCostObjIndex) {
-        console.log(paymentCostObjIndex);
         paymentCostObj = allElements[originalShipment].splice(
           paymentCostObjIndex,
           1

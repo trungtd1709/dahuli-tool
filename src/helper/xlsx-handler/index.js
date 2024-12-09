@@ -772,7 +772,6 @@ export async function modifyOrder1File(file, allElements = {}) {
     if (colKeyName === SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK) {
       oldInStockIndex = colNumber;
       const test = XlsxUtils.columnIndexToLetter(oldInStockIndex);
-      console.log(test);
     }
 
     if (colKeyName === SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK) {
