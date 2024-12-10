@@ -25,7 +25,11 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
   return skuList.map((sku) => {
     let ppuPrice = sku.elements.reduce((acc, element) => {
       let newPpuPrice = "";
-      const { SKU } = sku;
+      const { SKU, originalShipment } = sku;
+      if(element.name == "Rotating Folding Hook (Black)"){
+        console.log(originalShipment);
+        console.log("test");
+      }
 
       // quantity của 1 element trong SKU
       const elementQuantity = parseInt(element?.quantity) ?? 1;
@@ -44,10 +48,9 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
 
       const exchangeRate = elementPrice?.exchangeRate;
       const cnyPrice = elementPrice.getCnyFormula();
-      const usdPrice = elementPrice.getUsdFormula();
+      let usdPrice = elementPrice.getUsdFormula();
       const skuQuantity = sku?.quantity ?? 0;
       const quantity = elementQuantity * skuQuantity;
-
       const remainingQuantity = elementPrice.setLeftQuantity(quantity);
 
       let eleShipmentTotalCny = "";
@@ -59,10 +62,12 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         // newPpuPrice = `${usdPrice} * ${quantity} / quantityCell`;
         newPpuPrice = `${elementPrice.getUsdFormula()} * ${elementQuantity}`;
         if (!isEmptyValue(elementPrice.getCnyFormula())) {
-          eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * totalElementQuantity`;
+          // eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * totalElementQuantity`;
+          eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${quantity}`;
         }
         if (!isEmptyValue(elementPrice.getUsdFormula())) {
-          eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * totalElementQuantity`;
+          // eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * totalElementQuantity`;
+          eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantity}`;
         }
       }
       if (remainingQuantity > 0) {
@@ -78,9 +83,10 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         if (!newElementPrice) {
           throw new BadRequestError(MISSING_ELEMENT_DATA);
         }
+        const quantityGoToNewOrder = quantity - remainingQuantity;
+        usdPrice = `(${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * ${remainingQuantity}) / ${quantity}`;
         order = `${order} + ${newElementPrice.order}`;
         newElementPrice.setLeftQuantity(remainingQuantity);
-        const quantityGoToNewOrder = quantity - remainingQuantity;
         if (isEmptyValue(newElementPrice.getUsdFormula())) {
           console.log(newElementPrice.getUsdFormula());
           throw new BadRequestError(
@@ -88,16 +94,14 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
           );
         }
         newPpuPrice = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} / quantityCell + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / quantityCell`;
-
-        console.log(elementPrice.getUsdFormula());
-        // if (SKU == "CY-CI3D-CHYK") {
-        //   console.log("test");
-        // }
+        
         if (!isEmptyValue(elementPrice.getUsdFormula())) {
-          eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
+          // eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
+          eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * ${remainingQuantity}`;
         }
         if (!isEmptyValue(elementPrice.getCnyFormula())) {
-          eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getCnyFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
+          // eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getCnyFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
+          eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getCnyFormula()} * ${remainingQuantity}`;
         }
       }
       element.usdPrice = usdPrice;
@@ -115,10 +119,6 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       // if (domesticShippingCost) {
       //   const usdDomesticShippingCost = `${domesticShippingCost} / ${exchangeRate}`;
       //   totalElementsPrice = `(${usdPrice} + ${usdDomesticShippingCost}) * ${quantity}`;
-      // }
-
-      // if (SKU == "FG-BVUM-HOJX") {
-      //   console.log("test");
       // }
 
       if (!acc) {
@@ -180,7 +180,7 @@ export const addPackingCost = (skuList, elementsPrice) => {
  * @param {Array<ElementPrice>} elementsPrice - The array of element prices.
  * @returns {Array} The array of objects with their total price.
  */
-export const addPaymentCostToCogs = (skuList, elementsPrice) => {
+export const addPpuPaymentCost = (skuList, elementsPrice) => {
   return skuList.map((sku, index) => {
     sku.elements.forEach((element) => {
       const elementName = element?.name;
@@ -447,3 +447,23 @@ const findEleWithLowestFileOrder = (filteredElementsPrice = []) => {
   }, null);
   return result;
 };
+
+export function addQuantityToFormula(formula, commonFactor, quantity) {
+  // Create a regex pattern to find the `commonFactor` in the formula
+  const regex = new RegExp(`(${commonFactor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})( *\\* *\\d+)?`, 'g');
+
+  // Replace the common factor in the formula
+  const updatedFormula = formula.replace(regex, (match, baseFactor, multiplierPart) => {
+      if (multiplierPart) {
+          // If there's already a multiplier, update it by adding the quantity
+          const currentMultiplier = parseFloat(multiplierPart.replace(/[^0-9.]/g, ''));
+          const newMultiplier = currentMultiplier + quantity;
+          return `${baseFactor} * ${newMultiplier}`;
+      } else {
+          // If no multiplier exists, add the quantity as the new multiplier
+          return `${baseFactor} * ${quantity + 1}`; // Add 1 to include the original single instance
+      }
+  });
+
+  return updatedFormula;
+}

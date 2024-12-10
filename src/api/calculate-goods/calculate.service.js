@@ -5,7 +5,7 @@ import {
   addCogsAndAmount,
   addCustomizeAndPaymentCost,
   addPackingCost,
-  addPaymentCostToCogs,
+  addPpuPaymentCost,
   addShippingAndPaymentCost,
   addTotalAmountAndQuantity,
   calculatePpuPrice,
@@ -117,7 +117,7 @@ export const calculateGood = async (files = []) => {
       skuList = addCogsAndAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
       skuList = calculatePpuPrice(skuList, elementsPrice);
-      // skuList = addPaymentCostToCogs(skuList, elementsPrice);
+      // skuList = addPpuPaymentCost(skuList, elementsPrice);
 
       const allShipmentElements = await getAllShipmentElements(
         skuList,
@@ -134,7 +134,7 @@ export const calculateGood = async (files = []) => {
       allInputShippingCost,
       totalSkuType
     );
-    allSkuList = addPaymentCostToCogs(allSkuList, elementsPrice);
+    allSkuList = addPpuPaymentCost(allSkuList, elementsPrice);
     allSkuList = removeSkuKey(allSkuList);
 
     await addCogsFileToZip(allSkuList, zip, shipment);

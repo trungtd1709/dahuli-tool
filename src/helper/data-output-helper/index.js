@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import _ from "lodash";
 import {
   FILE_TYPE,
   INPUT_KEY_NAME,
@@ -9,18 +10,19 @@ import {
   SHIPMENT_OUTPUT_KEY_NAME,
 } from "../../shared/constant.js";
 import {
+  compareStringsIgnoreCase,
   compareStringsIgnoreSpaces,
   getUniqueValueFromObjArr,
   isEmptyValue,
 } from "../../shared/utils.js";
+import { extractNumberFromFilename } from "../data-input-helper/index.js";
 import {
   cogsJsonToXlsx,
   createShipmentExcelBuffer,
   modifyOrder1File,
   modifyShippingFile,
 } from "../xlsx-handler/index.js";
-import { extractNumberFromFilename } from "../data-input-helper/index.js";
-import _ from "lodash";
+import { addQuantityToFormula } from "../calculate-helper/index.js";
 
 /// Nếu đợt file gồm nhiều shipment thì phải đổi công thức
 const checkMultipleShipmentAndChange = (skuList = []) => {
@@ -353,7 +355,39 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
   allShipmentElements = Object.values(
     allShipmentElements.reduce((accumulator, current) => {
       if (accumulator[current.name]) {
-        accumulator[current.name].quantity += current.quantity;
+        const { quantity, usdPrice, cnyPrice } = current;
+        if (usdPrice) {
+          accumulator[current.name].quantity += current.quantity;
+          accumulator[current.name].totalCny = `${
+            accumulator[current.name].totalCny
+          } + ${current.totalCny}`;
+
+          let accumulatorTotalUsd = accumulator[current.name].totalUsd;
+          if (accumulatorTotalUsd) {
+            if (accumulatorTotalUsd?.includes(usdPrice)) {
+              accumulator[current.name].totalUsd = addQuantityToFormula(
+                accumulatorTotalUsd,
+                usdPrice,
+                quantity
+              );
+            } else {
+              accumulator[current.name].totalUsd = `${accumulatorTotalUsd} + ${current.totalUsd}`;
+            }
+          }
+
+          let accumulatorTotalCny = accumulator[current.name].totalCny;
+          if (accumulatorTotalCny) {
+            if (accumulatorTotalCny?.includes(cnyPrice)) {
+              accumulator[current.name].totalCny = addQuantityToFormula(
+                accumulatorTotalCny,
+                cnyPrice,
+                quantity
+              );
+            } else {
+              accumulator[current.name].totalCny = `${accumulatorTotalCny} + ${current.totalCny}`;
+            }
+          }
+        }
       } else {
         accumulator[current.name] = { ...current };
       }
@@ -363,11 +397,11 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
 
   allShipmentElements = allShipmentElements.map((element) => {
     let { name, quantity, usdPrice, cnyPrice, totalCny, totalUsd } = element;
-    const elementPriceObj = elementsPrice.find(
-      (item) => item?.name?.toLowerCase() == name?.toLowerCase()
+    const elementPriceObj = elementsPrice.find((item) =>
+      compareStringsIgnoreCase(item?.name, name)
     );
-    totalCny = totalCny.replace("totalElementQuantity", quantity);
-    totalUsd = totalUsd.replace("totalElementQuantity", quantity);
+    // totalCny = totalCny.replace("totalElementQuantity", quantity);
+    // totalUsd = totalUsd.replace("totalElementQuantity", quantity);
     if (!isEmptyValue(elementPriceObj)) {
       usdPrice = elementPriceObj.getUsdFormula();
       cnyPrice = elementPriceObj.cnyPrice;
