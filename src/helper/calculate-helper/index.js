@@ -26,10 +26,6 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
     let ppuPrice = sku.elements.reduce((acc, element) => {
       let newPpuPrice = "";
       const { SKU, originalShipment } = sku;
-      if(element.name == "Rotating Folding Hook (Black)"){
-        console.log(originalShipment);
-        console.log("test");
-      }
 
       // quantity của 1 element trong SKU
       const elementQuantity = parseInt(element?.quantity) ?? 1;
@@ -190,9 +186,6 @@ export const addPpuPaymentCost = (skuList, elementsPrice) => {
         ) ?? {};
       const { paymentCostDivisor } = elementPrice;
       if (paymentCostDivisor) {
-        // if(paymentCostDivisor == '200'){
-        //   console.log('jhgbjhkerbjkebrjher');
-        // }
         elementPrice.setPaymentCostLeftQuantity(
           element.quantity * sku.quantity
         );
@@ -213,11 +206,11 @@ export const addPpuPaymentCost = (skuList, elementsPrice) => {
  * Calculates the total price to make each object.
  * @param {Array} skuList - The array of objects.
  * @param {Array<ElementPrice>} elementsPrice - The array of element prices.
+ * @param {Array<ElementPrice>} allElements - The array of elements by shipment.
  * @returns {Array} The array of objects with their total price.
  */
-export const addCustomizeAndPaymentCost = (skuList, elementsPrice) => {
+export const addCustomizeAndPaymentCost = (skuList, elementsPrice, allElements) => {
   return skuList.map((item, index) => {
-    const { SKU } = item;
     const customizePackage = item?.customizePackage;
     const customizeObj = findEleWithLowestFileOrder(
       elementsPrice.filter(
@@ -327,7 +320,8 @@ export const addCustomizeAndPaymentCost = (skuList, elementsPrice) => {
 export const addShippingAndPaymentCost = (
   skuList = [],
   shippingCostArr = [],
-  totalSkuType
+  totalSkuType,
+  allElements
 ) => {
   return skuList.map((item, index) => {
     const { shipmentId } = skuList[index];

@@ -33,7 +33,7 @@ export class ElementPrice {
     this.domesticShippingCost = domesticShippingCost;
     this.fileOrder = fileOrder;
     this.paymentCostDivisor = paymentCostDivisor;
-    this.isPaymentFee = isPaymentFee
+    this.isPaymentFee = isPaymentFee;
   }
 
   // Method in the class
@@ -58,18 +58,17 @@ export class ElementPrice {
     if (fileName) {
       fileOrder = extractNumberFromFilename(fileName);
     }
-    if(isEmptyValue(cnyPrice)){
+    if (isEmptyValue(cnyPrice)) {
       cnyPrice = null;
     }
-    if(isEmptyValue(usdPrice)){
+    if (isEmptyValue(usdPrice)) {
       usdPrice = null;
     }
-    if(isEmptyValue(exchangeRate)){
+    if (isEmptyValue(exchangeRate)) {
       exchangeRate = null;
     }
 
     let isPaymentFee = XlsxUtils.checkIsPaymentFee(name);
-    
 
     return new ElementPrice({
       name: removeNewlines(name),
@@ -86,7 +85,7 @@ export class ElementPrice {
       domesticShippingCost,
       fileOrder,
       paymentCostDivisor,
-      isPaymentFee
+      isPaymentFee,
     });
   }
 
@@ -126,15 +125,15 @@ export class ElementPrice {
     }
   }
 
-  getLeftQuantity(){
+  getLeftQuantity() {
     return this.leftQuantity;
   }
 
-  getPaymentCostLeftQuantity(){
+  getPaymentCostLeftQuantity() {
     return this.paymentCostLeftQuantity;
   }
 
-  getShipmentPaymentLeftQuantity(){
+  getShipmentPaymentLeftQuantity() {
     return this.shipmentPaymentLeftQuantity;
   }
 
@@ -185,7 +184,11 @@ export class ElementPrice {
   }
 
   getCnyFormula() {
-    return this.cnyPrice;
+    if (this.cnyPrice) {
+      return this.cnyPrice;
+    } else {
+      return 0;
+    }
   }
 
   getPaymentCostDivisor() {

@@ -80,10 +80,7 @@ export const calculateGood = async (files = []) => {
         totalShipmentQuantity
       );
 
-      const totalOrder1Data = transformOrder1List(
-        rawJsonOrder1,
-        shipmentId
-      );
+      const totalOrder1Data = transformOrder1List(rawJsonOrder1, shipmentId);
       const {
         elementsPriceArr = [],
         domesticShippingCostArr = [],
@@ -121,18 +118,24 @@ export const calculateGood = async (files = []) => {
 
       const allShipmentElements = await getAllShipmentElements(
         skuList,
-        elementsPrice,
+        elementsPrice
       );
 
-      allElements[originalShipment] = allShipmentElements;      
+      allElements[originalShipment] = allShipmentElements;
       allSkuList = [...allSkuList, ...skuList];
       allInputShippingCost = [...allInputShippingCost, ...inputShippingCost];
     }
-    allSkuList = addCustomizeAndPaymentCost(allSkuList, elementsPrice);
+
+    allSkuList = addCustomizeAndPaymentCost(
+      allSkuList,
+      elementsPrice,
+      allElements
+    );
     allSkuList = addShippingAndPaymentCost(
       allSkuList,
       allInputShippingCost,
-      totalSkuType
+      totalSkuType,
+      allElements
     );
     allSkuList = addPpuPaymentCost(allSkuList, elementsPrice);
     allSkuList = removeSkuKey(allSkuList);
@@ -144,9 +147,9 @@ export const calculateGood = async (files = []) => {
       allElements,
       allInputShippingCost,
       allSkuList,
-      zip,
+      zip
     );
-    
+
     await addShippingFileToZip(
       files,
       zip,
