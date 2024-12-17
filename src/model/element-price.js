@@ -184,11 +184,11 @@ export class ElementPrice {
   }
 
   getCnyFormula() {
-    if (this.cnyPrice) {
+    // if (this.cnyPrice) {
       return this.cnyPrice;
-    } else {
-      return 0;
-    }
+    // } else {
+    //   return 0;
+    // }
   }
 
   getPaymentCostDivisor() {

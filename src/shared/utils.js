@@ -255,8 +255,8 @@ export function removeDivideByNumber(str, number) {
 }
 
 export function compareStrings(str1, str2) {
-  const normalizedStr1 = str1.replace(/\r\n/g, "\n").trim().toLowerCase();
-  const normalizedStr2 = str2.replace(/\r\n/g, "\n").trim().toLowerCase();
+  const normalizedStr1 = str1?.replace(/\r\n/g, "\n")?.trim()?.toLowerCase();
+  const normalizedStr2 = str2?.replace(/\r\n/g, "\n")?.trim()?.toLowerCase();
 
   return normalizedStr1 === normalizedStr2;
 }

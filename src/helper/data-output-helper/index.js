@@ -239,7 +239,6 @@ const removeObjKey = (skuList, keyName) => {
  * @param {JSZip} zip
  */
 export const addOrder1FileToZip = async (files = [], zip, allElements) => {
-  //
   let fileIndexNeedToChange = 0;
   const order1Files = files
     .filter((file) => file.fileType === FILE_TYPE.ORDER_1)
@@ -271,6 +270,7 @@ export const addOrder1FileToZip = async (files = [], zip, allElements) => {
       zip.file(order1File.originalname, order1File.buffer);
     }
   }
+  console.log(fileIndexNeedToChange);
 };
 
 /**
@@ -344,8 +344,14 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
       }
       elements = elements.map((element) => {
         const elementQuantity = element?.quantity ?? 0;
+
         const totalElementQuantity = elementQuantity * quantity;
-        return { ...element, shipment, quantity: totalElementQuantity };
+        return {
+          ...element,
+          shipment,
+          quantity: totalElementQuantity,
+          leftQuantity: totalElementQuantity,
+        };
       });
       return elements;
     })
@@ -377,28 +383,20 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
             }
           }
         }
-        if(name == "Rotating Folding Hook (Black)"){
-          console.log("object");
+        let accumulatorTotalCny = accumulator[current.name].totalCny;
+        if (accumulatorTotalCny) {
+          if (accumulatorTotalCny?.includes(cnyPrice)) {
+            accumulator[current.name].totalCny = addQuantityToFormula(
+              accumulatorTotalCny,
+              cnyPrice,
+              quantity
+            );
+          } else {
+            accumulator[
+              current.name
+            ].totalCny = `${accumulatorTotalCny} + ${current.totalCny}`;
+          }
         }
-        // if (cnyPrice) {
-          if(name == "Rotating Folding Hook (Black)"){
-            console.log(current.totalCny);
-            console.log("object");
-          }
-          let accumulatorTotalCny = accumulator[current.name].totalCny;
-          if (accumulatorTotalCny) {
-            if (accumulatorTotalCny?.includes(cnyPrice)) {
-              accumulator[current.name].totalCny = addQuantityToFormula(
-                accumulatorTotalCny,
-                cnyPrice,
-                quantity
-              );
-            } else {
-              accumulator[
-                current.name
-              ].totalCny = `${accumulatorTotalCny} + ${current.totalCny}`;
-            }
-          }
         // }
       } else {
         accumulator[current.name] = { ...current };
@@ -551,6 +549,20 @@ export const addShipmentFileToZip = async (
     }, 0);
 
     for (const originalShipment of Object.keys(shipmentElements)) {
+      allElements[originalShipment] = allElements[originalShipment].map(
+        (item, index) => {
+          const { leftQuantity, ...leftItem } = item;
+          if (
+            item.totalCny?.toString()?.includes("null") ||
+            item.totalCny?.toString()?.includes("undefined")
+          ) {
+            return { ...leftItem, totalCny: "", cnyPrice: "" };
+          } else {
+            return { ...leftItem };
+          }
+        }
+      );
+
       const paymentCostObjIndex = allElements[originalShipment].findIndex(
         (item) => {
           return item.name.toLowerCase().includes(KEY_PREFERENCES.PAYMENT);

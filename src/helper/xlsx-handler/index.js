@@ -195,8 +195,8 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
 // lấy số sau dấu /
 function extractDivisor(formula) {
   // if (formula.includes("SUM")) {
-    const match = formula.match(/\/\s*([\d,\.]+)/);
-    return match ? match[1].trim() : null;
+  const match = formula.match(/\/\s*([\d,\.]+)/);
+  return match ? match[1].trim() : null;
   // } else {
   //   return null;
   // }
@@ -614,8 +614,7 @@ export async function createShipmentExcelBuffer(jsonData = []) {
       } else {
         if (totalUsdFormula) {
           usdPriceFormula = `${totalUsdCellAdd} / ${quantityCellAdd}`;
-        }
-        else{
+        } else {
           usdPriceFormula = itemUsdPrice;
         }
       }
@@ -771,7 +770,6 @@ export async function modifyOrder1File(file, allElements = {}) {
 
     if (colKeyName === SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK) {
       oldInStockIndex = colNumber;
-      const test = XlsxUtils.columnIndexToLetter(oldInStockIndex);
     }
 
     if (colKeyName === SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK) {
@@ -812,7 +810,7 @@ export async function modifyOrder1File(file, allElements = {}) {
     ? headerRow.cellCount + 2
     : headerRow.cellCount + 1;
 
-  // add quantity
+  // add quantity (left quantity)
   shipmentKeys.forEach((shipmentKey, index) => {
     const newColIndex = shipmentStartColIndex + index;
     headerRow.getCell(newColIndex).value = shipmentKey;
@@ -826,11 +824,15 @@ export async function modifyOrder1File(file, allElements = {}) {
 
       const rowProductName = row
         .getCell(productNameColumnIndex)
-        .value.toLowerCase();
+        ?.value?.toLowerCase();
+
       const shipmentDatas = allElements[shipmentKey] ?? [];
 
       const productObj = shipmentDatas.find((shipmentData) => {
-        return shipmentData?.name?.toLowerCase() == rowProductName;
+        return compareStrings(
+          shipmentData?.name?.toLowerCase(),
+          rowProductName
+        );
       });
 
       if (!isEmptyValue(productObj)) {
@@ -917,17 +919,19 @@ export async function modifyOrder1File(file, allElements = {}) {
     negativeInStockPlaceArr.forEach((negativeInStockPlace) => {
       const productName = negativeInStockPlace.productName;
       const shipment = negativeInStockPlace.shipment;
-      const leftValue = negativeInStockPlace.leftValue;
+      const leftValue = negativeInStockPlace.getLeftValue();
 
-      const productIndex = allElements[shipment].findIndex(
-        (item) => item.name == productName
+      const productIndex = allElements[shipment].findIndex((item) =>
+        compareStrings(item.name, productName)
       );
       if (productIndex < 0) {
-        throw new BadRequestError(CANT_FIND_PRODUCT);
+        throw new BadRequestError(`${CANT_FIND_PRODUCT}: ${productName}`);
       }
       // ko remove comment này
       // allElements[shipment][productIndex].quantity = leftValue;
-      newAllElements[shipment].push(allElements[shipment][productIndex]);
+      allElements[shipment][productIndex].leftQuantity = leftValue;
+
+      // newAllElements[shipment].push(allElements[shipment][productIndex]);
     });
 
     // copy obj
@@ -1026,9 +1030,9 @@ export async function modifyOrder1File(file, allElements = {}) {
     }
   }
 
-  if (oldInStockIndex) {
-    XlsxUtils.clearColumnData(worksheet, oldInStockIndex);
-  }
+  // if (oldInStockIndex) {
+  //   XlsxUtils.clearColumnData(worksheet, oldInStockIndex);
+  // }
 
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
   return { modifiedBuffer, negativeInStockPlaceArr };
@@ -1060,7 +1064,6 @@ function checkNegative(
   if (isNaN(totalShipmentQuantity) || totalShipmentQuantity < 0) {
     return negativeInStockPlaceArr;
   }
-  // const totalShipmentQuantity = rawTotalShipmentQuantity;
 
   // Step 2: Get the values in the shipment range
   let shipmentSum = 0;

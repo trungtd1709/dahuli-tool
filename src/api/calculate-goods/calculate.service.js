@@ -141,15 +141,8 @@ export const calculateGood = async (files = []) => {
     allSkuList = removeSkuKey(allSkuList);
 
     await addCogsFileToZip(allSkuList, zip, shipment);
+    
     await addOrder1FileToZip(files, zip, allElements);
-
-    allElements = await addShipmentFileToZip(
-      allElements,
-      allInputShippingCost,
-      allSkuList,
-      zip
-    );
-
     await addShippingFileToZip(
       files,
       zip,
@@ -157,6 +150,13 @@ export const calculateGood = async (files = []) => {
       allInputShippingCost,
       inputTsvDataArr
     );
+    await addShipmentFileToZip(
+      allElements,
+      allInputShippingCost,
+      allSkuList,
+      zip
+    );
+
 
     const zipFile = zip.generateAsync({ type: "nodebuffer" });
     return zipFile;
