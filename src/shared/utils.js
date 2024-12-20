@@ -255,11 +255,15 @@ export function removeDivideByNumber(str, number) {
 }
 
 export function compareStrings(str1, str2) {
-  const normalizedStr1 = str1?.replace(/\r\n/g, "\n")?.trim()?.toLowerCase();
-  const normalizedStr2 = str2?.replace(/\r\n/g, "\n")?.trim()?.toLowerCase();
+  const normalizeString = (str) =>
+    str?.replace(/\s+/g, "")?.replace(/\r\n/g, "\n")?.trim()?.toLowerCase();
+
+  const normalizedStr1 = normalizeString(str1);
+  const normalizedStr2 = normalizeString(str2);
 
   return normalizedStr1 === normalizedStr2;
 }
+
 
 /**
  * Removes all newline characters (\n and \r\n) from a string.
@@ -288,4 +292,10 @@ export function compareStringsIgnoreSpaces(str1, str2) {
 
   // Compare the cleaned strings
   return cleanedStr1?.toLowerCase() === cleanedStr2?.toLowerCase();
+}
+
+export class Utils {
+  static includes(string, part) {
+    return string?.toLowerCase()?.includes(part?.toLowerCase()?.trim());
+  }
 }

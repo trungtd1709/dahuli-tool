@@ -16,10 +16,11 @@ import {
   SHIPMENT_OUTPUT_KEY_NAME,
 } from "../../shared/constant.js";
 import {
-  CANT_FIND_PRODUCT,
+  CANT_FIND_ELEMENT,
   MISSING_DATA_COGS_FILE,
 } from "../../shared/err-const.js";
 import {
+  Utils,
   compareStrings,
   containsAlphabet,
   isEmptyValue,
@@ -608,7 +609,7 @@ export async function createShipmentExcelBuffer(jsonData = []) {
     let cnyPriceFormula = itemCnyPrice;
     let usdPriceFormula = "";
 
-    if (itemQuantity && itemName != KEY_PREFERENCES.SUB_TOTAL) {
+    if (itemQuantity && itemName != KEY_PREFERENCES.SUBTOTAL) {
       if (isMoreThanOneOrder) {
         usdPriceFormula = itemUsdPrice;
       } else {
@@ -642,7 +643,7 @@ export async function createShipmentExcelBuffer(jsonData = []) {
     jsonData.findIndex(
       (item) =>
         item?.[SHIPMENT_OUTPUT_KEY_NAME.PRODUCT_NAME] ==
-        KEY_PREFERENCES.SUB_TOTAL
+        KEY_PREFERENCES.SUBTOTAL
     ) + 2;
 
   const lastRowIndex = jsonData.length + 1;
@@ -731,11 +732,25 @@ export async function modifyOrder1File(file, allElements = {}) {
   let totalUsdColumnIndex = null;
   let totalUsdColumnLetter = null;
   let oldInStockIndex;
-  let oldCostInStockIndex;
+  let oldCostInStockIndex = null;
+  let oldCostInStockLetter = null;
   let lastRowIndex;
+  let subtotalRowIndex = null;
+  let paymentFeeRowIndex = null;
   const firstRowIndex = "2";
   const headerRow = worksheet.getRow(1);
   const headers = [];
+
+  // đoạn này dùng thư viện XLSX
+  const workbookXLSX = XLSX.read(file.buffer, { type: "buffer" });
+  const sheetName = workbookXLSX.SheetNames[0];
+  const worksheetXLSX = workbookXLSX.Sheets[sheetName];
+  const paymentCostDivisor = getPaymentCostDivisor({
+    worksheet: worksheetXLSX,
+    paymentCostKeyName: [INPUT_KEY_NAME.TOTAL_USD, INPUT_KEY_NAME.TOTAL_CNY],
+  });
+
+  // end of dùng thư viện XLSX
 
   headerRow.eachCell((cell, colNumber) => {
     headers[colNumber] = cell.text.trim();
@@ -774,18 +789,20 @@ export async function modifyOrder1File(file, allElements = {}) {
 
     if (colKeyName === SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK) {
       oldCostInStockIndex = colNumber;
+      oldCostInStockLetter = XlsxUtils.columnIndexToLetter(oldCostInStockIndex);
     }
   });
 
-  if (totalUsdColumnIndex) {
-    // XlsxUtils.clearColumnFill(worksheet, totalUsdColumnIndex);
-    // XlsxUtils.clearColumnFill(worksheet, 1);
-    // XlsxUtils.changeBgColorColumn(worksheet, 1, fileColor.red);
-  }
-
-  if (oldCostInStockIndex) {
-    XlsxUtils.deleteColumn(worksheet, oldCostInStockIndex);
-  }
+  worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    const productNameCell = row.getCell(productNameColumnIndex);
+    const productName = productNameCell?.value;
+    if (productName?.includes(KEY_PREFERENCES.SUBTOTAL)) {
+      subtotalRowIndex = rowNumber;
+    }
+    if (XlsxUtils.checkIsPaymentFee(productName)) {
+      paymentFeeRowIndex = rowNumber;
+    }
+  });
 
   const isInStockExist = XlsxUtils.checkIfColumnExists(
     worksheet,
@@ -836,7 +853,21 @@ export async function modifyOrder1File(file, allElements = {}) {
       });
 
       if (!isEmptyValue(productObj)) {
-        row.getCell(newColIndex).value = productObj?.quantity;
+        if (
+          !Utils.includes(productObj?.name, KEY_PREFERENCES.PAYMENT_FEE) &&
+          !Utils.includes(productObj?.name, KEY_PREFERENCES.PAYMENT_COST)
+        ) {
+          row.getCell(newColIndex).value = productObj?.leftQuantity;
+          // row.getCell(newColIndex).value = productObj?.quantity;
+
+          // console.log(
+          //   productObj?.name,
+          //   " ",
+          //   productObj?.quantity,
+          //   " ",
+          //   productObj?.leftQuantity
+          // );
+        }
       }
     });
   });
@@ -853,7 +884,7 @@ export async function modifyOrder1File(file, allElements = {}) {
 
   let negativeInStockPlaceArr = [];
 
-  // add In Stock value
+  // START ADD IN STOCK VALUE
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
     const oldInStockColLetter = XlsxUtils.columnIndexToLetter(oldInStockIndex);
@@ -881,7 +912,8 @@ export async function modifyOrder1File(file, allElements = {}) {
         shipmentStartColIndex,
         shipmentLastColIndex,
         inStockColLetter,
-        totalUsdColumnLetter
+        totalUsdColumnLetter,
+        allElements
       );
       negativeInStockPlaceArr = [
         ...negativeInStockPlaceArr,
@@ -889,12 +921,30 @@ export async function modifyOrder1File(file, allElements = {}) {
       ];
     }
 
+    // Xử lý sub total đoạn in stock
+    if (rowNumber == subtotalRowIndex) {
+      for (
+        let colIndex = shipmentStartColIndex;
+        colIndex <= shipmentLastColIndex;
+        colIndex++
+      ) {
+        const colLetter = XlsxUtils.columnIndexToLetter(colIndex);
+        const subtotalFormula = `SUM(${colLetter}${2}:${colLetter}${
+          rowNumber - 1
+        })`;
+        const inStockSubTotalCell = row.getCell(colLetter);
+        if (inStockSubTotalCell) {
+          inStockSubTotalCell.value = { formula: subtotalFormula };
+        }
+      }
+    }
     if (inStockCell) {
       inStockCell.value = { ...inStockCell.value, formula };
     }
   }
+  // END ADD IN STOCK VALUE
 
-  // Add header name for in stock column
+  // ADD HEADER NAME FOR IN STOCK COLUMN
   const inStockHeaderName = SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK;
   headerRow.getCell(inStockColIndex).value = inStockHeaderName;
   worksheet.getColumn(inStockColIndex).width =
@@ -903,54 +953,27 @@ export async function modifyOrder1File(file, allElements = {}) {
 
   headerRow.getCell(inStockColIndex + 1).value = "";
 
-  if (negativeInStockPlaceArr.length > 0) {
-    let newAllElements = {};
-    const leftShipments = rmDupEleFrArr(
-      negativeInStockPlaceArr.map((negativeInStockPlace) => {
-        const shipment = negativeInStockPlace.shipment;
-        return shipment;
-      })
-    );
-    // removeObjKeyNames(allElements, leftShipments);
-    leftShipments.map((shipment) => {
-      newAllElements[shipment] = [];
-    });
-
-    negativeInStockPlaceArr.forEach((negativeInStockPlace) => {
-      const productName = negativeInStockPlace.productName;
-      const shipment = negativeInStockPlace.shipment;
-      const leftValue = negativeInStockPlace.getLeftValue();
-
-      const productIndex = allElements[shipment].findIndex((item) =>
-        compareStrings(item.name, productName)
-      );
-      if (productIndex < 0) {
-        throw new BadRequestError(`${CANT_FIND_PRODUCT}: ${productName}`);
-      }
-      // ko remove comment này
-      // allElements[shipment][productIndex].quantity = leftValue;
-      allElements[shipment][productIndex].leftQuantity = leftValue;
-
-      // newAllElements[shipment].push(allElements[shipment][productIndex]);
-    });
-
-    // copy obj
-    // Object.keys(newAllElements).forEach((shipment) => {
-    //   allElements[shipment] = newAllElements[shipment];
-    // });
-  }
-
-  // set giá trị cho hàng total
+  // START SET GIÁ TRỊ HÀNG TOTAL DƯỚI CÙNG
   for (let i = shipmentStartColIndex; i <= inStockColIndex; i++) {
     const shipmentColLetter = XlsxUtils.columnIndexToLetter(i);
     const shipmentTotalCellAddress = `${shipmentColLetter}${lastRowIndex}`;
-    const totalFormula = `SUM(${shipmentColLetter}${firstRowIndex}:${shipmentColLetter}${
-      lastRowIndex - 1
-    })`;
+    let totalFormula;
+    if (subtotalRowIndex && paymentCostDivisor) {
+      totalFormula = `SUM(${shipmentColLetter}${subtotalRowIndex}:${shipmentColLetter}${
+        lastRowIndex - 1
+      })`;
+    } else {
+      totalFormula = `SUM(${shipmentColLetter}${firstRowIndex}:${shipmentColLetter}${
+        lastRowIndex - 1
+      })`;
+    }
     setCellFormula(worksheet, shipmentTotalCellAddress, totalFormula);
   }
+  // END HÀNG TOTAL
 
-  // add cost
+  const costStartColIndex = headerRow.cellCount + 1;
+  const costStartColLetter = XlsxUtils.columnIndexToLetter(costStartColIndex);
+  // ADD COST
   shipmentKeys.forEach((shipmentKey, index) => {
     const newColIndex = headerRow.cellCount + 1;
     const newColLetter = XlsxUtils.columnIndexToLetter(newColIndex);
@@ -986,18 +1009,46 @@ export async function modifyOrder1File(file, allElements = {}) {
           lastRowIndex - 1
         })`;
       }
-
       const shipmentCostCell = row.getCell(newColIndex);
-      if (shipmentCostCell) {
-        shipmentCostCell.value = { formula: costFormula };
+
+      if (shipmentCostCell && rowNumber != paymentFeeRowIndex) {
+        // xử lý sub total đoạn code in stock
+        if (rowNumber == subtotalRowIndex) {
+          const subtotalFormula = `SUM(${newColLetter}${2}:${newColLetter}${
+            rowNumber - 1
+          })`;
+          shipmentCostCell.value = { formula: subtotalFormula };
+        }
+        else if (rowNumber == lastRowIndex && subtotalRowIndex) {
+          const totalFormula = `SUM(${newColLetter}${subtotalRowIndex}:${newColLetter}${
+            lastRowIndex - 1
+          })`;
+          shipmentCostCell.value = { formula: totalFormula };
+        } else {
+          shipmentCostCell.value = { formula: costFormula };
+        }
+      }
+      // Phải có hàng subtotal thì mói điền payment fee
+      if (
+        rowNumber == paymentFeeRowIndex &&
+        subtotalRowIndex &&
+        paymentCostDivisor
+      ) {
+        const correspondingSubtotalCellAdd = `${newColLetter}${subtotalRowIndex}`;
+        const paymentCostFormula = `${correspondingSubtotalCellAdd} / ${paymentCostDivisor}`;
+        const paymentCostCellAdd = `${newColLetter}${paymentFeeRowIndex}`;
+        const paymentCostCell = worksheet.getCell(paymentCostCellAdd);
+        paymentCostCell.value = { formula: paymentCostFormula };
       }
     });
   });
+  const costLastColIndex = headerRow.cellCount;
+  const costLastColLetter = XlsxUtils.columnIndexToLetter(costLastColIndex);
+  // END OF ADD COST
 
   // Add Cost In Stock value to last column
   const costInStockIndex = headerRow.cellCount + 1;
   const costInStockLetter = XlsxUtils.columnIndexToLetter(costInStockIndex);
-
   const costInstockColName = SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
 
   headerRow.getCell(costInStockIndex).value = costInstockColName;
@@ -1013,6 +1064,8 @@ export async function modifyOrder1File(file, allElements = {}) {
 
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
+    const productNameCell = row.getCell(productNameColumnIndex);
+    const productName = productNameCell.value;
 
     const costInStockFormula = `${inStockColLetter}${rowNumber} * ${totalUsdColumnLetter}${rowNumber} / ${quantityColumnLetter}${rowNumber}`;
     const totalCostInStockFormula = `SUM(${costInStockLetter}2:${costInStockLetter}${
@@ -1023,6 +1076,12 @@ export async function modifyOrder1File(file, allElements = {}) {
       rowNumber == lastRowIndex ? totalCostInStockFormula : costInStockFormula;
 
     if (costInStockCell) {
+      if (productName.includes(KEY_PREFERENCES.SUBTOTAL)) {
+        const subtotalTotalFormula = `SUM(${costInStockLetter}2:${costInStockLetter}${
+          rowNumber - 1
+        })`;
+        costInStockCell.value = { formula: subtotalTotalFormula };
+      }
       costInStockCell.value = {
         ...costInStockCell.value,
         formula,
@@ -1030,6 +1089,27 @@ export async function modifyOrder1File(file, allElements = {}) {
     }
   }
 
+  if (subtotalRowIndex) {
+    const costInStockSubTotalCellAdd = `${costInStockLetter}${subtotalRowIndex}`;
+    const costInStockSubTotalCell = worksheet.getCell(
+      costInStockSubTotalCellAdd
+    );
+    const subtotalTotalFormula = `SUM(${costInStockLetter}2:${costInStockLetter}${
+      subtotalRowIndex - 1
+    })`;
+    costInStockSubTotalCell.value = {
+      formula: subtotalTotalFormula,
+    };
+    if(paymentFeeRowIndex && paymentCostDivisor){
+      
+      const paymentFeeCostInStockFormula = `${totalUsdColumnLetter}${paymentFeeRowIndex} - SUM(${costStartColLetter}${paymentFeeRowIndex}:${costLastColLetter}${paymentFeeRowIndex})`;
+      const paymentFeeCostInStockCellAdd = `${costInStockLetter}${paymentFeeRowIndex}`;
+      const paymentFeeCostInStockCell = worksheet.getCell(paymentFeeCostInStockCellAdd);
+      paymentFeeCostInStockCell.value = {
+        formula: paymentFeeCostInStockFormula
+      }
+    }
+  }
   // if (oldInStockIndex) {
   //   XlsxUtils.clearColumnData(worksheet, oldInStockIndex);
   // }
@@ -1050,7 +1130,8 @@ function checkNegative(
   shipmentStartColIndex,
   shipmentLastColIndex,
   inStockColLetter,
-  totalUsdColLetter
+  totalUsdColLetter,
+  allElements
 ) {
   // Step 1: Get the value of total shipment quantity
   const totalShipmentCell = worksheet.getCell(
@@ -1065,8 +1146,18 @@ function checkNegative(
     return negativeInStockPlaceArr;
   }
 
-  // Step 2: Get the values in the shipment range
   let shipmentSum = 0;
+  for (
+    let colIndex = shipmentStartColIndex;
+    colIndex <= shipmentLastColIndex;
+    colIndex++
+  ) {
+    const cellValue = XlsxUtils.getCellValue(worksheet, colIndex, rowNumber);
+    shipmentSum += cellValue;
+  }
+
+  // Step 2: Get the values in the shipment range
+  let tempShipmentSum = 0;
   for (
     let colIndex = shipmentStartColIndex;
     colIndex <= shipmentLastColIndex;
@@ -1074,17 +1165,23 @@ function checkNegative(
   ) {
     const rowInStockCellAddress = `${inStockColLetter}${rowNumber}`;
     const rowInStockCell = worksheet.getCell(rowInStockCellAddress);
-    const cellLetter = XlsxUtils.columnIndexToLetter(colIndex); // Convert column index to letter
-    const cellAddress = `${cellLetter}${rowNumber}`;
-    const cell = worksheet.getCell(cellAddress);
-    const parseCellValue = parseFloat(cell.value);
-    const cellValue =
-      isEmptyValue(parseCellValue) || isNaN(parseCellValue)
-        ? 0
-        : parseCellValue;
 
-    shipmentSum += cellValue;
-    const quantity = totalShipmentQuantity - shipmentSum;
+    const colLetter = XlsxUtils.columnIndexToLetter(colIndex); // Convert column index to letter
+    const cellValue = XlsxUtils.getCellValue(worksheet, colIndex, rowNumber);
+
+    tempShipmentSum += cellValue;
+    const quantity = totalShipmentQuantity - tempShipmentSum;
+
+    const productName = getCellValue(worksheet, "B", rowNumber);
+    const shipment = getCellValue(worksheet, colLetter, 1);
+    const productIndex = allElements[shipment].findIndex((item) =>
+      compareStrings(item.name, productName)
+    );
+
+    if (productIndex < 0) {
+      // throw new BadRequestError(`${CANT_FIND_ELEMENT}: ${productName}`);
+      continue;
+    }
 
     // cái if này đơn thuần là UI, ko liên quan logic
     if (quantity <= 0) {
@@ -1097,8 +1194,11 @@ function checkNegative(
     }
 
     // đã tính hết giá trị và đang là cột cuối
-    if (quantity >= 0 && colIndex == shipmentLastColIndex) {
-      rowInStockCell.value = { ...rowInStockCell.value, result: quantity };
+    if (quantity >= 0) {
+      allElements[shipment][productIndex].leftQuantity = 0;
+      if (colIndex == shipmentLastColIndex) {
+        rowInStockCell.value = { ...rowInStockCell.value, result: quantity };
+      }
     }
 
     if (quantity < 0) {
@@ -1106,7 +1206,7 @@ function checkNegative(
       const leftValue = -quantity;
 
       // giá trị giữ ở file order này
-      const remainValue = parseCellValue - leftValue;
+      const remainValue = cellValue - leftValue;
       const remainValueCellAddress = `${XlsxUtils.columnIndexToLetter(
         colIndex
       )}${rowNumber}`;
@@ -1117,17 +1217,17 @@ function checkNegative(
         rowInStockCell.value = { ...rowInStockCell.value, result: 0 };
       }
 
-      const startShipment = getCellValue(worksheet, cellLetter, 1);
-      const productName = getCellValue(worksheet, "B", rowNumber);
-
       // phần tử ở vị trí thiếu
       negativeInStockPlaceArr.push(
         NegativeInStockPlace.fromJson({
           productName,
-          shipment: startShipment,
-          leftValue,
+          shipment,
+          leftValue: cellValue - remainValue,
         })
       );
+
+      allElements[shipment][productIndex].leftQuantity =
+        allElements[shipment][productIndex].leftQuantity - remainValue;
 
       // reset các giá trị quantity sau cột này về ""
       for (let i = colIndex + 1; i <= shipmentLastColIndex; i++) {
@@ -1155,6 +1255,20 @@ function checkNegative(
         }
         quantityShipmentCell.value = null;
       }
+
+      // const productName = negativeInStockPlace.productName;
+      // const shipment = negativeInStockPlace.shipment;
+      // const leftValue = negativeInStockPlace.getLeftValue();
+
+      // const productIndex = allElements[shipment].findIndex((item) =>
+      //   compareStrings(item.name, productName)
+      // );
+      // if (productIndex < 0) {
+      //   throw new BadRequestError(`${CANT_FIND_ELEMENT}: ${productName}`);
+      // }
+
+      // // allElements[shipment][productIndex].quantity = leftValue;
+      // allElements[shipment][productIndex].leftQuantity = leftValue;
 
       break;
     }

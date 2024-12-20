@@ -259,16 +259,22 @@ export const addOrder1FileToZip = async (files = [], zip, allElements) => {
   for (let i = 0; i < order1Files.length; i++) {
     const order1File = order1Files[i];
 
-    if (i == fileIndexNeedToChange) {
-      const { modifiedBuffer, negativeInStockPlaceArr } =
-        await modifyOrder1File(order1File, allElements);
-      zip.file(order1File.originalname, modifiedBuffer);
-      if (negativeInStockPlaceArr.length > 0) {
-        fileIndexNeedToChange += 1;
-      }
-    } else {
-      zip.file(order1File.originalname, order1File.buffer);
-    }
+    const { modifiedBuffer, negativeInStockPlaceArr } = await modifyOrder1File(
+      order1File,
+      allElements
+    );
+    zip.file(order1File.originalname, modifiedBuffer);
+
+    // if (i == fileIndexNeedToChange) {
+    //   const { modifiedBuffer, negativeInStockPlaceArr } =
+    //     await modifyOrder1File(order1File, allElements);
+    //   zip.file(order1File.originalname, modifiedBuffer);
+    //   if (negativeInStockPlaceArr.length > 0) {
+    //     fileIndexNeedToChange += 1;
+    //   }
+    // } else {
+    //   zip.file(order1File.originalname, order1File.buffer);
+    // }
   }
   console.log(fileIndexNeedToChange);
 };
@@ -364,6 +370,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
         const { quantity, usdPrice, cnyPrice, name } = current;
         if (usdPrice) {
           accumulator[current.name].quantity += current.quantity;
+          accumulator[current.name].leftQuantity += current.leftQuantity;
           // accumulator[current.name].totalCny = `${
           //   accumulator[current.name].totalCny
           // } + ${current.totalCny}`;
@@ -580,7 +587,7 @@ export const addShipmentFileToZip = async (
       // SUBTOTAL
       const lastElementIndex = allElements[originalShipment].length + 1;
       const subTotalElement = {
-        name: KEY_PREFERENCES.SUB_TOTAL,
+        name: KEY_PREFERENCES.SUBTOTAL,
         quantity: `SUM(${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}2:${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${lastElementIndex})`,
         // usdPrice: `SUM(${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}2:${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${lastElementIndex})`,
         // order: "HNV 2303",

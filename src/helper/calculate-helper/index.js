@@ -1,6 +1,7 @@
 import _ from "lodash";
 import { INPUT_KEY_NAME, OUTPUT_COL_ALPHABET } from "../../shared/constant.js";
 import {
+  compareStrings,
   compareStringsIgnoreSpaces,
   evalCalculation,
   isEmptyValue,
@@ -90,7 +91,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
           );
         }
         newPpuPrice = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} / quantityCell + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / quantityCell`;
-        
+
         if (!isEmptyValue(elementPrice.getUsdFormula())) {
           // eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
           eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * ${remainingQuantity}`;
@@ -209,7 +210,11 @@ export const addPpuPaymentCost = (skuList, elementsPrice) => {
  * @param {Array<ElementPrice>} allElements - The array of elements by shipment.
  * @returns {Array} The array of objects with their total price.
  */
-export const addCustomizeAndPaymentCost = (skuList, elementsPrice, allElements) => {
+export const addCustomizeAndPaymentCost = (
+  skuList,
+  elementsPrice,
+  allElements
+) => {
   return skuList.map((item, index) => {
     const customizePackage = item?.customizePackage;
     const customizeObj = findEleWithLowestFileOrder(
@@ -245,8 +250,7 @@ export const addCustomizeAndPaymentCost = (skuList, elementsPrice, allElements) 
         const secondCustomizeObj = findEleWithLowestFileOrder(
           elementsPrice.filter(
             (el) =>
-              el.name?.toLowerCase() == customizePackage?.toLowerCase() &&
-              el.leftQuantity > 0
+              compareStrings(el.name, customizePackage) && el.leftQuantity > 0
           )
         );
         if (secondCustomizeObj) {
@@ -444,20 +448,28 @@ const findEleWithLowestFileOrder = (filteredElementsPrice = []) => {
 
 export function addQuantityToFormula(formula, commonFactor, quantity) {
   // Create a regex pattern to find the `commonFactor` in the formula
-  const regex = new RegExp(`(${commonFactor.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})( *\\* *\\d+)?`, 'g');
+  const regex = new RegExp(
+    `(${commonFactor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})( *\\* *\\d+)?`,
+    "g"
+  );
 
   // Replace the common factor in the formula
-  const updatedFormula = formula.replace(regex, (match, baseFactor, multiplierPart) => {
+  const updatedFormula = formula.replace(
+    regex,
+    (match, baseFactor, multiplierPart) => {
       if (multiplierPart) {
-          // If there's already a multiplier, update it by adding the quantity
-          const currentMultiplier = parseFloat(multiplierPart.replace(/[^0-9.]/g, ''));
-          const newMultiplier = currentMultiplier + quantity;
-          return `${baseFactor} * ${newMultiplier}`;
+        // If there's already a multiplier, update it by adding the quantity
+        const currentMultiplier = parseFloat(
+          multiplierPart.replace(/[^0-9.]/g, "")
+        );
+        const newMultiplier = currentMultiplier + quantity;
+        return `${baseFactor} * ${newMultiplier}`;
       } else {
-          // If no multiplier exists, add the quantity as the new multiplier
-          return `${baseFactor} * ${quantity + 1}`; // Add 1 to include the original single instance
+        // If no multiplier exists, add the quantity as the new multiplier
+        return `${baseFactor} * ${quantity + 1}`; // Add 1 to include the original single instance
       }
-  });
+    }
+  );
 
   return updatedFormula;
 }

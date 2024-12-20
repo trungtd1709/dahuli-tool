@@ -1,5 +1,6 @@
 import ExcelJS from "exceljs";
 import { KEY_PREFERENCES } from "./constant.js";
+import { isEmptyValue } from "./utils.js";
 
 export class XlsxUtils {
   /**
@@ -154,12 +155,28 @@ export class XlsxUtils {
 
   static getHeaderWidth = (headerText) => {
     return headerText.length + 1;
-  }
+  };
 
   static centerValueColumn = (worksheet, colIndex) => {
     worksheet.getColumn(colIndex).alignment = {
-      horizontal: 'center', // Horizontal alignment (center)
-      vertical: 'middle',   // Vertical alignment (center vertically)
+      horizontal: "center", // Horizontal alignment (center)
+      vertical: "middle", // Vertical alignment (center vertically)
     };
-  }
+  };
+
+  static getCellValue = (worksheet, colIndex, rowIndex) => {
+    const cellLetter = XlsxUtils.columnIndexToLetter(colIndex); // Convert column index to letter
+    const cellAddress = `${cellLetter}${rowIndex}`;
+    const cell = worksheet.getCell(cellAddress);
+    const parseCellValue = parseFloat(cell.value);
+    const cellValue =
+      isEmptyValue(parseCellValue) || isNaN(parseCellValue)
+        ? 0
+        : parseCellValue;
+    return cellValue;
+  };
+
+  static isPaymentFee = (string) => {
+    return string?.toLowerCase()?.includes(KEY_PREFERENCES.PAYMENT);
+  };
 }
