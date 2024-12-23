@@ -410,7 +410,8 @@ export const transformShippingCostInput = (
   shipmentId,
   shipment,
   originalShipment,
-  totalShipmentQuantity
+  totalShipmentQuantity,
+  shipmentQuantity
 ) => {
   shippingArr = shippingArr.filter((item) => {
     return (
@@ -443,7 +444,8 @@ export const transformShippingCostInput = (
       shipmentId,
       shipment,
       originalShipment,
-      totalShipmentQuantity
+      totalShipmentQuantity,
+      shipmentQuantity
     );
   });
 };
@@ -461,7 +463,8 @@ const transformShippingCostItem = (
   shipmentId,
   shipment,
   originalShipment,
-  totalShipmentQuantity
+  totalShipmentQuantity,
+  shipmentQuantity
 ) => {
   const {
     productName: name,
@@ -507,6 +510,7 @@ const transformShippingCostItem = (
     paymentCostDivisor,
     totalShipmentQuantity,
     order,
+    shipmentQuantity,
   });
 };
 
@@ -697,7 +701,7 @@ export const mergeTsvData = async (
   let inputTsvDataArr = [];
 
   for (const tsvFile of tsvFilesArr) {
-    const { shipmentQuantity, inputTsvData } = await getDataTsvFile({
+    let { shipmentQuantity, inputTsvData } = await getDataTsvFile({
       file: tsvFile,
     });
     totalShipmentQuantity += shipmentQuantity;
@@ -708,12 +712,9 @@ export const mergeTsvData = async (
         (item) => item?.shipmentId == shipmentId
       );
       const { shipment, originalShipment } = shipmentObj;
-      if (shipment) {
-        inputTsvData[0].shipment = shipment;
-      }
-      if (originalShipment) {
-        inputTsvData[0].originalShipment = originalShipment;
-      }
+      inputTsvData = inputTsvData.map((item) => {
+        return { ...item, shipment, originalShipment, shipmentQuantity };
+      });
     }
     inputTsvDataArr.push(inputTsvData);
 

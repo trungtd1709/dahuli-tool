@@ -63,6 +63,7 @@ export const calculateGood = async (files = []) => {
       shipment = "";
       let originalShipment, shipmentId;
       shipmentId = inputTsvData[0].shipmentId;
+      const shipmentQuantity = inputTsvData[0].shipmentQuantity;
 
       if (!isEmptyValue(shipmentData)) {
         const shipmentObj = shipmentData.find(
@@ -77,7 +78,8 @@ export const calculateGood = async (files = []) => {
         shipmentId,
         shipment,
         originalShipment,
-        totalShipmentQuantity
+        totalShipmentQuantity,
+        shipmentQuantity
       );
 
       const totalOrder1Data = transformOrder1List(rawJsonOrder1, shipmentId);

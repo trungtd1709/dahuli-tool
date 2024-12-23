@@ -13,6 +13,7 @@ export class InputShippingCost {
     weight,
     paymentCostDivisor,
     isDomestic,
+    shipmentQuantity,
   }) {
     this.name = name;
     this.order = order;
@@ -25,6 +26,7 @@ export class InputShippingCost {
     this.weight = weight;
     this.paymentCostDivisor = paymentCostDivisor;
     this.isDomestic = isDomestic;
+    this.shipmentQuantity = shipmentQuantity;
   }
 
   // Method in the class
@@ -40,6 +42,7 @@ export class InputShippingCost {
     weight,
     paymentCostDivisor,
     isDomestic,
+    shipmentQuantity,
   }) {
     removeNewlines;
     return new InputShippingCost({
@@ -54,6 +57,7 @@ export class InputShippingCost {
       weight,
       paymentCostDivisor,
       isDomestic,
+      shipmentQuantity,
     });
   }
 }
