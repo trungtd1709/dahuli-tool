@@ -446,10 +446,10 @@ const findEleWithLowestFileOrder = (filteredElementsPrice = []) => {
   return result;
 };
 
-export function addQuantityToFormula(formula, commonFactor, quantity) {
+export function addUpQuantityFormula(formula, commonFactor, quantity) {
   // Create a regex pattern to find the `commonFactor` in the formula
   const regex = new RegExp(
-    `(${commonFactor.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})( *\\* *\\d+)?`,
+    `(${commonFactor?.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})( *\\* *\\d+)?`,
     "g"
   );
 

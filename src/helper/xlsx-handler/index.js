@@ -1326,7 +1326,6 @@ export async function modifyShippingFile(
   let firstCostColumnIndex = null;
 
   const firstRowIndex = "2";
-
   const headerRow = worksheet.getRow(1);
 
   const headers = [];

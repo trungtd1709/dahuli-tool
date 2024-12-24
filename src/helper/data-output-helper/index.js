@@ -22,7 +22,7 @@ import {
   modifyOrder1File,
   modifyShippingFile,
 } from "../xlsx-handler/index.js";
-import { addQuantityToFormula } from "../calculate-helper/index.js";
+import { addUpQuantityFormula } from "../calculate-helper/index.js";
 
 /// Nếu đợt file gồm nhiều shipment thì phải đổi công thức
 const checkMultipleShipmentAndChange = (skuList = []) => {
@@ -363,7 +363,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
     })
     .flat();
 
-  // add up quantity các thành phần
+  // START ADD UP QUANTITY CÁC THÀNH PHẦN
   allShipmentElements = Object.values(
     allShipmentElements.reduce((accumulator, current) => {
       if (accumulator[current.name]) {
@@ -371,38 +371,98 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
         if (usdPrice) {
           accumulator[current.name].quantity += current.quantity;
           accumulator[current.name].leftQuantity += current.leftQuantity;
-          // accumulator[current.name].totalCny = `${
-          //   accumulator[current.name].totalCny
-          // } + ${current.totalCny}`;
-
           let accumulatorTotalUsd = accumulator[current.name].totalUsd;
+
           if (accumulatorTotalUsd) {
             if (accumulatorTotalUsd?.includes(usdPrice)) {
-              accumulator[current.name].totalUsd = addQuantityToFormula(
+              accumulator[current.name].totalUsd = addUpQuantityFormula(
                 accumulatorTotalUsd,
                 usdPrice,
                 quantity
               );
-            } else {
-              accumulator[
-                current.name
-              ].totalUsd = `${accumulatorTotalUsd} + ${current.totalUsd}`;
+            }
+            // Bắt đầu nhảy vào đoạn giao nhau
+            else {
+              const firstFormula = current?.totalUsd.split("+")[0]?.trim();
+              const secondFormula = current?.totalUsd?.split("+")[1]?.trim();
+              if (firstFormula) {
+                const oldUsdPrice = firstFormula?.split("*")[0]?.trim();
+                const oldFileQuantity = parseInt(
+                  firstFormula?.split("*")[1]?.trim()
+                );
+                if (
+                  accumulatorTotalUsd?.includes(oldUsdPrice) &&
+                  _.isInteger(oldFileQuantity)
+                ) {
+                  accumulatorTotalUsd = addUpQuantityFormula(
+                    accumulatorTotalUsd,
+                    oldUsdPrice,
+                    oldFileQuantity
+                  );
+                  accumulator[
+                    current.name
+                  ].totalUsd = `${accumulatorTotalUsd} + ${secondFormula}`;
+                  console.log(accumulator[current.name].totalUsd);
+                } else {
+                  accumulator[
+                    current.name
+                  ].totalUsd = `${accumulatorTotalUsd} + ${current.totalUsd}`;
+                }
+              } else {
+                accumulator[
+                  current.name
+                ].totalUsd = `${accumulatorTotalUsd} + ${current.totalUsd}`;
+              }
             }
           }
         }
         let accumulatorTotalCny = accumulator[current.name].totalCny;
         if (accumulatorTotalCny) {
           if (accumulatorTotalCny?.includes(cnyPrice)) {
-            accumulator[current.name].totalCny = addQuantityToFormula(
+            accumulator[current.name].totalCny = addUpQuantityFormula(
               accumulatorTotalCny,
               cnyPrice,
               quantity
             );
-          } else {
-            accumulator[
-              current.name
-            ].totalCny = `${accumulatorTotalCny} + ${current.totalCny}`;
           }
+          // Bắt đầu nhảy vào đoạn giao nhau
+          else {
+            const firstFormula = current?.totalCny.split("+")[0]?.trim();
+            const secondFormula = current?.totalCny?.split("+")[1]?.trim();
+            if (firstFormula) {
+              const oldCnyPrice = firstFormula?.split("*")[0]?.trim();
+              const oldFileQuantity = parseInt(
+                firstFormula?.split("*")[1]?.trim()
+              );
+              if (
+                accumulatorTotalCny?.includes(oldCnyPrice) &&
+                _.isInteger(oldFileQuantity)
+              ) {
+                accumulatorTotalCny = addUpQuantityFormula(
+                  accumulatorTotalCny,
+                  oldCnyPrice,
+                  oldFileQuantity
+                );
+                accumulator[
+                  current.name
+                ].totalCny = `${accumulatorTotalCny} + ${secondFormula}`;
+                // console.log(accumulator[current.name].totalCny);
+              } else {
+                accumulator[
+                  current.name
+                ].totalCny = `${accumulatorTotalCny} + ${current.totalCny}`;
+              }
+            } else {
+              accumulator[
+                current.name
+              ].totalCny = `${accumulatorTotalCny} + ${current.totalCny}`;
+            }
+          }
+          // else {
+          //   accumulator[
+          //     current.name
+          //   ].totalCny = `${accumulatorTotalCny} + ${current.totalCny}`;
+          // }
         }
         // }
       } else {
@@ -426,9 +486,9 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
     return { ...element, usdPrice, cnyPrice, totalCny, totalUsd };
   });
 
-  // PAYMENT FEE
+  // START PAYMENT FEE
 
-  // cái này là payment fee của PPU
+  // PAYMENT FEE PPU
   const paymentFeeObj = elementsPrice.find((item) => item.isPaymentFee);
   if (paymentFeeObj && paymentFeeObj?.paymentCostDivisor) {
     // const { paymentCostDivisor } = paymentFeeObj;
@@ -467,7 +527,15 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
                 const nextElePaymentCostDivisor =
                   nextElePrice.getPaymentCostDivisor();
                 const quantityInOldEle = quantity - leftQuantity;
-                paymentCost = `${totalUsdPriceAddress} / ${quantity} * ${quantityInOldEle} / ${paymentCostDivisor} + ${totalUsdPriceAddress} / ${quantity} * ${leftQuantity} / ${nextElePaymentCostDivisor}`;
+                const oldElementPaymentCost = `${elementPrice.getUsdFormula()} * ${quantityInOldEle} / ${paymentCostDivisor}`;
+                const nextElementPaymentCost = `${nextElePrice.getUsdFormula()} * ${leftQuantity} / ${nextElePaymentCostDivisor}`;
+                paymentCost = `${oldElementPaymentCost} + ${nextElementPaymentCost}`;
+                // console.log(paymentCost);
+
+                // KO REMOVE COMMENT này
+                // paymentCost = `${totalUsdPriceAddress} / ${quantity} * ${quantityInOldEle} / ${paymentCostDivisor} + ${totalUsdPriceAddress} / ${quantity} * ${leftQuantity} / ${nextElePaymentCostDivisor}`;
+                // console.log(paymentCost);
+                // console.log(" rưbtrt");
               }
             }
           }
