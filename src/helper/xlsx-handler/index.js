@@ -361,13 +361,14 @@ export const cogsJsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
       const quantityCell = `C${(index + 2).toString()}`;
 
       // thay giá trị quantityCell
-      item[OUTPUT_KEY_NAME.PPU] = item[OUTPUT_KEY_NAME.PPU].replace(
+      item[OUTPUT_KEY_NAME.PPU] = item[OUTPUT_KEY_NAME.PPU]?.toString()?.replace(
         /quantityCell/g,
         quantityCell
       );
+
       item[OUTPUT_KEY_NAME.CUSTOM_PACKAGE_COST] = item[
         OUTPUT_KEY_NAME.CUSTOM_PACKAGE_COST
-      ].replace(/quantityCell/g, quantityCell);
+      ]?.toString()?.replace(/quantityCell/g, quantityCell);
       worksheet.addRow(item);
     });
 
@@ -1464,12 +1465,8 @@ export async function modifyShippingFile(
       });
 
       if (!isEmptyValue(shippingCostObj)) {
-        const {
-          shipment,
-          originalShipment,
-          totalUsd,
-          totalShipmentQuantity,
-        } = shippingCostObj;
+        const { shipment, originalShipment, totalUsd, totalShipmentQuantity } =
+          shippingCostObj;
 
         let shipmentQuantity = shippingCostObj?.shipmentQuantity;
         let formula = "";

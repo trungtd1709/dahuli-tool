@@ -90,15 +90,33 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
             `${CANT_FIND_USD_PRICE_FOR_ELEMENT}: ${newElementPrice.name} in file : ${newElementPrice.fileName}`
           );
         }
-        newPpuPrice = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} / quantityCell + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / quantityCell`;
+        if (elementPrice.getUsdFormula() == newElementPrice.getUsdFormula()) {
+          newPpuPrice = `${elementPrice.getUsdFormula()} * ${
+            quantityGoToNewOrder + remainingQuantity
+          } / quantityCell`;
+        } else {
+          newPpuPrice = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} / quantityCell + ${newElementPrice.getUsdFormula()} * ${remainingQuantity} / quantityCell`;
+        }
 
         if (!isEmptyValue(elementPrice.getUsdFormula())) {
           // eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
-          eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * ${remainingQuantity}`;
+          if (elementPrice.getUsdFormula() == newElementPrice.getUsdFormula()) {
+            eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${
+              quantityGoToNewOrder + remainingQuantity
+            }`;
+          } else {
+            eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * ${remainingQuantity}`;
+          }
         }
         if (!isEmptyValue(elementPrice.getCnyFormula())) {
           // eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getCnyFormula()} * (totalElementQuantity - ${quantityGoToNewOrder})`;
-          eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getCnyFormula()} * ${remainingQuantity}`;
+          if (elementPrice.getCnyFormula() == newElementPrice.getCnyFormula()) {
+            eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${
+              quantityGoToNewOrder + remainingQuantity
+            }`;
+          } else {
+            eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getCnyFormula()} * ${remainingQuantity}`;
+          }
         }
       }
       element.usdPrice = usdPrice;
@@ -449,7 +467,9 @@ const findEleWithLowestFileOrder = (filteredElementsPrice = []) => {
 export function addUpQuantityFormula(formula, commonFactor, quantity) {
   // Create a regex pattern to find the `commonFactor` in the formula
   const regex = new RegExp(
-    `(${commonFactor?.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})( *\\* *\\d+)?`,
+    `(${commonFactor
+      ?.toString()
+      ?.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})( *\\* *\\d+)?`,
     "g"
   );
 

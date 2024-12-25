@@ -177,7 +177,8 @@ export class ElementPrice {
     let usdFormula;
     if (!isEmptyValue(this.cnyPrice) && !isEmptyValue(this.exchangeRate)) {
       usdFormula = `${this.cnyPrice} / ${this.exchangeRate}`;
-    } else {
+    }
+    if (this.usdPrice) {
       usdFormula = this.usdPrice;
     }
     return usdFormula;
@@ -185,7 +186,7 @@ export class ElementPrice {
 
   getCnyFormula() {
     // if (this.cnyPrice) {
-      return this.cnyPrice;
+    return this.cnyPrice;
     // } else {
     //   return 0;
     // }

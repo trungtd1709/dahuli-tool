@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { CONFIG } from "./config.js";
 
 export const findIndexByFirstElement = ({ array, searchValue }) => {
   return array.findIndex((item) => item[0] === searchValue);
@@ -36,11 +37,11 @@ export const mergeArrays = (arr1, arr2, key) => {
   return merged;
 };
 
-export const evalCalculation = (expression) => {
+export const evalCalculation = (expression, minDecimalPartLength = 4) => {
   let result = eval(expression);
   let decimalPart = result.toString().split(".")[1];
 
-  if (decimalPart && decimalPart.length > 4) {
+  if (decimalPart && decimalPart.length > minDecimalPartLength) {
     if (
       decimalPart[decimalPart.length - 2] == "0" &&
       decimalPart[decimalPart.length - 3] == "0" &&
@@ -55,6 +56,32 @@ export const evalCalculation = (expression) => {
       decimalPart[decimalPart.length - 3] == "9" &&
       decimalPart[decimalPart.length - 4] == "9"
     ) {
+      let integerPart = result.toString().split(".")[0];
+      let truncatedDecimal = "";
+      let firstNineIndex;
+
+      // Find the first occurrence of '9' and stop there
+      for (let i = 0; i < decimalPart.length; i++) {
+        if (
+          decimalPart[i] === "9" &&
+          i > 1 &&
+          decimalPart[i - 1] === "9" &&
+          decimalPart[i - 2] === "9"
+        ) {
+          firstNineIndex = i - 2;
+          break; // Stop when 3 consecutive '9's are found
+        }
+        truncatedDecimal += decimalPart[i];
+      }
+      let newDecimalPart;
+      if (firstNineIndex) {
+        newDecimalPart = decimalPart.slice(0, firstNineIndex + 1);
+        const newResult = parseFloat(
+          `${integerPart}.${newDecimalPart}`
+        ).toFixed(firstNineIndex);
+        console.log(newResult);
+        return newResult;
+      }
       return result.toFixed(4);
     } else {
       return expression;
@@ -264,7 +291,6 @@ export function compareStrings(str1, str2) {
   return normalizedStr1 === normalizedStr2;
 }
 
-
 /**
  * Removes all newline characters (\n and \r\n) from a string.
  *
@@ -298,4 +324,78 @@ export class Utils {
   static includes(string, part) {
     return string?.toLowerCase()?.includes(part?.toLowerCase()?.trim());
   }
+
+  static roundNumber = (num, minDecimalPartLength = 4) => {
+    try {
+      if (num) {
+        let result = num.toString();
+        let decimalPart = result.split(".")[1];
+
+        if (decimalPart && decimalPart.length > minDecimalPartLength) {
+          if (
+            decimalPart[decimalPart.length - 2] == "0" &&
+            decimalPart[decimalPart.length - 3] == "0" &&
+            decimalPart[decimalPart.length - 4] == "0" &&
+            decimalPart[decimalPart.length - 5] == "0"
+          ) {
+            let trimmedResult = parseFloat(
+              result.toString().slice(0, -1)
+            ).toString();
+            return trimmedResult;
+          }
+          if (
+            decimalPart[decimalPart.length - 2] == "9" &&
+            decimalPart[decimalPart.length - 3] == "9" &&
+            decimalPart[decimalPart.length - 4] == "9"
+          ) {
+            let integerPart = result.toString().split(".")[0];
+            let firstNineIndex;
+
+            // Find the first occurrence of '9' and stop there
+            for (let i = 0; i < decimalPart.length; i++) {
+              if (
+                decimalPart[i] === "9" &&
+                i > 1 &&
+                decimalPart[i - 1] === "9" &&
+                decimalPart[i - 2] === "9"
+              ) {
+                firstNineIndex = i - 2;
+                break; // Stop when 3 consecutive '9's are found
+              }
+            }
+            let newDecimalPart;
+            if (firstNineIndex) {
+              newDecimalPart = decimalPart.slice(0, firstNineIndex + 1);
+              const newResult = parseFloat(
+                `${integerPart}.${newDecimalPart}`
+              ).toFixed(firstNineIndex);
+              return parseFloat(newResult);
+            }
+            return parseFloat(result.toFixed(minDecimalPartLength));
+          } else {
+            return num;
+          }
+        }
+        return num;
+      }
+      return null;
+    } catch (err) {
+      return num;
+    }
+  };
+
+  static isValidDecimalPart(num) {
+    if (!Number.isFinite(num)) {
+      return false;
+    }
+  
+    const decimalPart = num.toString().split(".")[1]; // Get the part after the decimal point
+  
+    if (!decimalPart) {
+      return true;
+    }
+  
+    return decimalPart.length <= CONFIG.MAX_DECIMAL_FIGURE; // Check if the decimal part is 4 digits or fewer
+  }
+  
 }

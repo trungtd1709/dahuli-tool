@@ -15,6 +15,8 @@ import {
   MISSING_TSV_FILE,
 } from "../../shared/err-const.js";
 import {
+  Utils,
+  compareStrings,
   evalCalculation,
   getMaxIndexKeyValue,
   isEmptyValue,
@@ -87,6 +89,8 @@ const transformToElementPrice = (obj) => {
     [INPUT_KEY_NAME.TOTAL_CNY]: totalCny,
     [INPUT_KEY_NAME.TOTAL_USD]: totalUsd,
     [INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST]: domesticShippingCost,
+    [INPUT_KEY_NAME.USD]: fileUsdPrice,
+    [INPUT_KEY_NAME.CNY]: fileCnyPrice,
     packingLabelingCost,
     exchangeRate,
     fileName,
@@ -94,10 +98,18 @@ const transformToElementPrice = (obj) => {
     paymentCostDivisor,
   } = obj;
 
+  if (compareStrings(name, "Rotating Folding Hook (Black)")) {
+    console.log(name);
+  }
   const inStock = getMaxIndexKeyValue(obj, INPUT_KEY_NAME.IN_STOCK);
+  const roundTotalCny = Utils.roundNumber(totalCny);
+  const roundTotalUsd = Utils.roundNumber(totalUsd);
 
-  const cnyPrice = evalCalculation(`${totalCny} / ${quantity}`);
-  const usdPrice = evalCalculation(`${totalUsd} / ${quantity}`);
+  const cnyPrice = Utils.isValidDecimalPart(fileCnyPrice) ? fileCnyPrice : evalCalculation(`${roundTotalCny} / ${quantity}`);
+  const usdPrice = Utils.isValidDecimalPart(fileUsdPrice) ? fileUsdPrice : evalCalculation(`${roundTotalUsd} / ${quantity}`);
+
+  // let cnyPrice = evalCalculation(`${roundTotalCny} / ${quantity}`);
+  // let usdPrice = evalCalculation(`${roundTotalUsd} / ${quantity}`);
 
   const elementPrice = ElementPrice.fromJson({
     name: name.trim(),

@@ -364,6 +364,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
     .flat();
 
   // START ADD UP QUANTITY CÁC THÀNH PHẦN
+  // CÁI NÀY TÍNH CẢ TOTALUSD và TOTALCNY
   allShipmentElements = Object.values(
     allShipmentElements.reduce((accumulator, current) => {
       if (accumulator[current.name]) {
@@ -374,6 +375,9 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
           let accumulatorTotalUsd = accumulator[current.name].totalUsd;
 
           if (accumulatorTotalUsd) {
+            if (name == "Rotating Folding Hook (Black)") {
+              console.log("egr");
+            }
             if (accumulatorTotalUsd?.includes(usdPrice)) {
               accumulator[current.name].totalUsd = addUpQuantityFormula(
                 accumulatorTotalUsd,
@@ -399,9 +403,13 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
                     oldUsdPrice,
                     oldFileQuantity
                   );
-                  accumulator[
-                    current.name
-                  ].totalUsd = `${accumulatorTotalUsd} + ${secondFormula}`;
+                  if (secondFormula) {
+                    accumulator[
+                      current.name
+                    ].totalUsd = `${accumulatorTotalUsd} + ${secondFormula}`;
+                  } else {
+                    accumulator[current.name].totalUsd = accumulatorTotalUsd;
+                  }
                   console.log(accumulator[current.name].totalUsd);
                 } else {
                   accumulator[
@@ -481,13 +489,12 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
     // totalUsd = totalUsd.replace("totalElementQuantity", quantity);
     if (!isEmptyValue(elementPriceObj)) {
       usdPrice = elementPriceObj.getUsdFormula();
-      cnyPrice = elementPriceObj.cnyPrice;
+      cnyPrice = elementPriceObj.getCnyFormula();
     }
     return { ...element, usdPrice, cnyPrice, totalCny, totalUsd };
   });
 
   // START PAYMENT FEE
-
   // PAYMENT FEE PPU
   const paymentFeeObj = elementsPrice.find((item) => item.isPaymentFee);
   if (paymentFeeObj && paymentFeeObj?.paymentCostDivisor) {
@@ -527,15 +534,13 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
                 const nextElePaymentCostDivisor =
                   nextElePrice.getPaymentCostDivisor();
                 const quantityInOldEle = quantity - leftQuantity;
+                console.log(elementPrice.getUsdFormula());
                 const oldElementPaymentCost = `${elementPrice.getUsdFormula()} * ${quantityInOldEle} / ${paymentCostDivisor}`;
                 const nextElementPaymentCost = `${nextElePrice.getUsdFormula()} * ${leftQuantity} / ${nextElePaymentCostDivisor}`;
                 paymentCost = `${oldElementPaymentCost} + ${nextElementPaymentCost}`;
-                // console.log(paymentCost);
 
                 // KO REMOVE COMMENT này
                 // paymentCost = `${totalUsdPriceAddress} / ${quantity} * ${quantityInOldEle} / ${paymentCostDivisor} + ${totalUsdPriceAddress} / ${quantity} * ${leftQuantity} / ${nextElePaymentCostDivisor}`;
-                // console.log(paymentCost);
-                // console.log(" rưbtrt");
               }
             }
           }

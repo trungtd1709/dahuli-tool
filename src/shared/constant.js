@@ -9,6 +9,8 @@ export const INPUT_KEY_NAME = {
   PRODUCT_NAME: "Product Name",
   PRICE: "Price",
   DOMESTIC_SHIPPING_COST: "Domestic shipping cost",
+  USD: "USD",
+  CNY: "CNY",
   TOTAL_USD: "Total USD",
   TOTAL_CNY: "Total CNY",
   EXCHANGE_RATE: "exchangeRate",
