@@ -78,8 +78,7 @@ export const evalCalculation = (expression, minDecimalPartLength = 4) => {
         newDecimalPart = decimalPart.slice(0, firstNineIndex + 1);
         const newResult = parseFloat(
           `${integerPart}.${newDecimalPart}`
-        ).toFixed(firstNineIndex);
-        console.log(newResult);
+        ).toFixed(firstNineIndex);        
         return newResult;
       }
       return result.toFixed(4);

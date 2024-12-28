@@ -5,7 +5,6 @@ import { NegativeInStockPlace } from "../../model/index.js";
 import {
   CASH_SYMBOL,
   CHECK_KEYWORD,
-  COLUMN_WIDTH,
   FILE_TYPE,
   INPUT_KEY_NAME,
   KEY_PREFERENCES,
@@ -15,19 +14,17 @@ import {
   SHIPMENT_OUTPUT_COL_ALPHABET,
   SHIPMENT_OUTPUT_KEY_NAME,
 } from "../../shared/constant.js";
-import {
-  CANT_FIND_ELEMENT,
-  MISSING_DATA_COGS_FILE,
-} from "../../shared/err-const.js";
+import { MISSING_DATA_COGS_FILE } from "../../shared/err-const.js";
 import {
   Utils,
   compareStrings,
   containsAlphabet,
   isEmptyValue,
   now,
-  rmDupEleFrArr,
 } from "../../shared/utils.js";
 import { XlsxUtils } from "../../shared/xlsxUtils.js";
+
+import { XlsxHelper } from "../xlsx-helper/index.js";
 
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
 /**
@@ -35,7 +32,7 @@ import { XlsxUtils } from "../../shared/xlsxUtils.js";
  * @param {Multer.File} options.file - The uploaded file object from Multer.
  * @returns {Array}
  */
-export const xlsxToJSON = ({
+export const xlsxToJSON = async ({
   file,
   sheetIndex = 0,
   exchangeRateKeyName,
@@ -71,6 +68,8 @@ export const xlsxToJSON = ({
       getShippingCostFormulas(worksheet, jsonData);
     }
     jsonData = changeObjKeyName(jsonData);
+
+    // const images = await XlsxHelper.getImagesFromXlsx(file);
 
     return jsonData;
   } catch (err) {
@@ -361,14 +360,15 @@ export const cogsJsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
       const quantityCell = `C${(index + 2).toString()}`;
 
       // thay giá trị quantityCell
-      item[OUTPUT_KEY_NAME.PPU] = item[OUTPUT_KEY_NAME.PPU]?.toString()?.replace(
-        /quantityCell/g,
-        quantityCell
-      );
+      item[OUTPUT_KEY_NAME.PPU] = item[OUTPUT_KEY_NAME.PPU]
+        ?.toString()
+        ?.replace(/quantityCell/g, quantityCell);
 
       item[OUTPUT_KEY_NAME.CUSTOM_PACKAGE_COST] = item[
         OUTPUT_KEY_NAME.CUSTOM_PACKAGE_COST
-      ]?.toString()?.replace(/quantityCell/g, quantityCell);
+      ]
+        ?.toString()
+        ?.replace(/quantityCell/g, quantityCell);
       worksheet.addRow(item);
     });
 
@@ -1050,6 +1050,9 @@ export async function modifyOrder1File(file, allElements = {}) {
     XlsxUtils.getHeaderWidth(costInstockColName);
   XlsxUtils.centerValueColumn(worksheet, costInStockIndex);
 
+  const cell = worksheet.getCell("A1");
+  cell.get;
+
   worksheet.getColumn(costInStockIndex).eachCell((cell) => {
     // add $ sign
     cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
@@ -1095,48 +1098,6 @@ export async function modifyOrder1File(file, allElements = {}) {
       };
     }
   }
-
-  // if (subtotalRowIndex) {
-  //   const costInStockSubTotalCellAdd = `${costInStockLetter}${subtotalRowIndex}`;
-  //   const costInStockSubTotalCell = worksheet.getCell(
-  //     costInStockSubTotalCellAdd
-  //   );
-
-  //   const sumTotalCostOfThisShipment  = `SUM(${costStartColLetter}${})`
-  //   // const subtotalTotalFormula = `SUM(${costInStockLetter}2:${costInStockLetter}${
-  //   //   subtotalRowIndex - 1
-  //   // })`;
-  //   costInStockSubTotalCell.value = {
-  //     formula: subtotalTotalFormula,
-  //   };
-  //   if (paymentFeeRowIndex && paymentCostDivisor) {
-  //     const totalPaymentFeeOfThisShipment = `SUM(${costStartColLetter}${paymentFeeRowIndex}:${costLastColLetter}${paymentFeeRowIndex})`;
-  //     const totalUsdPaymentFeeCellAddr = `${totalUsdColumnLetter}${paymentFeeRowIndex}`;
-  //     let paymentFeeCostInStockFormula;
-
-  //     if (oldCostInStockLetter) {
-  //       const oldCostInStockPaymentFeeCellAddr = `${oldCostInStockLetter}${paymentFeeRowIndex}`;
-  //       const oldCostInStockPaymentFeeCell = worksheet.getCell(
-  //         oldCostInStockPaymentFeeCellAddr
-  //       );
-  //       const oldInStockColValue =
-  //         oldCostInStockPaymentFeeCell?.formula ??
-  //         oldCostInStockPaymentFeeCell?.value;
-
-  //       paymentFeeCostInStockFormula = `${oldInStockColValue} - ${totalPaymentFeeOfThisShipment}`;
-  //     } else {
-  //       paymentFeeCostInStockFormula = `${totalUsdPaymentFeeCellAddr} - ${totalPaymentFeeOfThisShipment}`;
-  //     }
-
-  //     const paymentFeeCostInStockCellAdd = `${costInStockLetter}${paymentFeeRowIndex}`;
-  //     const paymentFeeCostInStockCell = worksheet.getCell(
-  //       paymentFeeCostInStockCellAdd
-  //     );
-  //     paymentFeeCostInStockCell.value = {
-  //       formula: paymentFeeCostInStockFormula,
-  //     };
-  //   }
-  // }
   // END ADD COST IN STOCK
 
   if (oldInStockIndex) {

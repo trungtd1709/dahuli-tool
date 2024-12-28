@@ -46,10 +46,10 @@ export const calculateGood = async (files = []) => {
     files = addFileTypeAndOrder(files);
 
     const tsvFilesArr = getTsvFilesArr(files) ?? [];
-    let totalSkuList = getTotalSkuList(files) ?? [];
-    let rawInputShippingCost = getRawInputShippingCost(files) ?? [];
-    let rawJsonOrder1 = getRawOrder1Data(files) ?? [];
-    let shipmentData = getShipmentData(files) ?? [];
+    let totalSkuList = await getTotalSkuList(files) ?? [];
+    let rawInputShippingCost = await getRawInputShippingCost(files) ?? [];
+    let rawJsonOrder1 = await getRawOrder1Data(files) ?? [];
+    let shipmentData = await getShipmentData(files) ?? [];
     let allElements = {};
 
     // tổng các loại sku

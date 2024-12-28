@@ -375,9 +375,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
           let accumulatorTotalUsd = accumulator[current.name].totalUsd;
 
           if (accumulatorTotalUsd) {
-            if (name == "Rotating Folding Hook (Black)") {
-              console.log("egr");
-            }
+            
             if (accumulatorTotalUsd?.includes(usdPrice)) {
               accumulator[current.name].totalUsd = addUpQuantityFormula(
                 accumulatorTotalUsd,
@@ -410,7 +408,6 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
                   } else {
                     accumulator[current.name].totalUsd = accumulatorTotalUsd;
                   }
-                  console.log(accumulator[current.name].totalUsd);
                 } else {
                   accumulator[
                     current.name
@@ -534,7 +531,6 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
                 const nextElePaymentCostDivisor =
                   nextElePrice.getPaymentCostDivisor();
                 const quantityInOldEle = quantity - leftQuantity;
-                console.log(elementPrice.getUsdFormula());
                 const oldElementPaymentCost = `${elementPrice.getUsdFormula()} * ${quantityInOldEle} / ${paymentCostDivisor}`;
                 const nextElementPaymentCost = `${nextElePrice.getUsdFormula()} * ${leftQuantity} / ${nextElePaymentCostDivisor}`;
                 paymentCost = `${oldElementPaymentCost} + ${nextElementPaymentCost}`;

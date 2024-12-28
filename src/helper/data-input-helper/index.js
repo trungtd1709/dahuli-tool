@@ -98,15 +98,16 @@ const transformToElementPrice = (obj) => {
     paymentCostDivisor,
   } = obj;
 
-  if (compareStrings(name, "Rotating Folding Hook (Black)")) {
-    console.log(name);
-  }
   const inStock = getMaxIndexKeyValue(obj, INPUT_KEY_NAME.IN_STOCK);
   const roundTotalCny = Utils.roundNumber(totalCny);
   const roundTotalUsd = Utils.roundNumber(totalUsd);
 
-  const cnyPrice = Utils.isValidDecimalPart(fileCnyPrice) ? fileCnyPrice : evalCalculation(`${roundTotalCny} / ${quantity}`);
-  const usdPrice = Utils.isValidDecimalPart(fileUsdPrice) ? fileUsdPrice : evalCalculation(`${roundTotalUsd} / ${quantity}`);
+  const cnyPrice = Utils.isValidDecimalPart(fileCnyPrice)
+    ? fileCnyPrice
+    : evalCalculation(`${roundTotalCny} / ${quantity}`);
+  const usdPrice = Utils.isValidDecimalPart(fileUsdPrice)
+    ? fileUsdPrice
+    : evalCalculation(`${roundTotalUsd} / ${quantity}`);
 
   // let cnyPrice = evalCalculation(`${roundTotalCny} / ${quantity}`);
   // let usdPrice = evalCalculation(`${roundTotalUsd} / ${quantity}`);
@@ -564,16 +565,16 @@ const transformShipmentItem = (obj) => {
 /**
  *
  */
-export const getRawInputShippingCost = (files = []) => {
+export const getRawInputShippingCost = async (files = []) => {
   let rawInputShippingCost = [];
   const shippingListFiles = files.filter(
     (file) => file.fileType == FILE_TYPE.SHIPPING
   );
 
   if (!isEmptyValue(shippingListFiles)) {
-    shippingListFiles.forEach((shippingFile) => {
+    for (const shippingFile of shippingListFiles) {
       const { order } = shippingFile;
-      const rawJson = xlsxToJSON({
+      const dataRawFile = await xlsxToJSON({
         file: shippingFile,
         paymentCostKeyName: [
           INPUT_KEY_NAME.TOTAL_USD,
@@ -581,11 +582,13 @@ export const getRawInputShippingCost = (files = []) => {
         ],
         exchangeRateKeyName: INPUT_KEY_NAME.TOTAL_USD,
         isShippingFile: true,
-      }).map((item) => {
+      });
+      console.log(dataRawFile);
+      const rawJson = dataRawFile.map((item) => {
         return { ...item, order };
       });
       rawInputShippingCost = [...rawInputShippingCost, ...rawJson];
-    });
+    }
   }
   return rawInputShippingCost;
 };
@@ -593,7 +596,7 @@ export const getRawInputShippingCost = (files = []) => {
 /**
  * @param {Array.<Express.Multer.File>} files
  */
-export const getRawOrder1Data = (files = []) => {
+export const getRawOrder1Data = async (files = []) => {
   let rawJsonOrder1 = [];
   const order1Files = files.filter(
     (file) => file.fileType == FILE_TYPE.ORDER_1
@@ -612,12 +615,13 @@ export const getRawOrder1Data = (files = []) => {
         `${MISSING_ORDER_1_FILE_ORDER}: ${originalname}`
       );
     }
-
-    const rawOrder1Data = xlsxToJSON({
+    const fileRawData = await xlsxToJSON({
       file: order1File,
       paymentCostKeyName: [INPUT_KEY_NAME.TOTAL_USD, INPUT_KEY_NAME.TOTAL_CNY],
       exchangeRateKeyName: INPUT_KEY_NAME.TOTAL_USD,
-    }).map((item) => {
+    });
+
+    const rawOrder1Data = fileRawData.map((item) => {
       return { ...item, order, fileName: originalname };
     });
     rawJsonOrder1 = [...rawJsonOrder1, ...rawOrder1Data];
@@ -631,7 +635,7 @@ export const getRawOrder1Data = (files = []) => {
 /**
  * @param {Array.<Express.Multer.File>} files
  */
-export const getShipmentData = (files = []) => {
+export const getShipmentData = async (files = []) => {
   let shipmentData = [];
   const shipmentFile = files.find(
     (file) => file.fileType == FILE_TYPE.SHIPMENT
@@ -639,7 +643,7 @@ export const getShipmentData = (files = []) => {
 
   if (!isEmptyValue(shipmentFile)) {
     shipmentData = transformShipmentListInput(
-      xlsxToJSON({ file: shipmentFile })
+      await xlsxToJSON({ file: shipmentFile })
     );
   }
 
@@ -666,7 +670,7 @@ export const getTsvFilesArr = (files = []) => {
  * @param {Array.<Express.Multer.File>} files
  * @returns
  */
-export const getTotalSkuList = (files = []) => {
+export const getTotalSkuList = async (files = []) => {
   let totalSkuList = [];
   const skuListFiles = files.filter(
     (file) => file.fileType == FILE_TYPE.SKU_LIST
@@ -675,11 +679,11 @@ export const getTotalSkuList = (files = []) => {
     throw new BadRequestError(MISSING_SKU_LIST_FILE);
   }
 
-  skuListFiles.forEach((skuListFile) => {
-    const rawSkuListData = xlsxToJSON({ file: skuListFile });
+  for (const skuListFile of skuListFiles) {
+    const rawSkuListData = await xlsxToJSON({ file: skuListFile });
     totalSkuList = [...totalSkuList, ...rawSkuListData];
-    // raw skulist json
-  });
+  }
+
   totalSkuList = transformSkuListInput(totalSkuList);
 
   return totalSkuList;

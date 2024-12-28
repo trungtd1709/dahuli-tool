@@ -1,6 +1,7 @@
 export const INPUT_KEY_NAME = {
   ELEMENTS: "elements",
   SKU: "SKU",
+  PICTURE: "Picture",
   PACKING_LABELING_COST: "Packing & Labeling Cost",
   PACKING_LABELING: "Packing & Labeling",
   EMPTY: "__EMPTY",
