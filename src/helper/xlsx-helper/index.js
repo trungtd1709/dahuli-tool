@@ -4,6 +4,8 @@ import { compareStrings } from "../../shared/utils.js";
 import { fileURLToPath } from "url";
 import path from "path";
 import fs from "fs";
+import { FileImage } from "../../model/file-image.js";
+import sharp from "sharp";
 
 export class XlsxHelper {
   /**
@@ -42,26 +44,59 @@ export class XlsxHelper {
     }
 
     // Get all images in the worksheet
-    const images = worksheet.getImages();
-    images.forEach((image) => {
+    const rawImages = worksheet.getImages();
+    const images = rawImages.map((image) => {
       const { imageId, range } = image;
       const imgCol = parseInt(range.tl.col.toFixed());
-      console.log(range);
 
       // Check if the image is in the target column
-      if (imgCol === pictureColIndex) {
-        const rowIndex = range.tl.row; // Get the row index of the top-left corner
+      if (imgCol == pictureColIndex || imgCol + 1 == pictureColIndex) {
+        const rowIndex = parseInt(range.tl.row.toFixed()); // Get the row index of the top-left corner
         const workbookImage = workbook.getImage(imageId);
 
         // Construct the file path
-        const fileName = `image_col_${pictureColIndex}_row_${rowIndex}.${workbookImage.extension}`;
+        const fileName = `image_col_${imgCol}_row_${rowIndex}.${workbookImage.extension}`;
         const filePath = path.join(outputDir, fileName);
+        const fileImage = FileImage.fromJson({
+          buffer: workbookImage.buffer,
+          rowIndex,
+        });
+        return fileImage;
 
         // Save the image to the directory
-        fs.writeFileSync(filePath, workbookImage.buffer);
-        console.log(`Saved image to: ${filePath}`);
+        // fs.writeFileSync(filePath, workbookImage.buffer);
+        // console.log(`Saved image to: ${filePath}`);
       }
     });
+    return images;
     // END EXCEL JS
+  };
+
+  /**
+   * @param {ExcelJS.Worksheet} worksheet - The worksheet where the row is located.
+   * @param {ExcelJS.Workbook} workbook
+   * @param {number} rowNumber - The row number to make bold (1-based index).
+   */
+  static addImagesToExcel = (
+    workbook,
+    worksheet,
+    imageBuffer,
+    colIndex,
+    rowIndex,
+    resizeOptions = { width: 50, height: 50 }
+  ) => {
+    if (imageBuffer) {
+      console.log(Buffer.isBuffer(imageBuffer));
+
+      const imageId = workbook.addImage({
+        buffer: imageBuffer,
+        extension: "png",
+      });
+
+      worksheet.addImage(imageId, {
+        tl: { col: colIndex - 1, row: rowIndex - 1 }, // Adjust for 0-based index
+        br: { col: colIndex, row: rowIndex }, // Bottom-right corner of the same cell
+      });
+    }
   };
 }

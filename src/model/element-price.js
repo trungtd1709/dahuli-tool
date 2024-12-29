@@ -18,6 +18,7 @@ export class ElementPrice {
     fileOrder,
     paymentCostDivisor,
     isPaymentFee,
+    image,
   }) {
     this.name = name;
     this.exchangeRate = exchangeRate;
@@ -34,6 +35,7 @@ export class ElementPrice {
     this.fileOrder = fileOrder;
     this.paymentCostDivisor = paymentCostDivisor;
     this.isPaymentFee = isPaymentFee;
+    this.image = image;
   }
 
   // Method in the class
@@ -49,6 +51,7 @@ export class ElementPrice {
     leftQuantity,
     domesticShippingCost,
     paymentCostDivisor,
+    image,
   }) {
     if (isNaN(leftQuantity)) {
       leftQuantity = quantity;
@@ -86,6 +89,7 @@ export class ElementPrice {
       fileOrder,
       paymentCostDivisor,
       isPaymentFee,
+      image,
     });
   }
 
@@ -103,6 +107,7 @@ export class ElementPrice {
       domesticShippingCost: this.domesticShippingCost,
       fileOrder: this.fileOrder,
       paymentCostDivisor: this.paymentCostDivisor,
+      image: this.image,
     };
   }
 
@@ -194,5 +199,9 @@ export class ElementPrice {
 
   getPaymentCostDivisor() {
     return this.paymentCostDivisor;
+  }
+
+  getImage(){
+    return this.image;
   }
 }

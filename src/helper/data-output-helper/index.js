@@ -192,7 +192,7 @@ const refactorSkuListFunc = (skuList = []) => {
   return refactorSkuList;
 };
 
-export const refactorElements = (allElements = []) => {
+export const refactorShipmentElements = (allElements = []) => {
   return allElements.map((element, index) => {
     const {
       name,
@@ -202,12 +202,13 @@ export const refactorElements = (allElements = []) => {
       totalCny,
       totalUsd,
       order = "",
+      image
     } = element;
 
     return {
       [SHIPMENT_OUTPUT_KEY_NAME.NO]: index + 1,
       [SHIPMENT_OUTPUT_KEY_NAME.PRODUCT_NAME]: name,
-      [SHIPMENT_OUTPUT_KEY_NAME.IMAGE]: "",
+      [SHIPMENT_OUTPUT_KEY_NAME.IMAGE]: image,
       [SHIPMENT_OUTPUT_KEY_NAME.QUANTITY]: quantity,
       [SHIPMENT_OUTPUT_KEY_NAME.CNY_PRICE]: cnyPrice,
       [SHIPMENT_OUTPUT_KEY_NAME.USD_PRICE]: usdPrice,
@@ -264,19 +265,7 @@ export const addOrder1FileToZip = async (files = [], zip, allElements) => {
       allElements
     );
     zip.file(order1File.originalname, modifiedBuffer);
-
-    // if (i == fileIndexNeedToChange) {
-    //   const { modifiedBuffer, negativeInStockPlaceArr } =
-    //     await modifyOrder1File(order1File, allElements);
-    //   zip.file(order1File.originalname, modifiedBuffer);
-    //   if (negativeInStockPlaceArr.length > 0) {
-    //     fileIndexNeedToChange += 1;
-    //   }
-    // } else {
-    //   zip.file(order1File.originalname, order1File.buffer);
-    // }
   }
-  console.log(fileIndexNeedToChange);
 };
 
 /**
@@ -375,7 +364,6 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
           let accumulatorTotalUsd = accumulator[current.name].totalUsd;
 
           if (accumulatorTotalUsd) {
-            
             if (accumulatorTotalUsd?.includes(usdPrice)) {
               accumulator[current.name].totalUsd = addUpQuantityFormula(
                 accumulatorTotalUsd,
@@ -482,13 +470,22 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
     const elementPriceObj = elementsPrice.find((item) =>
       compareStringsIgnoreCase(item?.name, name)
     );
-    // totalCny = totalCny.replace("totalElementQuantity", quantity);
-    // totalUsd = totalUsd.replace("totalElementQuantity", quantity);
+
+    let imageBuffer;
+
     if (!isEmptyValue(elementPriceObj)) {
       usdPrice = elementPriceObj.getUsdFormula();
       cnyPrice = elementPriceObj.getCnyFormula();
+      imageBuffer = elementPriceObj.getImage()?.getBuffer();
     }
-    return { ...element, usdPrice, cnyPrice, totalCny, totalUsd };
+    return {
+      ...element,
+      image: imageBuffer,
+      usdPrice,
+      cnyPrice,
+      totalCny,
+      totalUsd,
+    };
   });
 
   // START PAYMENT FEE
@@ -615,15 +612,6 @@ export const addShipmentFileToZip = async (
   for (const shipment of Object.keys(allElementsByShipment)) {
     const shipmentElements = allElementsByShipment[shipment];
 
-    // shipment ở đây là S304 chứ k phải S304.1
-    const allShipmentSku = allSkuList.filter(
-      (sku) => sku?.shipment == shipment
-    );
-    const totalSkuShipmentQuantity = allShipmentSku.reduce((acc, sku) => {
-      const { quantity = 0 } = sku;
-      return acc + quantity;
-    }, 0);
-
     for (const originalShipment of Object.keys(shipmentElements)) {
       allElements[originalShipment] = allElements[originalShipment].map(
         (item, index) => {
@@ -658,12 +646,8 @@ export const addShipmentFileToZip = async (
       const subTotalElement = {
         name: KEY_PREFERENCES.SUBTOTAL,
         quantity: `SUM(${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}2:${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${lastElementIndex})`,
-        // usdPrice: `SUM(${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}2:${SHIPMENT_OUTPUT_COL_ALPHABET.QUANTITY}${lastElementIndex})`,
-        // order: "HNV 2303",
         totalUsd: `SUM(${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}2:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_USD}${lastElementIndex})`,
         totalCny: `SUM(${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}2:${SHIPMENT_OUTPUT_COL_ALPHABET.TOTAL_CNY}${lastElementIndex})`,
-        // shipment: "S308",
-        // cnyPrice: "3.5",
       };
       allElements[originalShipment].push(subTotalElement);
       // END OF SUBTOTAL
@@ -771,10 +755,9 @@ export const addShipmentFileToZip = async (
       if (shippingPaymentCost.totalUsd) {
         allElements[originalShipment].push(shippingPaymentCost);
       }
-
       // END OF PAYMENT COST
 
-      const refactorAllElements = refactorElements(
+      const refactorAllElements = refactorShipmentElements(
         allElements[originalShipment]
       );
       const shipmentResultFileBuffer = await createShipmentExcelBuffer(

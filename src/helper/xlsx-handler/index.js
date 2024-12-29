@@ -25,6 +25,9 @@ import {
 import { XlsxUtils } from "../../shared/xlsxUtils.js";
 
 import { XlsxHelper } from "../xlsx-helper/index.js";
+import { fileURLToPath } from "url";
+import path from "path";
+import fs from "fs";
 
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
 /**
@@ -69,7 +72,21 @@ export const xlsxToJSON = async ({
     }
     jsonData = changeObjKeyName(jsonData);
 
-    // const images = await XlsxHelper.getImagesFromXlsx(file);
+    const images = await XlsxHelper.getImagesFromXlsx(file);
+
+    if (!isEmptyValue(images)) {
+      jsonData = jsonData.map((data, index) => {
+        const imageRowIndex = index + 1;
+        const image = images.find((item) => {
+          return item.getRowIndex() == imageRowIndex;
+        });
+        if (image) {
+          return { ...data, image };
+        } else {
+          return data;
+        }
+      });
+    }
 
     return jsonData;
   } catch (err) {
@@ -582,10 +599,18 @@ export async function createShipmentExcelBuffer(jsonData = []) {
   worksheet.columns = columns;
 
   jsonData.forEach((item) => {
-    worksheet.addRow(item);
+    const { [SHIPMENT_OUTPUT_KEY_NAME.IMAGE]: picture, ...restItem } = item;
+    worksheet.addRow(restItem);
   });
 
   worksheet.addRow({ [SHIPMENT_OUTPUT_KEY_NAME.PRODUCT_NAME]: "TOTAL" });
+
+  XlsxUtils.addHeightToEntireSheetCell(worksheet);
+
+  const testworkbook = new ExcelJS.Workbook();
+  const worksheet1 = testworkbook.addWorksheet("Test Sheet");
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
 
   jsonData.forEach((item, index) => {
     const rowNumber = index + 2;
@@ -593,6 +618,8 @@ export async function createShipmentExcelBuffer(jsonData = []) {
     const isMoreThanOneOrder = order.includes("+");
 
     const itemName = item[SHIPMENT_OUTPUT_KEY_NAME.PRODUCT_NAME];
+    const itemImageBuffer = item[SHIPMENT_OUTPUT_KEY_NAME.IMAGE];
+    // reset buffer về rỗng để ko viết vào file excel
     const itemTotalUsd = item[SHIPMENT_OUTPUT_KEY_NAME.TOTAL_USD];
     const itemTotalCny = item[SHIPMENT_OUTPUT_KEY_NAME.TOTAL_CNY];
     const itemCnyPrice = item[SHIPMENT_OUTPUT_KEY_NAME.CNY_PRICE];
@@ -638,7 +665,34 @@ export async function createShipmentExcelBuffer(jsonData = []) {
     setCellFormula(worksheet, cnyPriceCellAdd, cnyPriceFormula);
     setCellFormula(worksheet, usdPriceCellAdd, usdPriceFormula);
     setCellFormula(worksheet, quantityCellAdd, itemQuantity);
+
+    if (itemImageBuffer) {
+      const imgColIndex = XlsxUtils.columnLetterToIndex(
+        SHIPMENT_OUTPUT_COL_ALPHABET.IMAGE
+      );
+
+      XlsxHelper.addImagesToExcel(
+        workbook,
+        worksheet,
+        itemImageBuffer,
+        imgColIndex,
+        index + 2
+      );
+
+      XlsxHelper.addImagesToExcel(
+        testworkbook,
+        worksheet1,
+        itemImageBuffer,
+        imgColIndex,
+        index + 1
+      );
+    }
   });
+
+  const outputFilePath = path.join(__dirname, "testworkbook.xlsx");
+
+  // Save the workbook
+  await testworkbook.xlsx.writeFile(outputFilePath);
 
   const subTotalIndex =
     jsonData.findIndex(
@@ -700,6 +754,8 @@ const addStyleToShipment = (worksheet, firstRowNum = 2) => {
 
       if (isNumber || isFormula) {
         cell.alignment = { vertical: "middle", horizontal: "center" };
+      } else {
+        cell.alignment = { vertical: "middle" };
       }
     });
   });

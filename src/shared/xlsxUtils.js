@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import { KEY_PREFERENCES } from "./constant.js";
 import { isEmptyValue } from "./utils.js";
+import { EXCEL_CONFIG } from "./config.js";
 
 export class XlsxUtils {
   /**
@@ -55,6 +56,17 @@ export class XlsxUtils {
     }
 
     return columnLetter;
+  }
+
+  static columnLetterToIndex(columnLetter) {
+    let columnIndex = 0;
+
+    for (let i = 0; i < columnLetter.length; i++) {
+      const char = columnLetter.charCodeAt(i) - 65 + 1; // Convert letter to number (A=1, B=2, ..., Z=26)
+      columnIndex = columnIndex * 26 + char;
+    }
+
+    return columnIndex;
   }
 
   /**
@@ -134,7 +146,7 @@ export class XlsxUtils {
 
   /**
    * Makes an entire row's font bold in an Excel worksheet.
-   * @param {Worksheet} worksheet - The worksheet where the row is located.
+   * @param {ExcelJS.Worksheet} worksheet - The worksheet where the row is located.
    * @param {number} rowNumber - The row number to make bold (1-based index).
    */
   static makeRowBold(worksheet, rowNumber) {
@@ -178,5 +190,16 @@ export class XlsxUtils {
 
   static isPaymentFee = (string) => {
     return string?.toLowerCase()?.includes(KEY_PREFERENCES.PAYMENT);
+  };
+
+  /**
+   * 
+   * @param {ExcelJS.Worksheet} worksheet 
+   */
+  static addHeightToEntireSheetCell = (worksheet, height = EXCEL_CONFIG.CELL_HEIGHT) => {
+    worksheet.eachRow((row, rowNumber) => {
+      if(rowNumber == 1) return;
+      row.height = height;
+    });
   };
 }

@@ -96,6 +96,7 @@ const transformToElementPrice = (obj) => {
     fileName,
     order = "",
     paymentCostDivisor,
+    image
   } = obj;
 
   const inStock = getMaxIndexKeyValue(obj, INPUT_KEY_NAME.IN_STOCK);
@@ -124,6 +125,7 @@ const transformToElementPrice = (obj) => {
     quantity,
     leftQuantity: inStock,
     paymentCostDivisor,
+    image
   });
 
   return elementPrice;

@@ -106,17 +106,10 @@ export const calculateGood = async (files = []) => {
       skuList = skuList.map((item) => {
         return { ...item, shipmentId, originalShipment };
       });
-      // skuList = addCustomizeAndPaymentCost(skuList, elementsPrice);
       skuList = addPackingCost(skuList, elementsPrice);
-      // skuList = addShippingAndPaymentCost(
-      //   skuList,
-      //   inputShippingCost,
-      //   totalSkuType
-      // );
       skuList = addCogsAndAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
       skuList = calculatePpuPrice(skuList, elementsPrice);
-      // skuList = addPpuPaymentCost(skuList, elementsPrice);
 
       const allShipmentElements = await getAllShipmentElements(
         skuList,

@@ -131,7 +131,3 @@ export const SHIPMENT_OUTPUT_COL_ALPHABET = {
   ORDER: "I",
   NOTE: "J",
 };
-
-export const COLUMN_WIDTH = {
-  COST: 15
-}
