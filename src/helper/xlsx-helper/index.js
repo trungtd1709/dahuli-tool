@@ -49,10 +49,6 @@ export class XlsxHelper {
           rowIndex,
         });
         return fileImage;
-
-        // Save the image to the directory
-        // fs.writeFileSync(filePath, workbookImage.buffer);
-        // console.log(`Saved image to: ${filePath}`);
       }
     });
     return images;
@@ -136,7 +132,6 @@ export class XlsxHelper {
               rowData[header] = cell.value.result;
             } else if (cell.formula) {
               rowData[header] = cell.formula;
-              console.log(cell.formula);
             } else {
               rowData[header] = cell.value;
             }

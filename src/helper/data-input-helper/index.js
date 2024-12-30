@@ -113,10 +113,7 @@ const transformToElementPrice = (obj) => {
     : Utils.isValidDecimalPart(fileUsdPrice)
     ? fileUsdPrice
     : evalCalculation(`${roundTotalUsd} / ${quantity}`);
-  if (compareStrings(name, "Rotating Folding Hook (Black)")) {
-    console.log("Wefwewev");
-  }
-
+  
   // let cnyPrice = evalCalculation(`${roundTotalCny} / ${quantity}`);
   // let usdPrice = evalCalculation(`${roundTotalUsd} / ${quantity}`);
 
