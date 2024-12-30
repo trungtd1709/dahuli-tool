@@ -91,12 +91,13 @@ const transformToElementPrice = (obj) => {
     [INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST]: domesticShippingCost,
     [INPUT_KEY_NAME.USD]: fileUsdPrice,
     [INPUT_KEY_NAME.CNY]: fileCnyPrice,
+    orderUsdPrice,
     packingLabelingCost,
     exchangeRate,
     fileName,
     order = "",
     paymentCostDivisor,
-    image
+    image,
   } = obj;
 
   const inStock = getMaxIndexKeyValue(obj, INPUT_KEY_NAME.IN_STOCK);
@@ -106,9 +107,15 @@ const transformToElementPrice = (obj) => {
   const cnyPrice = Utils.isValidDecimalPart(fileCnyPrice)
     ? fileCnyPrice
     : evalCalculation(`${roundTotalCny} / ${quantity}`);
-  const usdPrice = Utils.isValidDecimalPart(fileUsdPrice)
+
+  const usdPrice = orderUsdPrice
+    ? orderUsdPrice
+    : Utils.isValidDecimalPart(fileUsdPrice)
     ? fileUsdPrice
     : evalCalculation(`${roundTotalUsd} / ${quantity}`);
+  if (compareStrings(name, "Rotating Folding Hook (Black)")) {
+    console.log("Wefwewev");
+  }
 
   // let cnyPrice = evalCalculation(`${roundTotalCny} / ${quantity}`);
   // let usdPrice = evalCalculation(`${roundTotalUsd} / ${quantity}`);
@@ -125,7 +132,7 @@ const transformToElementPrice = (obj) => {
     quantity,
     leftQuantity: inStock,
     paymentCostDivisor,
-    image
+    image,
   });
 
   return elementPrice;

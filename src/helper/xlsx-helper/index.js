@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { INPUT_KEY_NAME } from "../../shared/constant.js";
+import { INPUT_KEY_NAME, KEY_PREFERENCES } from "../../shared/constant.js";
 import { compareStrings } from "../../shared/utils.js";
 import { fileURLToPath } from "url";
 import path from "path";
@@ -97,6 +97,76 @@ export class XlsxHelper {
         tl: { col: colIndex - 1, row: rowIndex - 1 }, // Adjust for 0-based index
         br: { col: colIndex, row: rowIndex }, // Bottom-right corner of the same cell
       });
+    }
+  };
+
+  /**
+   *
+   * @param {} worksheet
+   */
+  static getWorksheetJsonData = async (file) => {
+    try {
+      // Initialize a workbook
+      const workbook = new ExcelJS.Workbook();
+
+      // If Multer stores the file in memory, use buffer
+      if (file.buffer) {
+        await workbook.xlsx.load(file.buffer);
+      } else if (file.path) {
+        await workbook.xlsx.readFile(file.path);
+      } else {
+        throw new Error("Invalid Multer file: no buffer or path found.");
+      }
+
+      // Get the first worksheet
+      const worksheet = workbook.getWorksheet(1);
+
+      if (!worksheet) {
+        throw new Error("No worksheet found in the file.");
+      }
+
+      // Parse Excel data into JSON
+      const jsonData = [];
+      const headers = [];
+
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) {
+          // Extract headers from the first row
+          row.eachCell((cell) => {
+            headers.push(cell.value);
+          });
+        } else {
+          // Map row data to corresponding headers
+          const rowData = {};
+          row.eachCell((cell, colNumber) => {
+            const header = headers[colNumber - 1];
+            if (!header) return; // Skip cells without a corresponding header
+
+            if (header?.includes(KEY_PREFERENCES.TOTAL)) {
+              rowData[header] = cell.value?.result ?? cell.value;
+            }
+            if (cell.formula && /[A-Za-z]/.test(cell.formula)) {
+              rowData[header] = cell.value.result;
+            } else if (cell.formula) {
+              rowData[header] = cell.formula;
+              console.log(cell.formula);
+            } else {
+              rowData[header] = cell.value;
+            }
+          });
+          const checkHeader = headers.find(
+            (item) => item == INPUT_KEY_NAME.ORDER_USD
+          );
+          if (checkHeader && rowData?.[INPUT_KEY_NAME.ORDER_USD]) {
+            jsonData.push(rowData);
+          }
+        }
+      });
+
+      return jsonData; // Return the parsed JSON
+    } catch (error) {
+      console.error("Error parsing Excel file:", error.message);
+      throw error; // Rethrow the error for the caller to handle
     }
   };
 }

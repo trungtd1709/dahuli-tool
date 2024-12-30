@@ -38,55 +38,61 @@ export const mergeArrays = (arr1, arr2, key) => {
 };
 
 export const evalCalculation = (expression, minDecimalPartLength = 4) => {
-  let result = eval(expression);
-  let decimalPart = result.toString().split(".")[1];
+  try {
+    let result = eval(expression);
+    let decimalPart = result.toString().split(".")[1];
 
-  if (decimalPart && decimalPart.length > minDecimalPartLength) {
-    if (
-      decimalPart[decimalPart.length - 2] == "0" &&
-      decimalPart[decimalPart.length - 3] == "0" &&
-      decimalPart[decimalPart.length - 4] == "0" &&
-      decimalPart[decimalPart.length - 5] == "0"
-    ) {
-      let trimmedResult = parseFloat(result.toString().slice(0, -1)).toString();
-      return trimmedResult;
-    }
-    if (
-      decimalPart[decimalPart.length - 2] == "9" &&
-      decimalPart[decimalPart.length - 3] == "9" &&
-      decimalPart[decimalPart.length - 4] == "9"
-    ) {
-      let integerPart = result.toString().split(".")[0];
-      let truncatedDecimal = "";
-      let firstNineIndex;
+    if (decimalPart && decimalPart.length > minDecimalPartLength) {
+      if (
+        decimalPart[decimalPart.length - 2] == "0" &&
+        decimalPart[decimalPart.length - 3] == "0" &&
+        decimalPart[decimalPart.length - 4] == "0" &&
+        decimalPart[decimalPart.length - 5] == "0"
+      ) {
+        let trimmedResult = parseFloat(
+          result.toString().slice(0, -1)
+        ).toString();
+        return trimmedResult;
+      }
+      if (
+        decimalPart[decimalPart.length - 2] == "9" &&
+        decimalPart[decimalPart.length - 3] == "9" &&
+        decimalPart[decimalPart.length - 4] == "9"
+      ) {
+        let integerPart = result.toString().split(".")[0];
+        let truncatedDecimal = "";
+        let firstNineIndex;
 
-      // Find the first occurrence of '9' and stop there
-      for (let i = 0; i < decimalPart.length; i++) {
-        if (
-          decimalPart[i] === "9" &&
-          i > 1 &&
-          decimalPart[i - 1] === "9" &&
-          decimalPart[i - 2] === "9"
-        ) {
-          firstNineIndex = i - 2;
-          break; // Stop when 3 consecutive '9's are found
+        // Find the first occurrence of '9' and stop there
+        for (let i = 0; i < decimalPart.length; i++) {
+          if (
+            decimalPart[i] === "9" &&
+            i > 1 &&
+            decimalPart[i - 1] === "9" &&
+            decimalPart[i - 2] === "9"
+          ) {
+            firstNineIndex = i - 2;
+            break; // Stop when 3 consecutive '9's are found
+          }
+          truncatedDecimal += decimalPart[i];
         }
-        truncatedDecimal += decimalPart[i];
+        let newDecimalPart;
+        if (firstNineIndex) {
+          newDecimalPart = decimalPart.slice(0, firstNineIndex + 1);
+          const newResult = parseFloat(
+            `${integerPart}.${newDecimalPart}`
+          ).toFixed(firstNineIndex);
+          return newResult;
+        }
+        return result.toFixed(4);
+      } else {
+        return expression;
       }
-      let newDecimalPart;
-      if (firstNineIndex) {
-        newDecimalPart = decimalPart.slice(0, firstNineIndex + 1);
-        const newResult = parseFloat(
-          `${integerPart}.${newDecimalPart}`
-        ).toFixed(firstNineIndex);        
-        return newResult;
-      }
-      return result.toFixed(4);
-    } else {
-      return expression;
     }
+    return result.toString();
+  } catch (err) {
+    console.log(err);
   }
-  return result.toString();
 };
 
 export const isEmptyValue = (value) => {
@@ -387,14 +393,13 @@ export class Utils {
     if (!Number.isFinite(num)) {
       return false;
     }
-  
+
     const decimalPart = num.toString().split(".")[1]; // Get the part after the decimal point
-  
+
     if (!decimalPart) {
       return true;
     }
-  
+
     return decimalPart.length <= CONFIG.MAX_DECIMAL_FIGURE; // Check if the decimal part is 4 digits or fewer
   }
-  
 }

@@ -50,6 +50,24 @@ export const xlsxToJSON = async ({
     const worksheet = workbook.Sheets[sheetName];
     let jsonData = XLSX.utils.sheet_to_json(worksheet);
 
+    // giá order USD
+    let orderUsdPriceData = await XlsxHelper.getWorksheetJsonData(file);
+
+    orderUsdPriceData.forEach((item) => {
+      const orderUsdPrice = item[INPUT_KEY_NAME.ORDER_USD];
+      const productName = item[INPUT_KEY_NAME.PRODUCT_NAME];
+
+      const productIndex = jsonData.findIndex(
+        (ele) => ele[INPUT_KEY_NAME.PRODUCT_NAME] == productName
+      );
+      if (productIndex && orderUsdPrice) {
+        jsonData[productIndex].orderUsdPrice = orderUsdPrice;
+      }
+    });
+
+    // console.log(jsonData[0]);
+    // console.log(jsonDataTest[0]);
+
     addExchangeRateToJson({
       worksheet,
       exchangeRateKeyName,
@@ -607,11 +625,6 @@ export async function createShipmentExcelBuffer(jsonData = []) {
 
   XlsxUtils.addHeightToEntireSheetCell(worksheet);
 
-  const testworkbook = new ExcelJS.Workbook();
-  const worksheet1 = testworkbook.addWorksheet("Test Sheet");
-  const __filename = fileURLToPath(import.meta.url);
-  const __dirname = path.dirname(__filename);
-
   jsonData.forEach((item, index) => {
     const rowNumber = index + 2;
     const order = item[SHIPMENT_OUTPUT_KEY_NAME.ORDER] ?? "";
@@ -678,21 +691,8 @@ export async function createShipmentExcelBuffer(jsonData = []) {
         imgColIndex,
         index + 2
       );
-
-      XlsxHelper.addImagesToExcel(
-        testworkbook,
-        worksheet1,
-        itemImageBuffer,
-        imgColIndex,
-        index + 1
-      );
     }
   });
-
-  const outputFilePath = path.join(__dirname, "testworkbook.xlsx");
-
-  // Save the workbook
-  await testworkbook.xlsx.writeFile(outputFilePath);
 
   const subTotalIndex =
     jsonData.findIndex(

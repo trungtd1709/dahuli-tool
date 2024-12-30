@@ -376,10 +376,13 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
               const firstFormula = current?.totalUsd.split("+")[0]?.trim();
               const secondFormula = current?.totalUsd?.split("+")[1]?.trim();
               if (firstFormula) {
-                const oldUsdPrice = firstFormula?.split("*")[0]?.trim();
-                const oldFileQuantity = parseInt(
-                  firstFormula?.split("*")[1]?.trim()
-                );
+                const lastStarIndex = firstFormula.lastIndexOf("*");
+                const oldUsdPrice = firstFormula.substring(0, lastStarIndex).trim(); // Everything before the last '*'
+                const oldFileQuantity = parseInt(firstFormula.substring(lastStarIndex + 1).trim());  // Everything after the last '*'
+                // const oldUsdPrice = firstFormula?.split("*")[0]?.trim();
+                // const oldFileQuantity = parseInt(
+                  // firstFormula?.split("*")[1]?.trim()
+                // );
                 if (
                   accumulatorTotalUsd?.includes(oldUsdPrice) &&
                   _.isInteger(oldFileQuantity)
