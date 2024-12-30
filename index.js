@@ -13,12 +13,11 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // app.use(cors());
 
-app.get("/test", async (req, res) => {
-  res.json("hello world");
-});
 
 app.use(errorHandler);
 
-app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
-});
+// app.listen(port, () => {
+//   console.log(`Server is running at http://localhost:${port}`);
+// });
+
+export default app;
