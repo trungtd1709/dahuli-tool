@@ -33,16 +33,6 @@ export class XlsxHelper {
       }
     });
 
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-
-    const outputDir = path.join(__dirname, "test");
-
-    // Create the directory if it doesn't exist
-    if (!fs.existsSync(outputDir)) {
-      fs.mkdirSync(outputDir);
-    }
-
     // Get all images in the worksheet
     const rawImages = worksheet.getImages();
     const images = rawImages.map((image) => {
@@ -53,10 +43,7 @@ export class XlsxHelper {
       if (imgCol == pictureColIndex || imgCol + 1 == pictureColIndex) {
         const rowIndex = parseInt(range.tl.row.toFixed()); // Get the row index of the top-left corner
         const workbookImage = workbook.getImage(imageId);
-
-        // Construct the file path
-        const fileName = `image_col_${imgCol}_row_${rowIndex}.${workbookImage.extension}`;
-        const filePath = path.join(outputDir, fileName);
+        
         const fileImage = FileImage.fromJson({
           buffer: workbookImage.buffer,
           rowIndex,
