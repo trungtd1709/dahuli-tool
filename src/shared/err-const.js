@@ -6,6 +6,7 @@ export const MISSING_SHIPMENT_ID = "Không thấy shipmentId trong file TSV";
 export const MISSING_SHIPMENT = "Không thấy Shipment trong file Shipment tổng";
 export const MISSING_SHIPMENT_DATA = "Không thấy thông tin shipment";
 export const MISSING_ELEMENT_DATA = "Không thấy thông tin element trong file order1";
+export const MISSING_QUANTITY = "Không đủ quantity trong file order1";
 export const NOT_ENOUGHT_CUSTOM_PACKAGE_QUANTITY = "Không đủ quantity custom package";
 export const CANT_FIND_ELEMENT = "Không thấy element";
 export const MISSING_ORDER_1_FILE_ORDER = "Tên file order 1 thiếu số thứ tự";

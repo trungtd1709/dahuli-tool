@@ -26,7 +26,6 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
   return skuList.map((sku) => {
     let ppuPrice = sku.elements.reduce((acc, element) => {
       let newPpuPrice = "";
-      const { SKU, originalShipment } = sku;
 
       // quantity của 1 element trong SKU
       const elementQuantity = parseInt(element?.quantity) ?? 1;
@@ -34,7 +33,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         elementsPrice.filter(
           (el) =>
             // el.name.toLowerCase() === element.name.toLowerCase() &&
-            compareStringsIgnoreSpaces(el.name, element.name) &&
+            compareStrings(el.name, element.name) &&
             el.leftQuantity > 0
         )
       );
@@ -43,8 +42,6 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         throw new BadRequestError(`${MISSING_ELEMENT_DATA}: ${element.name}`);
       }
 
-      const exchangeRate = elementPrice?.exchangeRate;
-      const cnyPrice = elementPrice.getCnyFormula();
       let usdPrice = elementPrice.getUsdFormula();
       const skuQuantity = sku?.quantity ?? 0;
       const quantity = elementQuantity * skuQuantity;
@@ -71,14 +68,14 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         const newElementPrice = findEleWithLowestFileOrder(
           elementsPrice.filter(
             (el) =>
-              el.name.toLowerCase() === element.name.toLowerCase() &&
+              compareStrings(el.name, element.name) &&
               el.leftQuantity > 0 &&
               el.fileOrder > elementPrice.fileOrder
           )
         );
 
         if (!newElementPrice) {
-          throw new BadRequestError(MISSING_ELEMENT_DATA);
+          throw new BadRequestError(`${MISSING_ELEMENT_DATA} or ${MISSING_QUANTITY}`);
         }
         const quantityGoToNewOrder = quantity - remainingQuantity;
         usdPrice = `(${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * ${remainingQuantity}) / ${quantity}`;

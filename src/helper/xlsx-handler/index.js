@@ -25,9 +25,6 @@ import {
 import { XlsxUtils } from "../../shared/xlsxUtils.js";
 
 import { XlsxHelper } from "../xlsx-helper/index.js";
-import { fileURLToPath } from "url";
-import path from "path";
-import fs from "fs";
 
 // exchangeRateKeyName tên cột có công thức chứa tỉ giá
 /**
@@ -51,17 +48,20 @@ export const xlsxToJSON = async ({
     let jsonData = XLSX.utils.sheet_to_json(worksheet);
 
     // giá order USD
-    let orderUsdPriceData = await XlsxHelper.getWorksheetJsonData(file);
+    let usdPriceData = await XlsxHelper.getWorksheetJsonData(file);
 
-    orderUsdPriceData.forEach((item) => {
-      const orderUsdPrice = item[INPUT_KEY_NAME.ORDER_USD];
+    usdPriceData.forEach((item) => {
+      const usdPrice = item[INPUT_KEY_NAME.USD];
       const productName = item[INPUT_KEY_NAME.PRODUCT_NAME];
+      let test;
 
       const productIndex = jsonData.findIndex(
         (ele) => ele[INPUT_KEY_NAME.PRODUCT_NAME] == productName
       );
-      if (productIndex && orderUsdPrice) {
-        jsonData[productIndex].orderUsdPrice = orderUsdPrice;
+      test = productIndex;
+      if (productIndex >= 0 && usdPrice) {
+        jsonData[productIndex][INPUT_KEY_NAME.USD] = usdPrice;
+        console.log(productIndex);
       }
     });
 

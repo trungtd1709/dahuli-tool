@@ -43,7 +43,7 @@ export class XlsxHelper {
       if (imgCol == pictureColIndex || imgCol + 1 == pictureColIndex) {
         const rowIndex = parseInt(range.tl.row.toFixed()); // Get the row index of the top-left corner
         const workbookImage = workbook.getImage(imageId);
-        
+
         const fileImage = FileImage.fromJson({
           buffer: workbookImage.buffer,
           rowIndex,
@@ -125,21 +125,32 @@ export class XlsxHelper {
             const header = headers[colNumber - 1];
             if (!header) return; // Skip cells without a corresponding header
 
-            if (header?.includes(KEY_PREFERENCES.TOTAL)) {
-              rowData[header] = cell.value?.result ?? cell.value;
-            }
-            if (cell.formula && /[A-Za-z]/.test(cell.formula)) {
-              rowData[header] = cell.value.result;
-            } else if (cell.formula) {
-              rowData[header] = cell.formula;
-            } else {
+            if(header == INPUT_KEY_NAME.PRODUCT_NAME){
               rowData[header] = cell.value;
+            }
+
+            if (header == INPUT_KEY_NAME.USD) {
+              if (cell.formula) {
+                // Regex to find cell addresses in the formula (e.g., A1, B2)
+                const cellAddressRegex = /([A-Z]+[0-9]+)/g;
+
+                // Find all cell addresses in the formula
+                const formulaWithValues = cell.formula.replace(
+                  cellAddressRegex,
+                  (match) => {
+                    const referencedCell = worksheet.getCell(match); // Get the referenced cell
+                    const cellValue = referencedCell.value || 0; // Default to 0 if no value
+                    return cellValue; // Replace the cell address with its value
+                  }
+                );
+                rowData[header] = formulaWithValues;
+              }
             }
           });
           const checkHeader = headers.find(
-            (item) => item == INPUT_KEY_NAME.ORDER_USD
+            (item) => item == INPUT_KEY_NAME.USD
           );
-          if (checkHeader && rowData?.[INPUT_KEY_NAME.ORDER_USD]) {
+          if (checkHeader && rowData?.[INPUT_KEY_NAME.USD]) {
             jsonData.push(rowData);
           }
         }

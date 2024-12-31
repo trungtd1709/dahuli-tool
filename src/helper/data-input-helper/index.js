@@ -91,7 +91,7 @@ const transformToElementPrice = (obj) => {
     [INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST]: domesticShippingCost,
     [INPUT_KEY_NAME.USD]: fileUsdPrice,
     [INPUT_KEY_NAME.CNY]: fileCnyPrice,
-    orderUsdPrice,
+
     packingLabelingCost,
     exchangeRate,
     fileName,
@@ -104,16 +104,14 @@ const transformToElementPrice = (obj) => {
   const roundTotalCny = Utils.roundNumber(totalCny);
   const roundTotalUsd = Utils.roundNumber(totalUsd);
 
-  const cnyPrice = Utils.isValidDecimalPart(fileCnyPrice)
+  const cnyPrice = fileCnyPrice
     ? fileCnyPrice
     : evalCalculation(`${roundTotalCny} / ${quantity}`);
 
-  const usdPrice = orderUsdPrice
-    ? orderUsdPrice
-    : Utils.isValidDecimalPart(fileUsdPrice)
+  const usdPrice = fileUsdPrice
     ? fileUsdPrice
     : evalCalculation(`${roundTotalUsd} / ${quantity}`);
-  
+
   // let cnyPrice = evalCalculation(`${roundTotalCny} / ${quantity}`);
   // let usdPrice = evalCalculation(`${roundTotalUsd} / ${quantity}`);
 

@@ -11,8 +11,6 @@ export const INPUT_KEY_NAME = {
   PRICE: "Price",
   DOMESTIC_SHIPPING_COST: "Domestic shipping cost",
   USD: "USD",
-  ORDER_USD: "Order USD",
-  ORDER_CNY: "Order CNY",
   CNY: "CNY",
   TOTAL_USD: "Total USD",
   TOTAL_CNY: "Total CNY",
