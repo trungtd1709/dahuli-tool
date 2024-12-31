@@ -69,8 +69,6 @@ export class XlsxHelper {
     resizeOptions = { width: 50, height: 50 }
   ) => {
     if (imageBuffer) {
-      console.log(Buffer.isBuffer(imageBuffer));
-
       const imageId = workbook.addImage({
         buffer: imageBuffer,
         extension: "png",
