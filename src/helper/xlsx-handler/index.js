@@ -1106,9 +1106,6 @@ export async function modifyOrder1File(file, allElements = {}) {
     XlsxUtils.getHeaderWidth(costInstockColName);
   XlsxUtils.centerValueColumn(worksheet, costInStockIndex);
 
-  const cell = worksheet.getCell("A1");
-  cell.get;
-
   worksheet.getColumn(costInStockIndex).eachCell((cell) => {
     // add $ sign
     cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
