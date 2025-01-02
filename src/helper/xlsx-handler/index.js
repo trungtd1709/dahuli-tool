@@ -996,9 +996,9 @@ export async function modifyOrder1File(file, allElements = {}) {
   }
   // END ADD IN STOCK VALUE
 
-  worksheet.eachRow((row, index) => {
-    console.log(row.getCell(shipmentStartColLetter).numFmt);
-  });
+  // worksheet.eachRow((row, index) => {
+  //   console.log(row.getCell(shipmentStartColLetter).numFmt);
+  // });
   // ADD HEADER NAME FOR IN STOCK COLUMN
   const inStockHeaderName = SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK;
   headerRow.getCell(inStockColIndex).value = inStockHeaderName;
@@ -1052,10 +1052,6 @@ export async function modifyOrder1File(file, allElements = {}) {
     // Add data for each row under the new column
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return;
-
-      worksheet.eachRow((row, index) => {
-        console.log(row.getCell(shipmentStartColLetter).numFmt);
-      });
 
       const shipmentQuantityColLetter = XlsxUtils.columnIndexToLetter(
         XlsxUtils.findColumnIndexByKeyName(worksheet, shipmentKey)
@@ -1121,30 +1117,12 @@ export async function modifyOrder1File(file, allElements = {}) {
     colIndex <= costLastColIndex;
     colIndex++
   ) {
-    console.log(XlsxUtils.columnIndexToLetter(colIndex));
     worksheet.getColumn(colIndex).eachCell((cell) => {
       // add $ sign
       cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
       cell.alignment = { horizontal: "right", vertical: "middle" };
     });
   }
-
-  for (
-    let colIndex = shipmentStartColIndex;
-    colIndex <= shipmentLastColIndex;
-    colIndex++
-  ) {
-    console.log(XlsxUtils.columnIndexToLetter(colIndex));
-    worksheet.getColumn(colIndex).eachCell((cell) => {
-      cell.numFmt = null;
-    });
-  }
-
-
-
-  worksheet.eachRow((row, index) => {
-    console.log(row.getCell(shipmentStartColLetter).numFmt);
-  });
 
   // END OF ADD COST
 
@@ -1210,9 +1188,13 @@ export async function modifyOrder1File(file, allElements = {}) {
     XlsxUtils.clearColumnData(worksheet, oldCostInStockIndex);
   }
 
-  worksheet.eachRow((row, index) => {
-    console.log(row.getCell(shipmentStartColLetter).numFmt);
-  });
+  for (
+    let colIndex = shipmentStartColIndex;
+    colIndex <= shipmentLastColIndex;
+    colIndex++
+  ) {
+    XlsxUtils.removeNumberFormat(worksheet, colIndex);
+  }
 
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
   return { modifiedBuffer };

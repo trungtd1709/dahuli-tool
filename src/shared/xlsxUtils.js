@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { KEY_PREFERENCES } from "./constant.js";
+import { KEY_PREFERENCES, OUTPUT_NUM_DECIMAL_FORMAT } from "./constant.js";
 import { isEmptyValue } from "./utils.js";
 import { EXCEL_CONFIG } from "./config.js";
 
@@ -179,12 +179,11 @@ export class XlsxUtils {
   /**
    * @param {ExcelJS.Worksheet} worksheet
    */
-  static removeNumberFormatFromColumn = (worksheet, colIndex) => {
+  static removeNumberFormat = (worksheet, colIndex) => {
     const column = worksheet.getColumn(colIndex); // Get the column object
 
-    // Iterate through each cell in the column
     column.eachCell((cell) => {
-      cell.numFmt = "@"; // Clear the number format
+      cell.numFmt = null;
     });
   };
 
@@ -243,6 +242,16 @@ export class XlsxUtils {
     worksheet.getColumn(costInStockIndex).eachCell((cell) => {
       // add $ sign
       cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
+    });
+  };
+
+  /**
+   * 
+   * @param {ExcelJS.Worksheet} worksheet 
+   */
+  static addNumFmt4Decimal = (worksheet, colIndex) => {
+    worksheet.getColumn(colIndex).eachCell((cell) => {
+      cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT["4_DIGITS"];
     });
   };
 }
