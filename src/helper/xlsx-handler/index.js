@@ -850,6 +850,7 @@ export async function modifyOrder1File(file, allElements = {}) {
     }
   });
 
+  // FIND SUBTOTAL AND PAYMENT FEE ROW INDEX
   worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
     const productNameCell = row.getCell(productNameColumnIndex);
     const productName = productNameCell?.value;
@@ -881,16 +882,16 @@ export async function modifyOrder1File(file, allElements = {}) {
 
   // cái này liên quan đến UI cách cột thôi
   const shipmentStartColIndex = isInStockExist
-    ? headerRow.cellCount + 2
-    : headerRow.cellCount + 1;
+    ? XlsxUtils.getLastColumnIndex(worksheet) + 3
+    : XlsxUtils.getLastColumnIndex(worksheet) + 2;
 
-  // add quantity (left quantity)
+  // ADD QUANTITY (left quantity)
   shipmentKeys.forEach((shipmentKey, index) => {
     const newColIndex = shipmentStartColIndex + index;
     headerRow.getCell(newColIndex).value = shipmentKey;
+
     worksheet.getColumn(newColIndex).width =
       XlsxUtils.getHeaderWidth(shipmentKey);
-    XlsxUtils.centerValueColumn(worksheet, newColIndex);
 
     // Add data for each row under the new column
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
@@ -920,7 +921,7 @@ export async function modifyOrder1File(file, allElements = {}) {
     });
   });
 
-  const shipmentLastColIndex = headerRow.cellCount;
+  const shipmentLastColIndex = XlsxUtils.getLastColumnIndex(worksheet);
   const inStockColIndex = shipmentLastColIndex + 1;
 
   const shipmentStartColLetter = XlsxUtils.columnIndexToLetter(
@@ -930,9 +931,14 @@ export async function modifyOrder1File(file, allElements = {}) {
     XlsxUtils.columnIndexToLetter(shipmentLastColIndex);
   const inStockColLetter = XlsxUtils.columnIndexToLetter(inStockColIndex);
 
-  let negativeInStockPlaceArr = [];
+  worksheet.eachRow((row, index) => {
+    console.log(row.getCell(shipmentStartColLetter).numFmt);
+  });
 
   // START ADD IN STOCK VALUE
+  worksheet.eachRow((row, index) => {
+    console.log(row.getCell(shipmentStartColLetter).numFmt);
+  });
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
     const oldInStockColLetter = XlsxUtils.columnIndexToLetter(oldInStockIndex);
@@ -964,10 +970,6 @@ export async function modifyOrder1File(file, allElements = {}) {
         totalUsdColumnLetter,
         allElements
       );
-      negativeInStockPlaceArr = [
-        ...negativeInStockPlaceArr,
-        ...rowNegativeInStockPlaceArr,
-      ];
     }
 
     // Xử lý sub total đoạn in stock
@@ -987,12 +989,16 @@ export async function modifyOrder1File(file, allElements = {}) {
         }
       }
     }
-    if (inStockCell) {
-      inStockCell.value = { ...inStockCell.value, formula };
-    }
+
+    inStockCell.value = { ...inStockCell.value, formula };
+    inStockCell.numFmt = "";
+    console.log(inStockCell.numFmt);
   }
   // END ADD IN STOCK VALUE
 
+  worksheet.eachRow((row, index) => {
+    console.log(row.getCell(shipmentStartColLetter).numFmt);
+  });
   // ADD HEADER NAME FOR IN STOCK COLUMN
   const inStockHeaderName = SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK;
   headerRow.getCell(inStockColIndex).value = inStockHeaderName;
@@ -1021,27 +1027,35 @@ export async function modifyOrder1File(file, allElements = {}) {
   // END HÀNG TOTAL
 
   // ADD COST
-  const costStartColIndex = headerRow.cellCount + 1;
+  const costStartColIndex = XlsxUtils.getLastColumnIndex(worksheet) + 1;
   const costStartColLetter = XlsxUtils.columnIndexToLetter(costStartColIndex);
 
+  worksheet.eachRow((row, index) => {
+    console.log(row.getCell(shipmentStartColLetter).numFmt);
+  });
+
   shipmentKeys.forEach((shipmentKey, index) => {
-    const newColIndex = headerRow.cellCount + 1;
+    const newColIndex = XlsxUtils.getLastColumnIndex(worksheet) + 1;
     const newColLetter = XlsxUtils.columnIndexToLetter(newColIndex);
 
-    worksheet.getColumn(newColLetter).eachCell((cell) => {
-      // add $ sign
-      cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
-      cell.alignment = { horizontal: "right", vertical: "middle" };
-    });
+    // worksheet.getColumn(newColLetter).eachCell((cell) => {
+    //   // add $ sign
+    //   // cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
+    //   cell.alignment = { horizontal: "right", vertical: "middle" };
+    // });
     const costKeyName = `Cost ${shipmentKey}`;
     headerRow.getCell(newColIndex).value = costKeyName;
     worksheet.getColumn(newColIndex).width =
       XlsxUtils.getHeaderWidth(costKeyName);
-    XlsxUtils.centerValueColumn(worksheet, newColIndex);
+    // XlsxUtils.centerValueColumn(worksheet, newColIndex);
 
     // Add data for each row under the new column
-    worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    worksheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return;
+
+      worksheet.eachRow((row, index) => {
+        console.log(row.getCell(shipmentStartColLetter).numFmt);
+      });
 
       const shipmentQuantityColLetter = XlsxUtils.columnIndexToLetter(
         XlsxUtils.findColumnIndexByKeyName(worksheet, shipmentKey)
@@ -1091,12 +1105,51 @@ export async function modifyOrder1File(file, allElements = {}) {
       }
     });
   });
-  const costLastColIndex = headerRow.cellCount;
+
+  worksheet.eachRow((row, index) => {
+    console.log(row.getCell(shipmentStartColLetter).numFmt);
+  });
+  const costLastColIndex = XlsxUtils.getLastColumnIndex(worksheet);
   const costLastColLetter = XlsxUtils.columnIndexToLetter(costLastColIndex);
+
+  worksheet.eachRow((row, index) => {
+    console.log(row.getCell(shipmentStartColLetter).numFmt);
+  });
+
+  for (
+    let colIndex = costStartColIndex;
+    colIndex <= costLastColIndex;
+    colIndex++
+  ) {
+    console.log(XlsxUtils.columnIndexToLetter(colIndex));
+    worksheet.getColumn(colIndex).eachCell((cell) => {
+      // add $ sign
+      cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
+      cell.alignment = { horizontal: "right", vertical: "middle" };
+    });
+  }
+
+  for (
+    let colIndex = shipmentStartColIndex;
+    colIndex <= shipmentLastColIndex;
+    colIndex++
+  ) {
+    console.log(XlsxUtils.columnIndexToLetter(colIndex));
+    worksheet.getColumn(colIndex).eachCell((cell) => {
+      cell.numFmt = null;
+    });
+  }
+
+
+
+  worksheet.eachRow((row, index) => {
+    console.log(row.getCell(shipmentStartColLetter).numFmt);
+  });
+
   // END OF ADD COST
 
   // START ADD COST IN STOCK TO LAST COLUMN
-  const costInStockIndex = headerRow.cellCount + 1;
+  const costInStockIndex = XlsxUtils.getLastColumnIndex(worksheet) + 1;
   const costInStockLetter = XlsxUtils.columnIndexToLetter(costInStockIndex);
   const costInstockColName = SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
 
@@ -1132,9 +1185,6 @@ export async function modifyOrder1File(file, allElements = {}) {
       costInStockFormula = `${totalUsdCellAdd} - ${totalCostOfThisShipment}`;
     }
 
-    // const totalCostInStockFormula = `SUM(${costInStockLetter}2:${costInStockLetter}${
-    //   lastRowIndex - 1
-    // })`;
     const costInStockCell = row.getCell(costInStockIndex);
     const formula = costInStockFormula;
 
@@ -1160,8 +1210,12 @@ export async function modifyOrder1File(file, allElements = {}) {
     XlsxUtils.clearColumnData(worksheet, oldCostInStockIndex);
   }
 
+  worksheet.eachRow((row, index) => {
+    console.log(row.getCell(shipmentStartColLetter).numFmt);
+  });
+
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
-  return { modifiedBuffer, negativeInStockPlaceArr };
+  return { modifiedBuffer };
 }
 
 /**
@@ -1227,16 +1281,6 @@ function checkNegative(
     if (productIndex < 0) {
       // throw new BadRequestError(`${CANT_FIND_ELEMENT}: ${productName}`);
       continue;
-    }
-
-    // cái if này đơn thuần là UI, ko liên quan logic
-    if (quantity <= 0) {
-      const totalUsdCellAddress = `${totalUsdColLetter}${rowNumber}`;
-      // XlsxUtils.changeCellBgColor(
-      //   worksheet,
-      //   totalUsdCellAddress,
-      //   fileColor.green
-      // );
     }
 
     // đã tính hết giá trị và đang là cột cuối
@@ -1520,7 +1564,7 @@ export async function modifyShippingFile(
   }
 
   // Add Cost In Stock value to last column
-  const costInStockIndex = headerRow.cellCount + 1;
+  const costInStockIndex = XlsxUtils.getLastColumnIndex(worksheet) + 1;
 
   const costInStockHeaderText = SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK;
   headerRow.getCell(costInStockIndex).value = costInStockHeaderText;

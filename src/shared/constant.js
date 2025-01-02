@@ -76,7 +76,6 @@ export const OUTPUT_NUM_DECIMAL_FORMAT = {
   "4_DIGITS": "0.0000",
   "2_DIGITS": "0.00",
   $_2_DIGITS: "$#,##0.00",
-  $_4_DIGITS: "$#,##0.0000",
 };
 
 export const CASH_SYMBOL = {

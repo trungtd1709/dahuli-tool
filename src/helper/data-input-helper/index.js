@@ -587,7 +587,6 @@ export const getRawInputShippingCost = async (files = []) => {
         exchangeRateKeyName: INPUT_KEY_NAME.TOTAL_USD,
         isShippingFile: true,
       });
-      console.log(dataRawFile);
       const rawJson = dataRawFile.map((item) => {
         return { ...item, order };
       });

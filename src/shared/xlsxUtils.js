@@ -171,9 +171,21 @@ export class XlsxUtils {
 
   static centerValueColumn = (worksheet, colIndex) => {
     worksheet.getColumn(colIndex).alignment = {
-      horizontal: "center", // Horizontal alignment (center)
-      vertical: "middle", // Vertical alignment (center vertically)
+      horizontal: "center",
+      vertical: "middle",
     };
+  };
+
+  /**
+   * @param {ExcelJS.Worksheet} worksheet
+   */
+  static removeNumberFormatFromColumn = (worksheet, colIndex) => {
+    const column = worksheet.getColumn(colIndex); // Get the column object
+
+    // Iterate through each cell in the column
+    column.eachCell((cell) => {
+      cell.numFmt = "@"; // Clear the number format
+    });
   };
 
   static getCellValue = (worksheet, colIndex, rowIndex) => {
@@ -193,13 +205,44 @@ export class XlsxUtils {
   };
 
   /**
-   * 
-   * @param {ExcelJS.Worksheet} worksheet 
+   *
+   * @param {ExcelJS.Worksheet} worksheet
    */
-  static addHeightToEntireSheetCell = (worksheet, height = EXCEL_CONFIG.CELL_HEIGHT) => {
+  static addHeightToEntireSheetCell = (
+    worksheet,
+    height = EXCEL_CONFIG.CELL_HEIGHT
+  ) => {
     worksheet.eachRow((row, rowNumber) => {
-      if(rowNumber == 1) return;
+      if (rowNumber == 1) return;
       row.height = height;
+    });
+  };
+
+  /**
+   *
+   * @param {ExcelJS.Worksheet} worksheet
+   */
+  static getLastColumnIndex = (worksheet) => {
+    const headerRow = worksheet.getRow(1);
+
+    let lastColumnIndex = 0;
+    headerRow.eachCell((cell, colNumber) => {
+      if (cell.value !== null && cell.value !== undefined) {
+        lastColumnIndex = colNumber;
+      }
+    });
+
+    return lastColumnIndex;
+  };
+
+  /**
+   *
+   * @param {ExcelJS.Worksheet} worksheet
+   */
+  static addDollarSignToColumn = (worksheet, colIndex) => {
+    worksheet.getColumn(costInStockIndex).eachCell((cell) => {
+      // add $ sign
+      cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
     });
   };
 }
