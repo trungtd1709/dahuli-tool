@@ -931,14 +931,7 @@ export async function modifyOrder1File(file, allElements = {}) {
     XlsxUtils.columnIndexToLetter(shipmentLastColIndex);
   const inStockColLetter = XlsxUtils.columnIndexToLetter(inStockColIndex);
 
-  worksheet.eachRow((row, index) => {
-    console.log(row.getCell(shipmentStartColLetter).numFmt);
-  });
-
   // START ADD IN STOCK VALUE
-  worksheet.eachRow((row, index) => {
-    console.log(row.getCell(shipmentStartColLetter).numFmt);
-  });
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
     const oldInStockColLetter = XlsxUtils.columnIndexToLetter(oldInStockIndex);
@@ -991,8 +984,6 @@ export async function modifyOrder1File(file, allElements = {}) {
     }
 
     inStockCell.value = { ...inStockCell.value, formula };
-    inStockCell.numFmt = "";
-    console.log(inStockCell.numFmt);
   }
   // END ADD IN STOCK VALUE
 
@@ -1029,10 +1020,6 @@ export async function modifyOrder1File(file, allElements = {}) {
   // ADD COST
   const costStartColIndex = XlsxUtils.getLastColumnIndex(worksheet) + 1;
   const costStartColLetter = XlsxUtils.columnIndexToLetter(costStartColIndex);
-
-  worksheet.eachRow((row, index) => {
-    console.log(row.getCell(shipmentStartColLetter).numFmt);
-  });
 
   shipmentKeys.forEach((shipmentKey, index) => {
     const newColIndex = XlsxUtils.getLastColumnIndex(worksheet) + 1;
@@ -1108,22 +1095,6 @@ export async function modifyOrder1File(file, allElements = {}) {
   const costLastColIndex = XlsxUtils.getLastColumnIndex(worksheet);
   const costLastColLetter = XlsxUtils.columnIndexToLetter(costLastColIndex);
 
-  worksheet.eachRow((row, index) => {
-    console.log(row.getCell(shipmentStartColLetter).numFmt);
-  });
-
-  for (
-    let colIndex = costStartColIndex;
-    colIndex <= costLastColIndex;
-    colIndex++
-  ) {
-    worksheet.getColumn(colIndex).eachCell((cell) => {
-      // add $ sign
-      cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
-      cell.alignment = { horizontal: "right", vertical: "middle" };
-    });
-  }
-
   // END OF ADD COST
 
   // START ADD COST IN STOCK TO LAST COLUMN
@@ -1188,6 +1159,18 @@ export async function modifyOrder1File(file, allElements = {}) {
     XlsxUtils.clearColumnData(worksheet, oldCostInStockIndex);
   }
 
+  for (
+    let colIndex = costStartColIndex;
+    colIndex <= costLastColIndex;
+    colIndex++
+  ) {
+    worksheet.getColumn(colIndex).eachCell((cell) => {
+      // add $ sign
+      cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
+      cell.alignment = { horizontal: "right", vertical: "middle" };
+    });
+  }
+  
   for (
     let colIndex = shipmentStartColIndex;
     colIndex <= shipmentLastColIndex;
