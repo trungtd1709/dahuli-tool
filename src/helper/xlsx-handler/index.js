@@ -1089,9 +1089,6 @@ export async function modifyOrder1File(file, allElements = {}) {
     });
   });
 
-  worksheet.eachRow((row, index) => {
-    console.log(row.getCell(shipmentStartColLetter).numFmt);
-  });
   const costLastColIndex = XlsxUtils.getLastColumnIndex(worksheet);
   const costLastColLetter = XlsxUtils.columnIndexToLetter(costLastColIndex);
 

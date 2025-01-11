@@ -26,7 +26,7 @@ import { addUpQuantityFormula } from "../calculate-helper/index.js";
 
 /// Nếu đợt file gồm nhiều shipment thì phải đổi công thức
 const checkMultipleShipmentAndChange = (skuList = []) => {
-  const fillInByOriginalShipment = true;
+  const fillInByOriginalShipment = false;
   const shipmentArr = getUniqueValueFromObjArr(
     skuList,
     fillInByOriginalShipment ? "originalShipment" : "shipment"
@@ -69,18 +69,31 @@ const checkMultipleShipmentAndChange = (skuList = []) => {
         const newFirstCell = `${totalUnitColLetter}${shipmentFirstRowNo}`;
         const newLastCell = `${totalUnitColLetter}${shipmentLastRowNo}`;
 
-        domesticShippingCost = domesticShippingCost
-          .toString()
-          .replace(originalFirstCell, newFirstCell);
-        domesticShippingCost = domesticShippingCost
-          .toString()
-          .replace(originalLastCell, newLastCell);
-        internationalShippingCost = internationalShippingCost
-          .toString()
-          .replace(originalFirstCell, newFirstCell);
-        internationalShippingCost = internationalShippingCost
-          .toString()
-          .replace(originalLastCell, newLastCell);
+        // check xem có phải S304.1 ko
+        if (shipmentArr[0].includes(".")) {
+          // const shipmentFirstQuantityCell = `${OUTPUT_COL_ALPHABET.QUANTITY}${shipmentFirstRowNo}`;
+          // const shipmentLastQuantityCell = `${OUTPUT_COL_ALPHABET.QUANTITY}${shipmentLastRowNo}`;
+          // const totalUnitOfThisShipment = `SUM(${shipmentFirstQuantityCell}:${shipmentLastQuantityCell})`;
+          // domesticShippingCost = domesticShippingCost
+          //   .toString()
+          //   .replace(originalFirstCell, totalUnitOfThisShipment);
+          // internationalShippingCost = internationalShippingCost
+          //   .toString()
+          //   .replace(originalFirstCell, totalUnitOfThisShipment);
+        } else {
+          domesticShippingCost = domesticShippingCost
+            .toString()
+            .replace(originalFirstCell, newFirstCell);
+          domesticShippingCost = domesticShippingCost
+            .toString()
+            .replace(originalLastCell, newLastCell);
+          internationalShippingCost = internationalShippingCost
+            .toString()
+            .replace(originalFirstCell, newFirstCell);
+          internationalShippingCost = internationalShippingCost
+            .toString()
+            .replace(originalLastCell, newLastCell);
+        }
 
         if (i == shipmentFirstIndex) {
           const amountColLetter = OUTPUT_COL_ALPHABET.AMOUNT;
@@ -202,7 +215,7 @@ export const refactorShipmentElements = (allElements = []) => {
       totalCny,
       totalUsd,
       order = "",
-      image
+      image,
     } = element;
 
     return {
@@ -377,11 +390,15 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
               const secondFormula = current?.totalUsd?.split("+")[1]?.trim();
               if (firstFormula) {
                 const lastStarIndex = firstFormula.lastIndexOf("*");
-                const oldUsdPrice = firstFormula.substring(0, lastStarIndex).trim(); // Everything before the last '*'
-                const oldFileQuantity = parseInt(firstFormula.substring(lastStarIndex + 1).trim());  // Everything after the last '*'
+                const oldUsdPrice = firstFormula
+                  .substring(0, lastStarIndex)
+                  .trim(); // Everything before the last '*'
+                const oldFileQuantity = parseInt(
+                  firstFormula.substring(lastStarIndex + 1).trim()
+                ); // Everything after the last '*'
                 // const oldUsdPrice = firstFormula?.split("*")[0]?.trim();
                 // const oldFileQuantity = parseInt(
-                  // firstFormula?.split("*")[1]?.trim()
+                // firstFormula?.split("*")[1]?.trim()
                 // );
                 if (
                   accumulatorTotalUsd?.includes(oldUsdPrice) &&

@@ -33,8 +33,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         elementsPrice.filter(
           (el) =>
             // el.name.toLowerCase() === element.name.toLowerCase() &&
-            compareStrings(el.name, element.name) &&
-            el.leftQuantity > 0
+            compareStrings(el.name, element.name) && el.leftQuantity > 0
         )
       );
 
@@ -75,7 +74,9 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
         );
 
         if (!newElementPrice) {
-          throw new BadRequestError(`${MISSING_ELEMENT_DATA} or ${MISSING_QUANTITY}`);
+          throw new BadRequestError(
+            `${MISSING_ELEMENT_DATA} or ${MISSING_QUANTITY}`
+          );
         }
         const quantityGoToNewOrder = quantity - remainingQuantity;
         usdPrice = `(${elementPrice.getUsdFormula()} * ${quantityGoToNewOrder} + ${newElementPrice.getUsdFormula()} * ${remainingQuantity}) / ${quantity}`;
@@ -120,18 +121,6 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       element.order = order;
       element.totalUsd = eleShipmentTotalUsd;
       element.totalCny = eleShipmentTotalCny;
-
-      // let totalElementsPrice = usdPrice;
-      // if (quantity > 1) {
-      //   totalElementsPrice = `${usdPrice} * ${quantity}`;
-      // }
-
-      // const domesticShippingCost =
-      //   elementPrice?.[INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST];
-      // if (domesticShippingCost) {
-      //   const usdDomesticShippingCost = `${domesticShippingCost} / ${exchangeRate}`;
-      //   totalElementsPrice = `(${usdPrice} + ${usdDomesticShippingCost}) * ${quantity}`;
-      // }
 
       if (!acc) {
         return newPpuPrice;
@@ -342,8 +331,8 @@ export const addShippingAndPaymentCost = (
   totalSkuType,
   allElements
 ) => {
-  return skuList.map((item, index) => {
-    const { shipmentId } = skuList[index];
+  const newSkuList = skuList.map((sku, index) => {
+    const { shipmentId } = sku;
 
     const domesticShippingCostObj = shippingCostArr.find(
       ({ shipmentId: id, isDomestic }) => id === shipmentId && isDomestic
@@ -352,6 +341,12 @@ export const addShippingAndPaymentCost = (
       ({ shipmentId: id, isDomestic }) =>
         id === shipmentId && isDomestic == false
     );
+
+    const isOriginalShipmentDomestic =
+      domesticShippingCostObj?.originalShipment?.includes(".");
+
+    const isOriginalShipmentInternational =
+      domesticShippingCostObj?.originalShipment?.includes(".");
 
     const dataFirstRow = 2; // trong excel row đầu tiên index = 2
     const totalUnitColAlphabet = OUTPUT_COL_ALPHABET.TOTAL_UNIT;
@@ -363,13 +358,23 @@ export const addShippingAndPaymentCost = (
     const totalUnitCellDomestic = `${totalUnitColAlphabet}${dataFirstRow}`;
     const totalUnitCellInternational = `${totalUnitColAlphabet}${dataFirstRow}`;
 
-    const itemDomesticShippingCostFormula = domesticShippingCostObj
-      ? `${shipmentDomesticCost} / ${totalUnitCellDomestic}`
-      : 0;
+    let itemDomesticShippingCostFormula = 0;
+    if (shipmentDomesticCost && domesticShippingCostObj) {
+      if (isOriginalShipmentDomestic) {
+        itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${domesticShippingCostObj?.totalShipmentQuantity}`;
+      } else {
+        itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${totalUnitCellDomestic}`;
+      }
+    }
 
-    const itemInternationalShippingCostFormula = internationalShippingCostObj
-      ? `${shipmentInternationalCost} / ${totalUnitCellInternational}`
-      : 0;
+    let itemInternationalShippingCostFormula = 0;
+    if (shipmentInternationalCost && internationalShippingCostObj) {
+      if (isOriginalShipmentInternational) {
+        itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${internationalShippingCostObj?.totalShipmentQuantity}`;
+      } else {
+        itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${totalUnitCellInternational}`;
+      }
+    }
 
     const paymentCostDivisor =
       domesticShippingCostObj?.paymentCostDivisor ??
@@ -399,12 +404,13 @@ export const addShippingAndPaymentCost = (
     //   ? ""
     //   : `(${domesticShippingCostCell} + ${internationalShippingCostCell}) / ${paymentCostDivisor}`;
     return {
-      ...item,
+      ...sku,
       domesticShippingCost: itemDomesticShippingCostFormula,
       internationalShippingCost: itemInternationalShippingCostFormula,
       shippingPaymentCost: shippingPaymentCostFormula,
     };
   });
+  return newSkuList;
 };
 
 /**

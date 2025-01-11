@@ -1,5 +1,5 @@
 import { extractNumberFromFilename } from "../helper/data-input-helper/index.js";
-import { isEmptyValue, removeNewlines } from "../shared/utils.js";
+import { Utils, isEmptyValue, removeNewlines } from "../shared/utils.js";
 import { XlsxUtils } from "../shared/xlsxUtils.js";
 
 export class ElementPrice {
@@ -182,6 +182,9 @@ export class ElementPrice {
     let usdFormula;
     if (!isEmptyValue(this.cnyPrice) && !isEmptyValue(this.exchangeRate)) {
       usdFormula = `${this.cnyPrice} / ${this.exchangeRate}`;
+      if(Utils.isValidDecimalPart(this.cnyPrice)){
+        return usdFormula;
+      }
     }
     if (this.usdPrice) {
       usdFormula = this.usdPrice;
