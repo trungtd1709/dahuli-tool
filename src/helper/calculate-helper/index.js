@@ -53,7 +53,8 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       if (remainingQuantity <= 0) {
         /// ko bỏ comment này
         // newPpuPrice = `${usdPrice} * ${quantity} / quantityCell`;
-        newPpuPrice = `${elementPrice.getUsdFormula()} * ${elementQuantity}`;
+        newPpuPrice = elementQuantity == 1 ? `${elementPrice.getUsdFormula()}` : `${elementPrice.getUsdFormula()} * ${elementQuantity}`;
+
         if (!isEmptyValue(elementPrice.getCnyFormula())) {
           // eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * totalElementQuantity`;
           eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${quantity}`;
