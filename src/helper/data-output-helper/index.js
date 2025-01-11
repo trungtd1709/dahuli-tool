@@ -654,7 +654,7 @@ export const addShipmentFileToZip = async (
       );
       let paymentCostObj;
       // get the payment obj out of the array
-      if (paymentCostObjIndex) {
+      if (paymentCostObjIndex >= 0) {
         paymentCostObj = allElements[originalShipment].splice(
           paymentCostObjIndex,
           1
@@ -672,7 +672,7 @@ export const addShipmentFileToZip = async (
       allElements[originalShipment].push(subTotalElement);
       // END OF SUBTOTAL
 
-      // SHIPPING COST
+      // START OF SHIPPING COST
       let shippingPaymentCost = {
         name: KEY_PREFERENCES.SHIPPING_PAYMENT_COST,
         // quantity: paymentCostObj?.quantity,
@@ -688,9 +688,10 @@ export const addShipmentFileToZip = async (
       );
 
       shipmentShippingCosts.forEach((shipmentShippingCost, index) => {
-        const { isDomestic, order = "" } = shipmentShippingCost;
+        const { isDomestic, order = "", totalShipmentQuantity, shipmentQuantity } = shipmentShippingCost;
         const totalShipmentUsd = shipmentShippingCost?.totalUsd;
         const totalShipmentCny = shipmentShippingCost?.totalCny;
+
 
         let shipmentSkuQuantity = 0;
 
@@ -708,17 +709,17 @@ export const addShipmentFileToZip = async (
         let totalCny = "";
         let totalUsd = "";
 
-        totalCny = totalShipmentCny;
-        totalUsd = totalShipmentUsd;
+        // totalCny = totalShipmentCny;
+        // totalUsd = totalShipmentUsd;
 
         // ko remove comment nay
-        // if (totalSkuShipmentQuantity == shipmentSkuQuantity) {
-        //   totalCny = totalShipmentCny;
-        //   totalUsd = totalShipmentUsd;
-        // } else {
-        //   totalCny = `${totalShipmentCny} / ${totalSkuShipmentQuantity} * ${shipmentSkuQuantity}`;
-        //   totalUsd = `${totalShipmentUsd} / ${totalSkuShipmentQuantity} * ${shipmentSkuQuantity}`;
-        // }
+        if (totalShipmentQuantity == shipmentQuantity) {
+          totalCny = totalShipmentCny;
+          totalUsd = totalShipmentUsd;
+        } else {
+          totalCny = `${totalShipmentCny} / ${totalShipmentQuantity} * ${shipmentQuantity}`;
+          totalUsd = `${totalShipmentUsd} / ${totalShipmentQuantity} * ${shipmentQuantity}`;
+        }
 
         const shippingName = `${
           isDomestic
