@@ -86,7 +86,10 @@ export const xlsxToJSON = async ({
     }
 
     if (isShippingFile) {
-      getShippingCostFormulas(worksheet, jsonData);
+      const excelJsWorkbook = new ExcelJS.Workbook();
+      await excelJsWorkbook.xlsx.load(file.buffer);
+      const excelJsWorksheet = excelJsWorkbook.getWorksheet(1);
+      getShippingCostFormulas(excelJsWorksheet, jsonData);
     }
     jsonData = changeObjKeyName(jsonData);
 
@@ -238,7 +241,7 @@ function extractDivisor(formula) {
 }
 
 /**
- * @param {XLSX.WorkSheet} worksheet - The uploaded file object from Multer.
+ * @param {ExcelJS.WorkSheet} worksheet - The uploaded file object from Multer.
  * @returns {Array}
  */
 const getShippingCostFormulas = (
@@ -246,131 +249,90 @@ const getShippingCostFormulas = (
   jsonData,
   shippingCostKeyName = "Price"
 ) => {
-  if (!worksheet || !shippingCostKeyName) {
+  // priceShippingFormulaUsd
+
+  if (!worksheet) {
     return;
   }
-  const range = XLSX.utils.decode_range(worksheet["!ref"]);
-  let priceColIndex = -1,
-    weightColIndex = -1,
+
+  let weightColIndex = -1,
     totalCnyColIndex = -1,
-    totalUsdColIndex = -1;
-  for (let C = range.s.c; C <= range.e.c; ++C) {
-    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
-    const cell = worksheet[cellAddress];
-    if (cell?.v === shippingCostKeyName) {
-      priceColIndex = C;
+    totalUsdColIndex = -1,
+    cnyPriceColIndex = -1,
+    usdPriceColIndex = -1;
+
+  let headers = [];
+  const headerRow = worksheet.getRow(1);
+  headerRow.eachCell((cell, colNumber) => {
+    headers[colNumber] = cell.text.trim();
+    const colKeyName = cell?.value;
+
+    if (compareStrings(colKeyName, INPUT_KEY_NAME.TOTAL_CNY)) {
+      totalCnyColIndex = colNumber;
     }
-    if (cell?.v?.toLowerCase()?.includes(CHECK_KEYWORD.WEIGHT)) {
-      weightColIndex = C;
+
+    if (compareStrings(colKeyName, INPUT_KEY_NAME.TOTAL_USD)) {
+      totalUsdColIndex = colNumber;
     }
-    if (cell?.v?.toLowerCase()?.includes(CHECK_KEYWORD.TOTAL_CNY)) {
-      totalCnyColIndex = C;
+
+    if (compareStrings(colKeyName, INPUT_KEY_NAME.CNY)) {
+      cnyPriceColIndex = colNumber;
     }
-    if (cell?.v?.toLowerCase()?.includes(CHECK_KEYWORD.TOTAL_USD)) {
-      totalUsdColIndex = C;
+
+    if (compareStrings(colKeyName, INPUT_KEY_NAME.USD)) {
+      usdPriceColIndex = colNumber;
     }
-  }
+    if (compareStrings(colKeyName, INPUT_KEY_NAME.WEIGHT)) {
+      weightColIndex = colNumber;
+    }
+  });
 
-  if (priceColIndex === -1) {
-    console.error(
-      `Key name '${shippingCostKeyName}' not found in the first row.`
-    );
-  }
+  worksheet.eachRow({ includeEmpty: false }, (row, rowIndex) => {
+    const rowValue = jsonData[rowIndex - 1];
+    if (rowValue?.[INPUT_KEY_NAME.PRODUCT_NAME]) {
+      const exchangeRate = rowValue?.exchangeRate;
+      const cnyFileValue = rowValue?.[INPUT_KEY_NAME.CNY];
+      const usdFileValue = rowValue?.[INPUT_KEY_NAME.USD];
 
-  if (priceColIndex >= 0) {
-    for (let rowIndex = range.s.r + 1; rowIndex <= range.e.r; ++rowIndex) {
-      const weightCellAddress = XLSX.utils.encode_cell({
-        r: rowIndex,
-        c: weightColIndex,
-      });
-      const totalCnyCellAddress = XLSX.utils.encode_cell({
-        r: rowIndex,
-        c: totalCnyColIndex,
-      });
+      let cnyPrice = cnyFileValue;
+      let usdPrice = rowValue?.[INPUT_KEY_NAME.USD];
+      let totalCny = rowValue?.[INPUT_KEY_NAME.TOTAL_CNY];
+      let totalUsd = rowValue?.[INPUT_KEY_NAME.TOTAL_USD];
+      let weight = rowValue?.[INPUT_KEY_NAME.WEIGHT];
 
-      const weightCell = worksheet[weightCellAddress];
-      const totalCnyCell = worksheet[totalCnyCellAddress];
-      const weight = weightCell?.v;
-      const totalCny = totalCnyCell?.f ?? totalCnyCell?.v;
-
-      if (isEmptyValue(jsonData[rowIndex - 1])) {
-        return;
-      }
-      const exchangeRate = jsonData[rowIndex - 1]?.exchangeRate;
-
-      // Start from the second row
-      const cellAddress = XLSX.utils.encode_cell({
-        r: rowIndex,
-        c: priceColIndex,
-      });
-      const cell = worksheet[cellAddress];
-
-      let priceFormula = cell?.v ?? "";
-
-      // value
-      if (cell?.v) {
-        priceFormula = cell.v;
-      }
-
-      // formula
-      if (cell?.f) {
-        priceFormula = cell.f;
-        const cellReferenceRegex = /^[A-Z]+\d+\/[A-Z]+\d+$/;
-        if (cellReferenceRegex.test(priceFormula)) {
-          // Split the formula into the two cell references
-          const cellReferences = priceFormula.split("/");
-          const firstCell = cellReferences[0];
-          const secondCell = cellReferences[1];
-
-          const firstCellValue = worksheet[firstCell].v;
-          const secondCellValue = worksheet[secondCell].v;
-
-          priceFormula = `${firstCellValue} / ${secondCellValue}`;
-          // console.log("Converted formula:", formula);
-        }
-        // formulas.push(evalCalculation(formula));
-      }
-      if (isEmptyValue(cell?.f) && isEmptyValue(cell?.v)) {
-        // const multipleWeighString = `*${weight}`;
-        const multipleWeightStringPattern = new RegExp(`\\*\\s*${weight}`); // Matches "*" followed by any whitespace and then weight
-        if (weight && totalCny && multipleWeightStringPattern.test(totalCny)) {
-          priceFormula = totalCny.replace(multipleWeightStringPattern, "");
-          priceFormula = `${priceFormula} / ${exchangeRate}`;
-        } else {
-          priceFormula = `${totalCny} / ${weight} / ${exchangeRate}`;
+      if (!cnyFileValue && !usdFileValue) {
+        if (weight) {
+          if (totalCny) {
+            cnyPrice = `${totalCny} / ${weight}`;
+          }
         }
       }
-
-      if (cell?.w?.includes(CASH_SYMBOL.YUAN)) {
+      if (cnyFileValue && !usdFileValue) {
         if (exchangeRate) {
-          priceFormula = `${priceFormula} / ${exchangeRate}`;
+          usdPrice = `${cnyPrice} / ${exchangeRate}`;
         }
       }
 
-      // check xem có / exchange rate ko, để xem là USD hay tệ
-      if (priceFormula?.toString().includes(exchangeRate)) {
-        const priceShippingFormulaYuan = priceFormula.replace(
-          new RegExp(`/\\s*${exchangeRate}`),
-          ""
-        );
-        jsonData[rowIndex - 1].priceShippingFormulaYuan =
-          priceShippingFormulaYuan;
-      }
-      const totalUsdCellAddress = XLSX.utils.encode_cell({
-        r: rowIndex,
-        c: totalUsdColIndex,
-      });
-      const totalUsdCell = worksheet[totalUsdCellAddress];
-
-      // công thức ko chứa cell address
-      if (!containsAlphabet(totalUsdCell?.f)) {
-        priceFormula = `(${totalUsdCell.f}) / ${weight}`;
-        // cái này là total USD nên phải chia weight để tìm công thức 1 sản phẩm
+      if (!cnyFileValue && usdFileValue) {
+        if (exchangeRate) {
+          cnyPrice = `${usdPrice} * ${exchangeRate}`;
+        }
       }
 
-      jsonData[rowIndex - 1].priceShippingFormulaUsd = priceFormula;
+      if (!usdPrice) {
+        if (exchangeRate) {
+          usdPrice = `${cnyPrice} / ${exchangeRate}`;
+        }
+      }
+
+      jsonData[rowIndex - 1].priceShippingFormulaUsd = usdPrice;
+      jsonData[rowIndex - 1].priceShippingFormulaCny = cnyPrice;
     }
-  }
+    // const cnyPriceCell = row.getCell(cnyPriceColIndex);
+    // const usdPriceCell = row.getCell(cnyPriceColIndex);
+    // const totalCnyCell = row.getCell(cnyPriceColIndex);
+    // const totalUsdCell = row.getCell(cnyPriceColIndex);
+  });
 };
 
 export const cogsJsonToXlsx = async ({ json = [], sheetName = "Sheet1" }) => {
@@ -584,22 +546,20 @@ export const getFileType = (file) => {
     headers.push(header);
   }
 
-  if (
-    headers.find((item) => item.includes(CHECK_KEYWORD.WEIGHT)) &&
-    headers.find((item) => item.includes(CHECK_KEYWORD.PRICE))
-  ) {
-    return FILE_TYPE.SHIPPING;
-  }
-
   if (headers.find((item) => item.includes(CHECK_KEYWORD.PPU_ELEMENTS))) {
     return FILE_TYPE.SKU_LIST;
   }
 
+  // File shipment cũng có weight nhưng đã chặn trước trong TH này
   if (
     headers.find((item) => item.includes(CHECK_KEYWORD.SHIPMENT_ID)) &&
     headers.find((item) => item.includes(CHECK_KEYWORD.SHIPMENT))
   ) {
     return FILE_TYPE.SHIPMENT;
+  }
+
+  if (headers.find((item) => item.includes(CHECK_KEYWORD.WEIGHT))) {
+    return FILE_TYPE.SHIPPING;
   }
 
   return FILE_TYPE.ORDER_1;
@@ -1167,7 +1127,7 @@ export async function modifyOrder1File(file, allElements = {}) {
       cell.alignment = { horizontal: "right", vertical: "middle" };
     });
   }
-  
+
   for (
     let colIndex = shipmentStartColIndex;
     colIndex <= shipmentLastColIndex;

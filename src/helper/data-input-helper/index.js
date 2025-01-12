@@ -10,7 +10,7 @@ import {
 import {
   MISSING_ORDER_1_FILE,
   MISSING_ORDER_1_FILE_ORDER,
-  MISSING_SHIPMENT_DATA,
+  MISSING_SHIPMENT_FILE,
   MISSING_SKU_LIST_FILE,
   MISSING_TSV_FILE,
 } from "../../shared/err-const.js";
@@ -487,11 +487,13 @@ const transformShippingCostItem = (
     productName: name,
     weight,
     priceShippingFormulaUsd,
-    priceShippingFormulaYuan,
+    priceShippingFormulaCny,
     paymentCostDivisor,
     exchangeRate,
     order = "",
   } = obj;
+  const fileUsd = obj?.[INPUT_KEY_NAME.USD];
+  const fileCny = obj?.[INPUT_KEY_NAME.CNY];
   const rawTotalUsd = obj?.[INPUT_KEY_NAME.TOTAL_USD];
   const rawTotalCny = obj?.[INPUT_KEY_NAME.TOTAL_CNY];
 
@@ -508,8 +510,8 @@ const transformShippingCostItem = (
       totalUsd = `(${priceShippingFormulaUsd} * ${weight})`;
     }
   }
-  if (priceShippingFormulaYuan && weight) {
-    totalCny = `(${priceShippingFormulaYuan} * ${weight})`;
+  if (priceShippingFormulaCny && weight) {
+    totalCny = `(${priceShippingFormulaCny} * ${weight})`;
   }
   const lowerCaseShipName = name.toLowerCase();
   // ko chứa chữ domestic mặc định là international
@@ -651,7 +653,7 @@ export const getShipmentData = async (files = []) => {
   }
 
   if (isEmptyValue(shipmentData)) {
-    throw new BadRequestError(MISSING_SHIPMENT_DATA);
+    throw new BadRequestError(MISSING_SHIPMENT_FILE);
   }
 
   return shipmentData;

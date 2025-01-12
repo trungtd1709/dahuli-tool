@@ -19,6 +19,7 @@ export const INPUT_KEY_NAME = {
   SHIPMENT: "Shipment",
   SHIPMENT_ID: "Shipment ID",
   IN_STOCK: "In Stock",
+  WEIGHT: "Weight",
 };
 
 export const KEY_PREFERENCES = {
