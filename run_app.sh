@@ -11,4 +11,4 @@ npm install
 
 # Start the Node.js application
 echo "Starting the application..."
-node index.js
+pm2 restart 0
