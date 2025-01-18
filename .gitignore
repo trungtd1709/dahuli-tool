@@ -10,5 +10,4 @@ sample-file-S304/
 
 **/*.log
 
-*.sh
 .vercel
