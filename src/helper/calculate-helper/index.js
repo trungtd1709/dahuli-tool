@@ -1,6 +1,7 @@
 import _ from "lodash";
 import { INPUT_KEY_NAME, OUTPUT_COL_ALPHABET } from "../../shared/constant.js";
 import {
+  Utils,
   compareStrings,
   compareStringsIgnoreSpaces,
   evalCalculation,
@@ -53,7 +54,10 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       if (remainingQuantity <= 0) {
         /// ko bỏ comment này
         // newPpuPrice = `${usdPrice} * ${quantity} / quantityCell`;
-        newPpuPrice = elementQuantity == 1 ? `${elementPrice.getUsdFormula()}` : `${elementPrice.getUsdFormula()} * ${elementQuantity}`;
+        newPpuPrice =
+          elementQuantity == 1
+            ? `${elementPrice.getUsdFormula()}`
+            : `${elementPrice.getUsdFormula()} * ${elementQuantity}`;
 
         if (!isEmptyValue(elementPrice.getCnyFormula())) {
           // eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * totalElementQuantity`;
@@ -188,7 +192,9 @@ export const addPpuPaymentCost = (skuList, elementsPrice) => {
       const elementName = element?.name;
       const elementPrice =
         elementsPrice.find(
-          (item) => item.name == elementName && item.paymentCostLeftQuantity > 0
+          (item) =>
+            compareStrings(item.name, elementName) &&
+            item.paymentCostLeftQuantity > 0
         ) ?? {};
       const { paymentCostDivisor } = elementPrice;
       if (paymentCostDivisor) {
@@ -332,8 +338,12 @@ export const addShippingAndPaymentCost = (
   totalSkuType,
   allElements
 ) => {
+  const allOriginalShipment = Utils.getUniqueValueFromObjArr(
+    skuList,
+    "originalShipment"
+  );
   const newSkuList = skuList.map((sku, index) => {
-    const { shipmentId } = sku;
+    const { shipmentId, originalShipment, shipment } = sku;
 
     const domesticShippingCostObj = shippingCostArr.find(
       ({ shipmentId: id, isDomestic }) => id === shipmentId && isDomestic
@@ -364,7 +374,17 @@ export const addShippingAndPaymentCost = (
       if (isOriginalShipmentDomestic) {
         itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${domesticShippingCostObj?.totalShipmentQuantity}`;
       } else {
-        itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${totalUnitCellDomestic}`;
+        // TH này ví dụ như S470.1
+        if (originalShipment == domesticShippingCostObj.originalShipment) {
+          const firstItemShipmentIndex =
+            skuList.findIndex(
+              (sku) => sku.originalShipment == originalShipment
+            ) + 2;
+          const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
+          itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${totalUnitOfThisShipmentCell}`;
+        } else {
+          itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${totalUnitCellInternational}`;
+        }
       }
     }
 
@@ -373,7 +393,17 @@ export const addShippingAndPaymentCost = (
       if (isOriginalShipmentInternational) {
         itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${internationalShippingCostObj?.totalShipmentQuantity}`;
       } else {
-        itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${totalUnitCellInternational}`;
+        // TH này ví dụ như S470.1
+        if (originalShipment == internationalShippingCostObj.originalShipment) {
+          const firstItemShipmentIndex =
+            skuList.findIndex(
+              (sku) => sku.originalShipment == originalShipment
+            ) + 2;
+          const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
+          itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${totalUnitOfThisShipmentCell}`;
+        } else {
+          itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${totalUnitCellInternational}`;
+        }
       }
     }
 

@@ -560,10 +560,12 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
         }
 
         // address của usd price các element khác, tính payment cost dựa trên đó
-        if (!acc) {
+        if (!acc && paymentCost) {
           acc = paymentCost;
         } else {
-          acc = `${acc} + ${paymentCost}`;
+          if (paymentCost) {
+            acc = `${acc} + ${paymentCost}`;
+          }
         }
         return acc;
       },
@@ -688,10 +690,14 @@ export const addShipmentFileToZip = async (
       );
 
       shipmentShippingCosts.forEach((shipmentShippingCost, index) => {
-        const { isDomestic, order = "", totalShipmentQuantity, shipmentQuantity } = shipmentShippingCost;
+        const {
+          isDomestic,
+          order = "",
+          totalShipmentQuantity,
+          shipmentQuantity,
+        } = shipmentShippingCost;
         const totalShipmentUsd = shipmentShippingCost?.totalUsd;
         const totalShipmentCny = shipmentShippingCost?.totalCny;
-
 
         let shipmentSkuQuantity = 0;
 

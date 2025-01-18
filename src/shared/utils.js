@@ -402,4 +402,12 @@ export class Utils {
 
     return decimalPart.length <= CONFIG.MAX_DECIMAL_FIGURE; // Check if the decimal part is 4 digits or fewer
   }
+
+  static getUniqueValueFromObjArr = (arr = [], keyName) => {
+    return [
+      ...new Set(
+        arr.map((item) => item[keyName]).filter((value) => !isEmptyValue(value)) // Filter out empty values
+      ),
+    ];
+  }
 }
