@@ -695,6 +695,7 @@ export const addShipmentFileToZip = async (
           order = "",
           totalShipmentQuantity,
           shipmentQuantity,
+          originalShipment
         } = shipmentShippingCost;
         const totalShipmentUsd = shipmentShippingCost?.totalUsd;
         const totalShipmentCny = shipmentShippingCost?.totalCny;
@@ -715,11 +716,8 @@ export const addShipmentFileToZip = async (
         let totalCny = "";
         let totalUsd = "";
 
-        // totalCny = totalShipmentCny;
-        // totalUsd = totalShipmentUsd;
-
-        // ko remove comment nay
-        if (totalShipmentQuantity == shipmentQuantity) {
+        
+        if (totalShipmentQuantity == shipmentQuantity || originalShipment?.includes('.')) {
           totalCny = totalShipmentCny;
           totalUsd = totalShipmentUsd;
         } else {
