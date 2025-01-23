@@ -372,27 +372,25 @@ export const addShippingAndPaymentCost = (
     let itemDomesticShippingCostFormula = 0;
     if (shipmentDomesticCost && domesticShippingCostObj) {
       if (isOriginalShipmentDomestic) {
-        itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${domesticShippingCostObj?.totalShipmentQuantity}`;
-      } else {
         // TH này ví dụ như S470.1
         if (originalShipment == domesticShippingCostObj.originalShipment) {
           const firstItemShipmentIndex =
-            skuList.findIndex(
-              (sku) => sku.originalShipment == originalShipment
+          skuList.findIndex(
+            (sku) => sku.originalShipment == originalShipment
             ) + 2;
-          const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
-          itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${totalUnitOfThisShipmentCell}`;
+            const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
+            itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${totalUnitOfThisShipmentCell}`;
+          } else {
+            itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${totalUnitCellInternational}`;
+          }
         } else {
-          itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${totalUnitCellInternational}`;
-        }
+        itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${domesticShippingCostObj?.totalShipmentQuantity}`;
       }
     }
 
     let itemInternationalShippingCostFormula = 0;
     if (shipmentInternationalCost && internationalShippingCostObj) {
       if (isOriginalShipmentInternational) {
-        itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${internationalShippingCostObj?.totalShipmentQuantity}`;
-      } else {
         // TH này ví dụ như S470.1
         if (originalShipment == internationalShippingCostObj.originalShipment) {
           const firstItemShipmentIndex =
@@ -404,6 +402,18 @@ export const addShippingAndPaymentCost = (
         } else {
           itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${totalUnitCellInternational}`;
         }
+      } else {
+        itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${internationalShippingCostObj?.totalShipmentQuantity}`;
+        // if (originalShipment == internationalShippingCostObj.originalShipment) {
+        //   const firstItemShipmentIndex =
+        //     skuList.findIndex(
+        //       (sku) => sku.originalShipment == originalShipment
+        //     ) + 2;
+        //   const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
+        //   itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${totalUnitOfThisShipmentCell}`;
+        // } else {
+        //   itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${totalUnitCellInternational}`;
+        // }
       }
     }
 
