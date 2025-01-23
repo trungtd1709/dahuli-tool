@@ -1095,7 +1095,7 @@ export async function modifyOrder1File(file, allElements = {}) {
     const formula = costInStockFormula;
 
     if (costInStockCell) {
-      if (productName.includes(KEY_PREFERENCES.SUBTOTAL)) {
+      if (productName?.includes(KEY_PREFERENCES.SUBTOTAL)) {
         const subtotalTotalFormula = `SUM(${costInStockLetter}2:${costInStockLetter}${
           rowNumber - 1
         })`;
