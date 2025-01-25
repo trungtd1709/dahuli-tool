@@ -357,7 +357,7 @@ export const addShippingAndPaymentCost = (
       domesticShippingCostObj?.originalShipment?.includes(".");
 
     const isOriginalShipmentInternational =
-      domesticShippingCostObj?.originalShipment?.includes(".");
+      internationalShippingCostObj?.originalShipment?.includes(".");
 
     const dataFirstRow = 2; // trong excel row đầu tiên index = 2
     const totalUnitColAlphabet = OUTPUT_COL_ALPHABET.TOTAL_UNIT;
@@ -375,15 +375,15 @@ export const addShippingAndPaymentCost = (
         // TH này ví dụ như S470.1
         if (originalShipment == domesticShippingCostObj.originalShipment) {
           const firstItemShipmentIndex =
-          skuList.findIndex(
-            (sku) => sku.originalShipment == originalShipment
+            skuList.findIndex(
+              (sku) => sku.originalShipment == originalShipment
             ) + 2;
-            const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
-            itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${totalUnitOfThisShipmentCell}`;
-          } else {
-            itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${totalUnitCellInternational}`;
-          }
+          const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
+          itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${totalUnitOfThisShipmentCell}`;
         } else {
+          itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${totalUnitCellInternational}`;
+        }
+      } else {
         itemDomesticShippingCostFormula = `${shipmentDomesticCost} / ${domesticShippingCostObj?.totalShipmentQuantity}`;
       }
     }
