@@ -207,4 +207,8 @@ export class ElementPrice {
   getImage(){
     return this.image;
   }
+
+  getOrder(){
+    return this.order;
+  }
 }

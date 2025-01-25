@@ -471,11 +471,6 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
               ].totalCny = `${accumulatorTotalCny} + ${current.totalCny}`;
             }
           }
-          // else {
-          //   accumulator[
-          //     current.name
-          //   ].totalCny = `${accumulatorTotalCny} + ${current.totalCny}`;
-          // }
         }
         // }
       } else {
@@ -512,7 +507,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
   // PAYMENT FEE PPU
   const paymentFeeObj = elementsPrice.find((item) => item.isPaymentFee);
   if (paymentFeeObj && paymentFeeObj?.paymentCostDivisor) {
-    // const { paymentCostDivisor } = paymentFeeObj;
+    let paymentFeeOrder = "";
 
     // tổng usd price của các elements
     const totalUsdPaymentFee = allShipmentElements.reduce(
@@ -535,6 +530,10 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
               element.quantity
             );
             paymentCost = `${totalUsdPriceAddress} / ${paymentCostDivisor}`;
+            const order = elementPrice.getOrder();
+            if (order && !paymentFeeOrder?.includes(order)) {
+              paymentFeeOrder = order;
+            }
 
             if (leftQuantity > 0) {
               const nextElePrice = elementsPrice.find((item) => {
@@ -543,7 +542,8 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
                   item.getShipmentPaymentLeftQuantity() > 0
                 );
               });
-              if (nextElePrice) {
+              if (nextElePrice && nextElePrice.getPaymentCostDivisor()) {
+                const nextEleOrder = nextElePrice.getOrder();
                 nextElePrice.setShipmentPaymentLeftQuantity(leftQuantity);
                 const nextElePaymentCostDivisor =
                   nextElePrice.getPaymentCostDivisor();
@@ -551,6 +551,9 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
                 const oldElementPaymentCost = `${elementPrice.getUsdFormula()} * ${quantityInOldEle} / ${paymentCostDivisor}`;
                 const nextElementPaymentCost = `${nextElePrice.getUsdFormula()} * ${leftQuantity} / ${nextElePaymentCostDivisor}`;
                 paymentCost = `${oldElementPaymentCost} + ${nextElementPaymentCost}`;
+                if (!paymentFeeOrder?.includes(nextEleOrder)) {
+                  paymentFeeOrder = `${paymentFeeOrder} + ${nextEleOrder}`;
+                }
 
                 // KO REMOVE COMMENT này
                 // paymentCost = `${totalUsdPriceAddress} / ${quantity} * ${quantityInOldEle} / ${paymentCostDivisor} + ${totalUsdPriceAddress} / ${quantity} * ${leftQuantity} / ${nextElePaymentCostDivisor}`;
@@ -582,7 +585,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
 
     const paymentFeeElement = {
       name: paymentFeeObj?.name,
-      order: paymentFeeObj?.order,
+      order: paymentFeeOrder,
       cnyPrice: paymentFeeObj?.cnyPrice,
       totalCny: paymentFeeObj?.totalCny,
       usdPrice: usdPricePaymentFee,
@@ -679,6 +682,7 @@ export const addShipmentFileToZip = async (
         name: KEY_PREFERENCES.SHIPPING_PAYMENT_COST,
         // quantity: paymentCostObj?.quantity,
         totalUsd: "",
+        order: "",
       };
       const shipmentShippingCosts = allInputShippingCost.filter(
         (shippingObj) => {
@@ -695,7 +699,7 @@ export const addShipmentFileToZip = async (
           order = "",
           totalShipmentQuantity,
           shipmentQuantity,
-          originalShipment
+          originalShipment,
         } = shipmentShippingCost;
         const totalShipmentUsd = shipmentShippingCost?.totalUsd;
         const totalShipmentCny = shipmentShippingCost?.totalCny;
@@ -716,8 +720,10 @@ export const addShipmentFileToZip = async (
         let totalCny = "";
         let totalUsd = "";
 
-        
-        if (totalShipmentQuantity == shipmentQuantity || originalShipment?.includes('.')) {
+        if (
+          totalShipmentQuantity == shipmentQuantity ||
+          originalShipment?.includes(".")
+        ) {
           totalCny = totalShipmentCny;
           totalUsd = totalShipmentUsd;
         } else {
@@ -752,6 +758,12 @@ export const addShipmentFileToZip = async (
           } else {
             shippingPaymentCost.totalUsd = thisShippingPaymentCost;
           }
+
+          if (order) {
+            shippingPaymentCost.order = shippingPaymentCost.order
+              ? `${shippingPaymentCost.order}+${order}`
+              : order;
+          }
         }
         allElements[originalShipment].push(shippingElement);
       });
@@ -773,6 +785,7 @@ export const addShipmentFileToZip = async (
           quantity: paymentCostObj?.quantity,
           priceUsd,
           totalUsd: paymentCostObj?.totalUsd,
+          order: paymentCostObj?.order,
         };
         allElements[originalShipment].push(newPaymentObj);
       }
