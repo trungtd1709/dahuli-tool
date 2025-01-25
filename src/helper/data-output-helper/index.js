@@ -26,7 +26,7 @@ import { addUpQuantityFormula } from "../calculate-helper/index.js";
 
 /// Nếu đợt file gồm nhiều shipment thì phải đổi công thức
 const checkMultipleShipmentAndChange = (skuList = []) => {
-  const fillInByOriginalShipment = false;
+  const fillInByOriginalShipment = true;
   const shipmentArr = getUniqueValueFromObjArr(
     skuList,
     fillInByOriginalShipment ? "originalShipment" : "shipment"
