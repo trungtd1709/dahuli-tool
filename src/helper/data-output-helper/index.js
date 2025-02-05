@@ -532,7 +532,11 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
             paymentCost = `${totalUsdPriceAddress} / ${paymentCostDivisor}`;
             const order = elementPrice.getOrder();
             if (order && !paymentFeeOrder?.includes(order)) {
-              paymentFeeOrder = order;
+              if (paymentFeeOrder) {
+                paymentFeeOrder = `${paymentFeeOrder} + ${order}`;
+              } else {
+                paymentFeeOrder = order;
+              }
             }
 
             if (leftQuantity > 0) {
