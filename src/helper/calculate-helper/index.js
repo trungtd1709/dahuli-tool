@@ -404,16 +404,6 @@ export const addShippingAndPaymentCost = (
         }
       } else {
         itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${internationalShippingCostObj?.totalShipmentQuantity}`;
-        // if (originalShipment == internationalShippingCostObj.originalShipment) {
-        //   const firstItemShipmentIndex =
-        //     skuList.findIndex(
-        //       (sku) => sku.originalShipment == originalShipment
-        //     ) + 2;
-        //   const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
-        //   itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${totalUnitOfThisShipmentCell}`;
-        // } else {
-        //   itemInternationalShippingCostFormula = `${shipmentInternationalCost} / ${totalUnitCellInternational}`;
-        // }
       }
     }
 
@@ -441,9 +431,7 @@ export const addShippingAndPaymentCost = (
         shippingPaymentCostFormula = `(${domesticShippingCostCell} + ${internationalShippingCostCell}) / ${paymentCostDivisor}`;
       }
     }
-    // const shippingPaymentCostFormula = isEmptyValue(paymentCostDivisor)
-    //   ? ""
-    //   : `(${domesticShippingCostCell} + ${internationalShippingCostCell}) / ${paymentCostDivisor}`;
+    
     return {
       ...sku,
       domesticShippingCost: itemDomesticShippingCostFormula,

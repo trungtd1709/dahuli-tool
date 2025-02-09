@@ -431,11 +431,7 @@ export const transformShippingCostInput = (
   shipmentQuantity
 ) => {
   shippingArr = shippingArr.filter((item) => {
-    return (
-      // item.productName.includes(shipmentId) ||
-      item.productName.includes(shipment)
-      // item.productName.includes(originalShipment)
-    );
+    return item.productName.includes(shipment);
   });
 
   shippingArr = shippingArr.filter((item) => {
@@ -445,9 +441,7 @@ export const transformShippingCostInput = (
   });
 
   if (shipment != originalShipment) {
-    const isOriginalShipmentExist = shippingArr.find((item) => {
-      return item.productName.includes(originalShipment);
-    });
+    const isOriginalShipmentExist = shippingArr.some((item) => item.productName.includes(originalShipment));
     if (isOriginalShipmentExist) {
       shippingArr = shippingArr.filter((item) => {
         return item.productName.includes(originalShipment);
@@ -492,8 +486,6 @@ const transformShippingCostItem = (
     exchangeRate,
     order = "",
   } = obj;
-  const fileUsd = obj?.[INPUT_KEY_NAME.USD];
-  const fileCny = obj?.[INPUT_KEY_NAME.CNY];
   const rawTotalUsd = obj?.[INPUT_KEY_NAME.TOTAL_USD];
   const rawTotalCny = obj?.[INPUT_KEY_NAME.TOTAL_CNY];
 
@@ -516,6 +508,10 @@ const transformShippingCostItem = (
   const lowerCaseShipName = name.toLowerCase();
   // ko chứa chữ domestic mặc định là international
   const isDomestic = lowerCaseShipName.includes(KEY_PREFERENCES.DOMESTIC);
+
+  if(!name?.includes(originalShipment)){
+    originalShipment = shipment;
+  }
 
   return InputShippingCost.fromJson({
     name,
