@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(errorHandler);
 
 app.listen(port, () => {
-  console.log(`${now}: [Server is running at http://localhost:${port}]`);
+  console.log(`${now()}: [Server is running at http://localhost:${port}]`);
 });
 
 export default app;
