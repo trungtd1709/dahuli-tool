@@ -65,9 +65,6 @@ export const xlsxToJSON = async ({
       }
     });
 
-    // console.log(jsonData[0]);
-    // console.log(jsonDataTest[0]);
-
     addExchangeRateToJson({
       worksheet,
       exchangeRateKeyName,

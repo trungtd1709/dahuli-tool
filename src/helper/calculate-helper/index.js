@@ -327,7 +327,7 @@ export const addCustomizeAndPaymentCost = (
 };
 
 /**
- * Calculates the total price to make each object.
+ * Add shipping and payment cost to COGS.
  * @param {Array} skuList - The array of objects.
  * @param {Array} shippingCostArr - The array of element prices.
  * @returns {Array} The array of objects with their total price.
