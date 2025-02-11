@@ -53,12 +53,11 @@ export const xlsxToJSON = async ({
     usdPriceData.forEach((item) => {
       const usdPrice = item[INPUT_KEY_NAME.USD];
       const productName = item[INPUT_KEY_NAME.PRODUCT_NAME];
-      let test;
 
       const productIndex = jsonData.findIndex(
         (ele) => ele[INPUT_KEY_NAME.PRODUCT_NAME] == productName
       );
-      test = productIndex;
+
       if (productIndex >= 0 && usdPrice) {
         jsonData[productIndex][INPUT_KEY_NAME.USD] = usdPrice;
         console.log(productIndex);
@@ -241,11 +240,7 @@ function extractDivisor(formula) {
  * @param {ExcelJS.WorkSheet} worksheet - The uploaded file object from Multer.
  * @returns {Array}
  */
-const getShippingCostFormulas = (
-  worksheet,
-  jsonData,
-  shippingCostKeyName = "Price"
-) => {
+const getShippingCostFormulas = (worksheet, jsonData) => {
   // priceShippingFormulaUsd
 
   if (!worksheet) {
@@ -297,7 +292,10 @@ const getShippingCostFormulas = (
       let totalUsd = rowValue?.[INPUT_KEY_NAME.TOTAL_USD];
       let weight = rowValue?.[INPUT_KEY_NAME.WEIGHT];
 
-      if (!cnyFileValue && !usdFileValue) {
+      if (
+        (!cnyFileValue || !Utils.isValidDecimalPart(cnyFileValue)) &&
+        !usdFileValue
+      ) {
         if (weight) {
           if (totalCny) {
             cnyPrice = `${totalCny} / ${weight}`;
@@ -854,25 +852,20 @@ export async function modifyOrder1File(file, allElements = {}) {
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber === 1) return; // Skip header row
 
-      const rowProductName = row
-        .getCell(productNameColumnIndex)
-        ?.value?.toLowerCase();
+      const rowProductName = row.getCell(productNameColumnIndex)?.value;
 
       const shipmentDatas = allElements[shipmentKey] ?? [];
 
       const productObj = shipmentDatas.find((shipmentData) => {
-        return compareStrings(
-          shipmentData?.name?.toLowerCase(),
-          rowProductName
-        );
+        return compareStrings(shipmentData?.name, rowProductName);
       });
 
+      row.getCell(newColIndex).value = productObj?.leftQuantity;
       if (!isEmptyValue(productObj)) {
         if (
           !Utils.includes(productObj?.name, KEY_PREFERENCES.PAYMENT_FEE) &&
           !Utils.includes(productObj?.name, KEY_PREFERENCES.PAYMENT_COST)
         ) {
-          row.getCell(newColIndex).value = productObj?.leftQuantity;
         }
       }
     });
@@ -910,7 +903,7 @@ export async function modifyOrder1File(file, allElements = {}) {
         formula = `${oldInStockFormula} - ${shipmentSumQuantityFormula}`;
       }
 
-      const rowNegativeInStockPlaceArr = checkNegative(
+      checkNegative(
         worksheet,
         totalShipmentQuantityLetter,
         rowNumber,
@@ -944,9 +937,6 @@ export async function modifyOrder1File(file, allElements = {}) {
   }
   // END ADD IN STOCK VALUE
 
-  // worksheet.eachRow((row, index) => {
-  //   console.log(row.getCell(shipmentStartColLetter).numFmt);
-  // });
   // ADD HEADER NAME FOR IN STOCK COLUMN
   const inStockHeaderName = SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK;
   headerRow.getCell(inStockColIndex).value = inStockHeaderName;
@@ -1134,7 +1124,7 @@ export async function modifyOrder1File(file, allElements = {}) {
   }
 
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
-  return { modifiedBuffer };
+  return modifiedBuffer;
 }
 
 /**
@@ -1269,7 +1259,7 @@ function checkNegative(
     }
   }
 
-  return negativeInStockPlaceArr;
+  return;
 }
 
 /**

@@ -166,7 +166,7 @@ export class ElementPrice {
       // >= 0 thì xử lý như bình thường
       if (newLeftQuantity >= 0) {
         this.shipmentPaymentLeftQuantity = newLeftQuantity;
-        return 0;
+        return newLeftQuantity;
       }
       // < 0 thì set leftQuantity = 0 r xử lý tiếp
       else {

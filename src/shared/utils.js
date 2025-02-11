@@ -390,17 +390,18 @@ export class Utils {
   };
 
   static isValidDecimalPart(num) {
-    if (!Number.isFinite(num)) {
+    // Check if the input is not a number
+    if (typeof num !== "number" || !Number.isFinite(num)) {
       return false;
     }
 
     const decimalPart = num.toString().split(".")[1]; // Get the part after the decimal point
 
     if (!decimalPart) {
-      return true;
+      return true; // No decimal part, valid number
     }
 
-    return decimalPart.length <= CONFIG.MAX_DECIMAL_FIGURE; // Check if the decimal part is 4 digits or fewer
+    return decimalPart.length <= CONFIG.MAX_DECIMAL_FIGURE; // Check if the decimal part is within the limit
   }
 
   static getUniqueValueFromObjArr = (arr = [], keyName) => {
@@ -409,5 +410,5 @@ export class Utils {
         arr.map((item) => item[keyName]).filter((value) => !isEmptyValue(value)) // Filter out empty values
       ),
     ];
-  }
+  };
 }

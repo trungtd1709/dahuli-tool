@@ -253,7 +253,6 @@ const removeObjKey = (skuList, keyName) => {
  * @param {JSZip} zip
  */
 export const addOrder1FileToZip = async (files = [], zip, allElements) => {
-  let fileIndexNeedToChange = 0;
   const order1Files = files
     .filter((file) => file.fileType === FILE_TYPE.ORDER_1)
     .sort((fileA, fileB) => {
@@ -273,10 +272,7 @@ export const addOrder1FileToZip = async (files = [], zip, allElements) => {
   for (let i = 0; i < order1Files.length; i++) {
     const order1File = order1Files[i];
 
-    const { modifiedBuffer, negativeInStockPlaceArr } = await modifyOrder1File(
-      order1File,
-      allElements
-    );
+    const modifiedBuffer = await modifyOrder1File(order1File, allElements);
     zip.file(order1File.originalname, modifiedBuffer);
   }
 };
@@ -587,6 +583,14 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
     // const totalUsdPaymentFee = `${totalElementUsdPrice} / ${paymentCostDivisor}`;
     const usdPricePaymentFee = `${totalUsdPaymentFee} / ${totalElementQuantity}`;
 
+    const paymentLeftQuantity = allShipmentElements.reduce(
+      (acc, element, index) => {
+        const { leftQuantity = 0 } = element;
+        return acc + leftQuantity;
+      },
+      0
+    );
+
     const paymentFeeElement = {
       name: paymentFeeObj?.name,
       order: paymentFeeOrder,
@@ -595,6 +599,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
       usdPrice: usdPricePaymentFee,
       totalUsd: totalUsdPaymentFee,
       quantity: totalElementQuantity,
+      leftQuantity: paymentLeftQuantity,
     };
     allShipmentElements = [...allShipmentElements, paymentFeeElement];
   }
