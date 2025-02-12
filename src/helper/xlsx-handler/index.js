@@ -860,13 +860,14 @@ export async function modifyOrder1File(file, allElements = {}) {
         return compareStrings(shipmentData?.name, rowProductName);
       });
 
-      row.getCell(newColIndex).value = productObj?.leftQuantity;
+      // row.getCell(newColIndex).value = productObj?.leftQuantity;
       if (!isEmptyValue(productObj)) {
         if (
           !Utils.includes(productObj?.name, KEY_PREFERENCES.PAYMENT_FEE) &&
           !Utils.includes(productObj?.name, KEY_PREFERENCES.PAYMENT_COST)
         ) {
         }
+        row.getCell(newColIndex).value = productObj?.leftQuantity;
       }
     });
   });
@@ -964,7 +965,7 @@ export async function modifyOrder1File(file, allElements = {}) {
   }
   // END HÀNG TOTAL
 
-  // ADD COST
+  // START ADD COST
   const costStartColIndex = XlsxUtils.getLastColumnIndex(worksheet) + 1;
   const costStartColLetter = XlsxUtils.columnIndexToLetter(costStartColIndex);
 
@@ -972,16 +973,10 @@ export async function modifyOrder1File(file, allElements = {}) {
     const newColIndex = XlsxUtils.getLastColumnIndex(worksheet) + 1;
     const newColLetter = XlsxUtils.columnIndexToLetter(newColIndex);
 
-    // worksheet.getColumn(newColLetter).eachCell((cell) => {
-    //   // add $ sign
-    //   // cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
-    //   cell.alignment = { horizontal: "right", vertical: "middle" };
-    // });
     const costKeyName = `Cost ${shipmentKey}`;
     headerRow.getCell(newColIndex).value = costKeyName;
     worksheet.getColumn(newColIndex).width =
       XlsxUtils.getHeaderWidth(costKeyName);
-    // XlsxUtils.centerValueColumn(worksheet, newColIndex);
 
     // Add data for each row under the new column
     worksheet.eachRow((row, rowNumber) => {
@@ -1021,6 +1016,7 @@ export async function modifyOrder1File(file, allElements = {}) {
           shipmentCostCell.value = { formula: costFormula };
         }
       }
+
       // Phải có hàng subtotal thì mói điền payment fee
       if (
         rowNumber == paymentFeeRowIndex &&
@@ -1052,23 +1048,16 @@ export async function modifyOrder1File(file, allElements = {}) {
     XlsxUtils.getHeaderWidth(costInstockColName);
   XlsxUtils.centerValueColumn(worksheet, costInStockIndex);
 
-  worksheet.getColumn(costInStockIndex).eachCell((cell) => {
-    // add $ sign
-    cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
-  });
-
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
     const productNameCell = row.getCell(productNameColumnIndex);
     const productName = productNameCell.value;
 
     // ko remove comment này
-    // const costInStockFormula = `${inStockColLetter}${rowNumber} * ${totalUsdColumnLetter}${rowNumber} / ${quantityColumnLetter}${rowNumber}`;
     let costInStockFormula;
     const totalCostOfThisShipment = `SUM(${costStartColLetter}${rowNumber}:${costLastColLetter}${rowNumber})`;
 
     if (oldCostInStockLetter) {
-      // const oldCostInStockCellAdd = `${oldCostInStockLetter}${rowNumber}`;
       const oldCostInStockCell = row.getCell(oldCostInStockLetter);
       const oldCostInStockValue =
         oldCostInStockCell?.formula ?? oldCostInStockCell?.value;
@@ -1108,20 +1097,20 @@ export async function modifyOrder1File(file, allElements = {}) {
     colIndex <= costLastColIndex;
     colIndex++
   ) {
-    worksheet.getColumn(colIndex).eachCell((cell) => {
-      // add $ sign
-      cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
-      cell.alignment = { horizontal: "right", vertical: "middle" };
-    });
+    XlsxUtils.addDollarSignToColumn(worksheet, colIndex);
+    XlsxUtils.alignRightValueColumn(worksheet, colIndex);
   }
 
+  XlsxUtils.removeColStyleAndNumFmt(worksheet,inStockColIndex);
   for (
     let colIndex = shipmentStartColIndex;
     colIndex <= shipmentLastColIndex;
     colIndex++
   ) {
-    XlsxUtils.removeNumberFormat(worksheet, colIndex);
+    XlsxUtils.removeColStyleAndNumFmt(worksheet,colIndex);
+    XlsxUtils.alignRightValueColumn(worksheet, colIndex);
   }
+  XlsxUtils.adjustColumnWidths(worksheet);
 
   const modifiedBuffer = await workbook.xlsx.writeBuffer();
   return modifiedBuffer;

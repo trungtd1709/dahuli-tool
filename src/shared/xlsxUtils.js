@@ -176,6 +176,13 @@ export class XlsxUtils {
     };
   };
 
+  static alignRightValueColumn = (worksheet, colIndex) => {
+    worksheet.getColumn(colIndex).alignment = {
+      horizontal: "right",
+      vertical: "middle",
+    };
+  };
+
   /**
    * @param {ExcelJS.Worksheet} worksheet
    */
@@ -239,10 +246,11 @@ export class XlsxUtils {
    * @param {ExcelJS.Worksheet} worksheet
    */
   static addDollarSignToColumn = (worksheet, colIndex) => {
-    worksheet.getColumn(costInStockIndex).eachCell((cell) => {
+    worksheet.getColumn(colIndex).eachCell((cell) => {
       // add $ sign
       cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
     });
+    // worksheet.getColumn(colIndex).numFmt = OUTPUT_NUM_DECIMAL_FORMAT.$_2_DIGITS;
   };
 
   /**
@@ -252,6 +260,30 @@ export class XlsxUtils {
   static addNumFmt4Decimal = (worksheet, colIndex) => {
     worksheet.getColumn(colIndex).eachCell((cell) => {
       cell.numFmt = OUTPUT_NUM_DECIMAL_FORMAT["4_DIGITS"];
+    });
+  };
+
+  /**
+   * 
+   * @param {ExcelJS.Worksheet} worksheet 
+   */
+  static removeColStyleAndNumFmt = (worksheet, colIndex) => {
+    worksheet.getColumn(colIndex).eachCell((cell) => {
+      cell.style = {}; // Reset all styles
+      delete cell.numFmt; // Remove numFmt
+    });
+  }
+
+  static adjustColumnWidths = (worksheet, extraPadding = 0.1, minWidth = 4) => {
+    worksheet.columns.forEach((column) => {
+      let maxLength = 0;
+      column.eachCell({ includeEmpty: true }, (cell) => {
+        const cellValue = cell.value ? cell.value.toString() : "";
+        maxLength = Math.max(maxLength, cellValue.length);
+      });
+  
+      // Ensure width is at least the default Excel width (8.43)
+      column.width = Math.max(maxLength + extraPadding, minWidth);
     });
   };
 }
