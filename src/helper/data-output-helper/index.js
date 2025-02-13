@@ -583,14 +583,6 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
     // const totalUsdPaymentFee = `${totalElementUsdPrice} / ${paymentCostDivisor}`;
     const usdPricePaymentFee = `${totalUsdPaymentFee} / ${totalElementQuantity}`;
 
-    const paymentLeftQuantity = allShipmentElements.reduce(
-      (acc, element, index) => {
-        const { leftQuantity = 0 } = element;
-        return acc + leftQuantity;
-      },
-      0
-    );
-
     const paymentFeeElement = {
       name: paymentFeeObj?.name,
       order: paymentFeeOrder,
@@ -599,7 +591,6 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
       usdPrice: usdPricePaymentFee,
       totalUsd: totalUsdPaymentFee,
       quantity: totalElementQuantity,
-      leftQuantity: paymentLeftQuantity,
     };
     allShipmentElements = [...allShipmentElements, paymentFeeElement];
   }

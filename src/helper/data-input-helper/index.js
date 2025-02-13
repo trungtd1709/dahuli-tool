@@ -509,9 +509,9 @@ const transformShippingCostItem = (
   // ko chứa chữ domestic mặc định là international
   const isDomestic = lowerCaseShipName.includes(KEY_PREFERENCES.DOMESTIC);
 
-  if(!name?.includes(originalShipment)){
-    originalShipment = shipment;
-  }
+  // if(!name?.includes(originalShipment)){
+  //   originalShipment = shipment;
+  // }
 
   return InputShippingCost.fromJson({
     name,

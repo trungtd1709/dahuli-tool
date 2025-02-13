@@ -860,7 +860,6 @@ export async function modifyOrder1File(file, allElements = {}) {
         return compareStrings(shipmentData?.name, rowProductName);
       });
 
-      // row.getCell(newColIndex).value = productObj?.leftQuantity;
       if (!isEmptyValue(productObj)) {
         if (
           !Utils.includes(productObj?.name, KEY_PREFERENCES.PAYMENT_FEE) &&
