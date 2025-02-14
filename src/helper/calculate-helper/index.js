@@ -355,10 +355,10 @@ export const addShippingAndPaymentCost = (
     );
 
     const isOriginalShipmentDomestic =
-      domesticShippingCostObj?.originalShipment?.includes(".");
+      domesticShippingCostObj?.name?.includes(".");
 
     const isOriginalShipmentInternational =
-      internationalShippingCostObj?.originalShipment?.includes(".");
+      internationalShippingCostObj?.name?.includes(".");
 
     const dataFirstRow = 2; // trong excel row đầu tiên index = 2
     const totalUnitColAlphabet = OUTPUT_COL_ALPHABET.TOTAL_UNIT;
@@ -547,9 +547,10 @@ const getShippingFormula = (
     return acc + quantity;
   }, 0);
 
+  // TH này ví dụ như S470.1
   if (isOriginalShipment) {
-    // TH này ví dụ như S470.1
-    if (originalShipment == shippingCostObj.originalShipment) {
+    // if ( originalShipment == shippingCostObj.originalShipment) {
+    if(shippingCostObj?.name?.includes(originalShipment)){
       const firstItemShipmentIndex =
         skuList.findIndex((sku) => sku.originalShipment == originalShipment) +
         2;

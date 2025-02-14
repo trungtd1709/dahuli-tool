@@ -700,6 +700,7 @@ export const addShipmentFileToZip = async (
           totalShipmentQuantity,
           shipmentQuantity,
           originalShipment,
+          name
         } = shipmentShippingCost;
         const totalShipmentUsd = shipmentShippingCost?.totalUsd;
         const totalShipmentCny = shipmentShippingCost?.totalCny;
@@ -722,7 +723,7 @@ export const addShipmentFileToZip = async (
 
         if (
           totalShipmentQuantity == shipmentQuantity ||
-          originalShipment?.includes(".")
+          name?.includes(".")
         ) {
           totalCny = totalShipmentCny;
           totalUsd = totalShipmentUsd;
