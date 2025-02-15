@@ -468,7 +468,6 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
             }
           }
         }
-        // }
       } else {
         accumulator[current.name] = { ...current };
       }
@@ -481,7 +480,6 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
     const elementPriceObj = elementsPrice.find((item) =>
       compareStringsIgnoreCase(item?.name, name)
     );
-
     let imageBuffer;
 
     if (!isEmptyValue(elementPriceObj)) {

@@ -33,7 +33,6 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       const elementPrice = findEleWithLowestFileOrder(
         elementsPrice.filter(
           (el) =>
-            // el.name.toLowerCase() === element.name.toLowerCase() &&
             compareStrings(el.name, element.name) && el.leftQuantity > 0
         )
       );
@@ -53,18 +52,15 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       // TH này ko cần tìm thêm gì, tính luôn ppu
       if (remainingQuantity <= 0) {
         /// ko bỏ comment này
-        // newPpuPrice = `${usdPrice} * ${quantity} / quantityCell`;
         newPpuPrice =
           elementQuantity == 1
             ? `${elementPrice.getUsdFormula()}`
             : `${elementPrice.getUsdFormula()} * ${elementQuantity}`;
 
         if (!isEmptyValue(elementPrice.getCnyFormula())) {
-          // eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * totalElementQuantity`;
           eleShipmentTotalCny = `${elementPrice.getCnyFormula()} * ${quantity}`;
         }
         if (!isEmptyValue(elementPrice.getUsdFormula())) {
-          // eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * totalElementQuantity`;
           eleShipmentTotalUsd = `${elementPrice.getUsdFormula()} * ${quantity}`;
         }
       }
@@ -226,12 +222,11 @@ export const addCustomizeAndPaymentCost = (
   elementsPrice,
   allElements
 ) => {
-  return skuList.map((item, index) => {
+  const newSkuList = skuList.map((item, index) => {
     const customizePackage = item?.customizePackage;
     const customizeObj = findEleWithLowestFileOrder(
       elementsPrice.filter(
         (el) =>
-          // el.name?.toLowerCase() == customizePackage?.toLowerCase() &&
           compareStringsIgnoreSpaces(el.name, customizePackage) &&
           el.leftQuantity > 0
       )
@@ -324,6 +319,8 @@ export const addCustomizeAndPaymentCost = (
       totalCnyCustomPackageCost,
     };
   });
+
+  return newSkuList;
 };
 
 /**

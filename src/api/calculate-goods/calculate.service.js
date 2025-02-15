@@ -110,6 +110,10 @@ export const calculateGood = async (files = []) => {
       skuList = addCogsAndAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
       skuList = calculatePpuPrice(skuList, elementsPrice);
+      skuList = addCustomizeAndPaymentCost(
+        skuList,
+        elementsPrice,
+      );
 
       const allShipmentElements = await getAllShipmentElements(
         skuList,
@@ -121,11 +125,11 @@ export const calculateGood = async (files = []) => {
       allInputShippingCost = [...allInputShippingCost, ...inputShippingCost];
     }
 
-    allSkuList = addCustomizeAndPaymentCost(
-      allSkuList,
-      elementsPrice,
-      allElements
-    );
+    // allSkuList = addCustomizeAndPaymentCost(
+    //   allSkuList,
+    //   elementsPrice,
+    //   allElements
+    // );
     allSkuList = addShippingAndPaymentCost(
       allSkuList,
       allInputShippingCost,
@@ -136,7 +140,6 @@ export const calculateGood = async (files = []) => {
     allSkuList = removeSkuKey(allSkuList);
 
     await addCogsFileToZip(allSkuList, zip, shipment);
-    
     await addOrder1FileToZip(files, zip, allElements);
     await addShippingFileToZip(
       files,

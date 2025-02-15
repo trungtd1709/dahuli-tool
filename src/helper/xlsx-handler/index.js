@@ -884,6 +884,13 @@ export async function modifyOrder1File(file, allElements = {}) {
   // START ADD IN STOCK VALUE
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
+
+    const productNameCell = row.getCell(productNameColumnIndex);
+    const productName = productNameCell.value;
+    if(compareStrings(productName, KEY_PREFERENCES.PAYMENT_FEE) || compareStrings(productName, KEY_PREFERENCES.PAYMENT_COST)){
+      continue;
+    }
+
     const oldInStockColLetter = XlsxUtils.columnIndexToLetter(oldInStockIndex);
     const totalShipmentQuantityLetter = oldInStockIndex
       ? oldInStockColLetter
@@ -1033,7 +1040,6 @@ export async function modifyOrder1File(file, allElements = {}) {
 
   const costLastColIndex = XlsxUtils.getLastColumnIndex(worksheet);
   const costLastColLetter = XlsxUtils.columnIndexToLetter(costLastColIndex);
-
   // END OF ADD COST
 
   // START ADD COST IN STOCK TO LAST COLUMN
@@ -1080,6 +1086,15 @@ export async function modifyOrder1File(file, allElements = {}) {
         ...costInStockCell.value,
         formula,
       };
+      if(compareStrings(productName, KEY_PREFERENCES.TOTAL)){
+        const totalCostInStockFormula = `SUM(${costInStockLetter}2:${costInStockLetter}${
+          lastRowIndex - 1
+        })`;
+        costInStockCell.value = {
+          ...costInStockCell.value,
+          formula: totalCostInStockFormula,
+        };
+      }
     }
   }
   // END ADD COST IN STOCK
@@ -1099,6 +1114,9 @@ export async function modifyOrder1File(file, allElements = {}) {
     XlsxUtils.addDollarSignToColumn(worksheet, colIndex);
     XlsxUtils.alignRightValueColumn(worksheet, colIndex);
   }
+
+  XlsxUtils.addDollarSignToColumn(worksheet, costInStockIndex);
+    XlsxUtils.alignRightValueColumn(worksheet, costInStockIndex);
 
   XlsxUtils.removeColStyleAndNumFmt(worksheet,inStockColIndex);
   for (
