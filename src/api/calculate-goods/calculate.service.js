@@ -125,11 +125,6 @@ export const calculateGood = async (files = []) => {
       allInputShippingCost = [...allInputShippingCost, ...inputShippingCost];
     }
 
-    // allSkuList = addCustomizeAndPaymentCost(
-    //   allSkuList,
-    //   elementsPrice,
-    //   allElements
-    // );
     allSkuList = addShippingAndPaymentCost(
       allSkuList,
       allInputShippingCost,

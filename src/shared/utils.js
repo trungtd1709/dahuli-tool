@@ -326,10 +326,6 @@ export function compareStringsIgnoreSpaces(str1, str2) {
 }
 
 export class Utils {
-  static includes(string, part) {
-    return string?.toLowerCase()?.includes(part?.toLowerCase()?.trim());
-  }
-
   static roundNumber = (num, minDecimalPartLength = 4) => {
     try {
       if (num) {
@@ -411,4 +407,16 @@ export class Utils {
       ),
     ];
   };
+
+  static includes = (str = '', subStr = '') => {
+    if (typeof str !== 'string' || typeof subStr !== 'string') {
+        return false;
+    }
+
+    // Normalize both strings by removing spaces and converting to lowercase
+    const normalizedStr = str.replace(/\s+/g, '').toLowerCase();
+    const normalizedSubStr = subStr.replace(/\s+/g, '').toLowerCase();
+
+    return normalizedStr.includes(normalizedSubStr);
+};
 }

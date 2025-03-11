@@ -553,7 +553,7 @@ export const getFileType = (file) => {
     return FILE_TYPE.SHIPMENT;
   }
 
-  if (headers.find((item) => item.includes(CHECK_KEYWORD.WEIGHT))) {
+  if (headers.find((item) => item?.toLowerCase().includes(CHECK_KEYWORD.WEIGHT.toLowerCase()))) {
     return FILE_TYPE.SHIPPING;
   }
 

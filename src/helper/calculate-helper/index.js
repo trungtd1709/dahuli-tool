@@ -32,8 +32,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
       const elementQuantity = parseInt(element?.quantity) ?? 1;
       const elementPrice = findEleWithLowestFileOrder(
         elementsPrice.filter(
-          (el) =>
-            compareStrings(el.name, element.name) && el.leftQuantity > 0
+          (el) => compareStrings(el.name, element.name) && el.leftQuantity > 0
         )
       );
 
@@ -364,15 +363,37 @@ export const addShippingAndPaymentCost = (
     const shipmentInternationalCost =
       internationalShippingCostObj?.totalUsd ?? 0;
 
+    let isDomesticShippingNameContainAnySku;
+    if (!domesticShippingCostObj) {
+      isDomesticShippingNameContainAnySku = false;
+    } else {
+      isDomesticShippingNameContainAnySku = skuList.some((item) => {
+        return Utils.includes(domesticShippingCostObj?.name, item?.SKU);
+      });
+    }
+
+    let isInternationalShippingNameContainAnySku;
+    if (!internationalShippingCostObj) {
+      isInternationalShippingNameContainAnySku = false;
+    } else {
+      isInternationalShippingNameContainAnySku = skuList.some((item) => {
+        return Utils.includes(internationalShippingCostObj?.name, item?.SKU);
+      });
+    }
+
     const isCostDomesticShipping = !!(
       shipmentDomesticCost &&
       domesticShippingCostObj &&
-      !domesticShippingCostObj?.name?.includes(SKU)
+      (isDomesticShippingNameContainAnySku
+        ? Utils.includes(domesticShippingCostObj?.name, SKU)
+        : false)
     );
     const isCostInternationalShipping = !!(
       shipmentInternationalCost &&
       internationalShippingCostObj &&
-      !internationalShippingCostObj?.name?.includes(SKU)
+      (isInternationalShippingNameContainAnySku
+        ? Utils.includes(internationalShippingCostObj?.name,SKU)
+        : false)
     );
 
     const totalUnitCell = `${totalUnitColAlphabet}${dataFirstRow}`;
@@ -547,7 +568,7 @@ const getShippingFormula = (
   // TH này ví dụ như S470.1
   if (isOriginalShipment) {
     // if ( originalShipment == shippingCostObj.originalShipment) {
-    if(shippingCostObj?.name?.includes(originalShipment)){
+    if (shippingCostObj?.name?.includes(originalShipment)) {
       const firstItemShipmentIndex =
         skuList.findIndex((sku) => sku.originalShipment == originalShipment) +
         2;
