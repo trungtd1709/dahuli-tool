@@ -392,7 +392,7 @@ export const addShippingAndPaymentCost = (
       shipmentInternationalCost &&
       internationalShippingCostObj &&
       (isInternationalShippingNameContainAnySku
-        ? Utils.includes(internationalShippingCostObj?.name,SKU)
+        ? Utils.includes(internationalShippingCostObj?.name, SKU)
         : false)
     );
 
@@ -556,15 +556,6 @@ const getShippingFormula = (
     (item) => item.originalShipment == originalShipment
   );
 
-  const skuNotCostShipping = skuInOriginalShipment.filter((item) =>
-    shippingCostObj?.name?.includes(item?.SKU)
-  );
-
-  const skuQuantityNotCostShipping = skuNotCostShipping.reduce((acc, item) => {
-    const { quantity = 0 } = item;
-    return acc + quantity;
-  }, 0);
-
   // TH này ví dụ như S470.1
   if (isOriginalShipment) {
     // if ( originalShipment == shippingCostObj.originalShipment) {
@@ -573,25 +564,12 @@ const getShippingFormula = (
         skuList.findIndex((sku) => sku.originalShipment == originalShipment) +
         2;
       const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
-
-      if (skuQuantityNotCostShipping > 0) {
-        itemShippingCostFormula = `${shipmentTotalShippingCost} / (${totalUnitOfThisShipmentCell} - ${skuQuantityNotCostShipping})`;
-      } else {
-        itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitOfThisShipmentCell}`;
-      }
+      itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitOfThisShipmentCell}`;
     } else {
-      if (skuQuantityNotCostShipping > 0) {
-        itemShippingCostFormula = `${shipmentTotalShippingCost} / (${totalUnitCell} - ${skuQuantityNotCostShipping})`;
-      } else {
-        itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitCell}`;
-      }
+      itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitCell}`;
     }
   } else {
-    if (skuQuantityNotCostShipping > 0) {
-      itemShippingCostFormula = `${shipmentTotalShippingCost} / (${shippingCostObj?.totalShipmentQuantity} - ${skuQuantityNotCostShipping})`;
-    } else {
-      itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.totalShipmentQuantity}`;
-    }
+    itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.totalShipmentQuantity}`;
   }
 
   return itemShippingCostFormula;
