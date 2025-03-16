@@ -14,6 +14,7 @@ import { BadRequestError } from "../../error/bad-request-err.js";
 import {
   CANT_FIND_USD_PRICE_FOR_ELEMENT,
   MISSING_ELEMENT_DATA,
+  MISSING_QUANTITY,
   NOT_ENOUGHT_CUSTOM_PACKAGE_QUANTITY,
 } from "../../shared/err-const.js";
 
@@ -75,7 +76,7 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
 
         if (!newElementPrice) {
           throw new BadRequestError(
-            `${MISSING_ELEMENT_DATA} or ${MISSING_QUANTITY}`
+            `${MISSING_ELEMENT_DATA} or ${MISSING_QUANTITY}: ${elementPrice.name}`
           );
         }
         const quantityGoToNewOrder = quantity - remainingQuantity;
@@ -364,6 +365,7 @@ export const addShippingAndPaymentCost = (
       internationalShippingCostObj?.totalUsd ?? 0;
 
     let isDomesticShippingNameContainAnySku;
+    let totalQuantityDomesticShippingCost = 0;
     if (!domesticShippingCostObj) {
       isDomesticShippingNameContainAnySku = false;
     } else {
@@ -372,12 +374,32 @@ export const addShippingAndPaymentCost = (
       });
     }
 
+    if (isDomesticShippingNameContainAnySku) {
+      skuList.forEach((item) => {
+        if (
+          Utils.includes(domesticShippingCostObj?.name, item?.SKU) &&
+          compareStrings(shipmentId, item?.shipmentId)
+        ) {
+          totalQuantityDomesticShippingCost += item?.quantity ?? 0;
+        }
+      });
+    }
+
     let isInternationalShippingNameContainAnySku;
+    let totalQuantityInternationalShippingCost = 0;
     if (!internationalShippingCostObj) {
       isInternationalShippingNameContainAnySku = false;
     } else {
       isInternationalShippingNameContainAnySku = skuList.some((item) => {
         return Utils.includes(internationalShippingCostObj?.name, item?.SKU);
+      });
+    }
+
+    if (isInternationalShippingNameContainAnySku) {
+      skuList.forEach((item) => {
+        if (Utils.includes(internationalShippingCostObj?.name, item?.SKU)) {
+          totalQuantityInternationalShippingCost += item?.quantity ?? 0;
+        }
       });
     }
 
@@ -406,7 +428,8 @@ export const addShippingAndPaymentCost = (
         isOriginalShipmentDomestic,
         originalShipment,
         shipmentDomesticCost,
-        totalUnitCell
+        totalUnitCell,
+        totalQuantityDomesticShippingCost
       );
     }
 
@@ -418,7 +441,8 @@ export const addShippingAndPaymentCost = (
         isOriginalShipmentInternational,
         originalShipment,
         shipmentInternationalCost,
-        totalUnitCell
+        totalUnitCell,
+        totalQuantityInternationalShippingCost
       );
     }
 
@@ -549,7 +573,8 @@ const getShippingFormula = (
   isOriginalShipment,
   originalShipment,
   shipmentTotalShippingCost,
-  totalUnitCell
+  totalUnitCell,
+  totalQuantityShippingCost
 ) => {
   let itemShippingCostFormula = 0;
   const skuInOriginalShipment = skuList.filter(
@@ -563,10 +588,19 @@ const getShippingFormula = (
       const firstItemShipmentIndex =
         skuList.findIndex((sku) => sku.originalShipment == originalShipment) +
         2;
-      const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
-      itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitOfThisShipmentCell}`;
+
+      if (totalQuantityShippingCost) {
+        itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalQuantityShippingCost}`;
+      } else {
+        const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
+        itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitOfThisShipmentCell}`;
+      }
     } else {
-      itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitCell}`;
+      if (totalQuantityShippingCost) {
+        itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalQuantityShippingCost}`;
+      } else {
+        itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitCell}`;
+      }
     }
   } else {
     itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.totalShipmentQuantity}`;
