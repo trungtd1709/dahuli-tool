@@ -408,14 +408,14 @@ export const addShippingAndPaymentCost = (
       domesticShippingCostObj &&
       (isDomesticShippingNameContainAnySku
         ? Utils.includes(domesticShippingCostObj?.name, SKU)
-        : false)
+        : true)
     );
     const isCostInternationalShipping = !!(
       shipmentInternationalCost &&
       internationalShippingCostObj &&
       (isInternationalShippingNameContainAnySku
         ? Utils.includes(internationalShippingCostObj?.name, SKU)
-        : false)
+        : true)
     );
 
     const totalUnitCell = `${totalUnitColAlphabet}${dataFirstRow}`;
