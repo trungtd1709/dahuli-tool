@@ -335,10 +335,6 @@ export const addShippingAndPaymentCost = (
   totalSkuType,
   allElements
 ) => {
-  const allOriginalShipment = Utils.getUniqueValueFromObjArr(
-    skuList,
-    "originalShipment"
-  );
   const newSkuList = skuList.map((sku, index) => {
     const { shipmentId, originalShipment, shipment } = sku;
     const SKU = sku?.SKU?.trim();
