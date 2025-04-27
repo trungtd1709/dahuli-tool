@@ -95,7 +95,7 @@ export const xlsxToJSON = async ({
       jsonData = jsonData.map((data, index) => {
         const imageRowIndex = index + 1;
         const image = images.find((item) => {
-          return item.getRowIndex() == imageRowIndex;
+          return item?.getRowIndex() == imageRowIndex;
         });
         if (image) {
           return { ...data, image };
@@ -1076,7 +1076,7 @@ export async function modifyOrder1File(file, allElements = {}) {
     const formula = costInStockFormula;
 
     if (costInStockCell) {
-      if (productName?.includes(KEY_PREFERENCES.SUBTOTAL)) {
+      if (productName && productName?.includes(KEY_PREFERENCES.SUBTOTAL)) {
         const subtotalTotalFormula = `SUM(${costInStockLetter}2:${costInStockLetter}${
           rowNumber - 1
         })`;
