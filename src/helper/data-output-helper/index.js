@@ -11,6 +11,7 @@ import {
   TIME_FORMAT,
 } from "../../shared/constant.js";
 import {
+  Utils,
   compareStringsIgnoreCase,
   compareStringsIgnoreSpaces,
   getUniqueValueFromObjArr,
@@ -276,7 +277,7 @@ export const addOrder1FileToZip = async (files = [], zip, allElements) => {
 
     const modifiedBuffer = await modifyOrder1File(order1File, allElements);
     zip.file(
-      order1File.originalname + " " + now(TIME_FORMAT.DD_MM_YYYY),
+      Utils.appendNowToFileName(order1File.originalname),
       modifiedBuffer
     );
   }
@@ -305,7 +306,7 @@ export const addShippingFileToZip = async (
       inputTsvDataArr
     );
     zip.file(
-      shippingFile.originalname + " " + now(TIME_FORMAT.DD_MM_YYYY),
+      Utils.appendNowToFileName(shippingFile.originalname),
       newShippingBuffer
     );
   }
@@ -318,11 +319,10 @@ export const addShippingFileToZip = async (
  */
 export const addCogsFileToZip = async (skuList, zip) => {
   skuList = checkMultipleShipmentAndChange(skuList);
-  const cogsFileName =
-    getCogsFileName(skuList) + " " + now(TIME_FORMAT.DD_MM_YYYY);
+  const cogsFileName = getCogsFileName(skuList);
   const refactorSkuList = refactorSkuListFunc(skuList);
   const cogsXlsxBuffer = await cogsJsonToXlsx({ json: refactorSkuList });
-  zip.file(cogsFileName, cogsXlsxBuffer);
+  zip.file(Utils.appendNowToFileName(cogsFileName), cogsXlsxBuffer);
 };
 
 /**
@@ -806,7 +806,10 @@ export const addShipmentFileToZip = async (
       const shipmentResultFileBuffer = await createShipmentExcelBuffer(
         refactorAllElements
       );
-      zip.file(`Shipment - ${originalShipment}_${now(TIME_FORMAT.DD_MM_YYYY)}.xlsx`, shipmentResultFileBuffer);
+      zip.file(
+        Utils.appendNowToFileName(`Shipment - ${originalShipment}.xlsx`),
+        shipmentResultFileBuffer
+      );
     }
   }
   return allElements;

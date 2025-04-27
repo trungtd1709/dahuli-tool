@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import { CONFIG } from "./config.js";
+import { TIME_FORMAT } from "./constant.js";
 
 export const findIndexByFirstElement = ({ array, searchValue }) => {
   return array.findIndex((item) => item[0] === searchValue);
@@ -141,7 +142,7 @@ export function removeSpaces(str) {
   return str.replace(/\s+/g, "");
 }
 
-export const now = (format = "YYYY-MM-DD HH:mm:ss") => {
+export const now = (format = TIME_FORMAT.YYYY_MM_DD_HH_mm_ss) => {
   let today = dayjs();
   return today.format(format).toString();
 };
@@ -423,4 +424,16 @@ export class Utils {
 
     return normalizedStr.includes(normalizedSubStr);
   };
+
+  static appendNowToFileName(originalName) {
+    const lastDotIndex = originalName.lastIndexOf('.');
+    
+    const name = originalName.substring(0, lastDotIndex);
+    const ext = originalName.substring(lastDotIndex);
+    const fileName = `${name}_${now(TIME_FORMAT.DD_MM_YYYY)}${ext}`;
+  
+    return fileName;
+  }
+  
+  
 }
