@@ -599,7 +599,13 @@ const getShippingFormula = (
       }
     }
   } else {
-    itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.totalShipmentQuantity}`;
+    if(shippingCostObj?.totalShipmentQuantity){
+
+      itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.totalShipmentQuantity}`;
+    }
+    else{
+      itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.weight}`;
+    }
   }
 
   return itemShippingCostFormula;
