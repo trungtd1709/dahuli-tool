@@ -8,12 +8,14 @@ import {
   OUTPUT_KEY_NAME,
   SHIPMENT_OUTPUT_COL_ALPHABET,
   SHIPMENT_OUTPUT_KEY_NAME,
+  TIME_FORMAT,
 } from "../../shared/constant.js";
 import {
   compareStringsIgnoreCase,
   compareStringsIgnoreSpaces,
   getUniqueValueFromObjArr,
   isEmptyValue,
+  now,
 } from "../../shared/utils.js";
 import { extractNumberFromFilename } from "../data-input-helper/index.js";
 import {
@@ -273,7 +275,10 @@ export const addOrder1FileToZip = async (files = [], zip, allElements) => {
     const order1File = order1Files[i];
 
     const modifiedBuffer = await modifyOrder1File(order1File, allElements);
-    zip.file(order1File.originalname, modifiedBuffer);
+    zip.file(
+      order1File.originalname + " " + now(TIME_FORMAT.DD_MM_YYYY),
+      modifiedBuffer
+    );
   }
 };
 
@@ -299,7 +304,10 @@ export const addShippingFileToZip = async (
       allInputShippingCost,
       inputTsvDataArr
     );
-    zip.file(shippingFile.originalname, newShippingBuffer);
+    zip.file(
+      shippingFile.originalname + " " + now(TIME_FORMAT.DD_MM_YYYY),
+      newShippingBuffer
+    );
   }
 };
 
@@ -310,7 +318,8 @@ export const addShippingFileToZip = async (
  */
 export const addCogsFileToZip = async (skuList, zip) => {
   skuList = checkMultipleShipmentAndChange(skuList);
-  const cogsFileName = getCogsFileName(skuList);
+  const cogsFileName =
+    getCogsFileName(skuList) + " " + now(TIME_FORMAT.DD_MM_YYYY);
   const refactorSkuList = refactorSkuListFunc(skuList);
   const cogsXlsxBuffer = await cogsJsonToXlsx({ json: refactorSkuList });
   zip.file(cogsFileName, cogsXlsxBuffer);
@@ -698,7 +707,7 @@ export const addShipmentFileToZip = async (
           totalShipmentQuantity,
           shipmentQuantity,
           originalShipment,
-          name
+          name,
         } = shipmentShippingCost;
         const totalShipmentUsd = shipmentShippingCost?.totalUsd;
         const totalShipmentCny = shipmentShippingCost?.totalCny;
@@ -719,10 +728,7 @@ export const addShipmentFileToZip = async (
         let totalCny = "";
         let totalUsd = "";
 
-        if (
-          totalShipmentQuantity == shipmentQuantity ||
-          name?.includes(".")
-        ) {
+        if (totalShipmentQuantity == shipmentQuantity || name?.includes(".")) {
           totalCny = totalShipmentCny;
           totalUsd = totalShipmentUsd;
         } else {
@@ -800,7 +806,7 @@ export const addShipmentFileToZip = async (
       const shipmentResultFileBuffer = await createShipmentExcelBuffer(
         refactorAllElements
       );
-      zip.file(`Shipment - ${originalShipment}.xlsx`, shipmentResultFileBuffer);
+      zip.file(`Shipment - ${originalShipment}_${now(TIME_FORMAT.DD_MM_YYYY)}.xlsx`, shipmentResultFileBuffer);
     }
   }
   return allElements;

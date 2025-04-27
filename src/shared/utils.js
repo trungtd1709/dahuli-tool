@@ -141,9 +141,9 @@ export function removeSpaces(str) {
   return str.replace(/\s+/g, "");
 }
 
-export const now = () => {
+export const now = (format = "YYYY-MM-DD HH:mm:ss") => {
   let today = dayjs();
-  return today.format("YYYY-MM-DD HH:mm:ss").toString();
+  return today.format(format).toString();
 };
 
 /**
@@ -303,7 +303,11 @@ export function compareStrings(str1, str2) {
  * @returns {string} - The string with all newline characters removed.
  */
 export function removeNewlines(str) {
-  return str.replace(/[\n\r]+/g, "");
+  if (str) {
+    return str?.replace(/[\n\r]+/g, "");
+  } else {
+    return str;
+  }
 }
 
 /**
@@ -408,15 +412,15 @@ export class Utils {
     ];
   };
 
-  static includes = (str = '', subStr = '') => {
-    if (typeof str !== 'string' || typeof subStr !== 'string') {
-        return false;
+  static includes = (str = "", subStr = "") => {
+    if (typeof str !== "string" || typeof subStr !== "string") {
+      return false;
     }
 
     // Normalize both strings by removing spaces and converting to lowercase
-    const normalizedStr = str.replace(/\s+/g, '').toLowerCase();
-    const normalizedSubStr = subStr.replace(/\s+/g, '').toLowerCase();
+    const normalizedStr = str.replace(/\s+/g, "").toLowerCase();
+    const normalizedSubStr = subStr.replace(/\s+/g, "").toLowerCase();
 
     return normalizedStr.includes(normalizedSubStr);
-};
+  };
 }
