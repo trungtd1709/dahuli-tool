@@ -60,7 +60,6 @@ export const xlsxToJSON = async ({
 
       if (productIndex >= 0 && usdPrice) {
         jsonData[productIndex][INPUT_KEY_NAME.USD] = usdPrice;
-        console.log(productIndex);
       }
     });
 
@@ -151,7 +150,7 @@ const addExchangeRateToJson = ({
         const match = formula.match(/\/(\d+\.\d+)/);
         if (match) {
           const exchangeRate = match[1];
-          if (exchangeRate) {
+          if (exchangeRate && !!jsonData[R - 1]) {
             jsonData[R - 1].exchangeRate = exchangeRate;
           }
         }
