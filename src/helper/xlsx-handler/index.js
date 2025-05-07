@@ -60,7 +60,6 @@ export const xlsxToJSON = async ({
 
       if (productIndex >= 0 && usdPrice) {
         jsonData[productIndex][INPUT_KEY_NAME.USD] = usdPrice;
-        console.log(productIndex);
       }
     });
 
@@ -95,7 +94,7 @@ export const xlsxToJSON = async ({
       jsonData = jsonData.map((data, index) => {
         const imageRowIndex = index + 1;
         const image = images.find((item) => {
-          return item.getRowIndex() == imageRowIndex;
+          return item?.getRowIndex() == imageRowIndex;
         });
         if (image) {
           return { ...data, image };
@@ -151,7 +150,7 @@ const addExchangeRateToJson = ({
         const match = formula.match(/\/(\d+\.\d+)/);
         if (match) {
           const exchangeRate = match[1];
-          if (exchangeRate) {
+          if (exchangeRate && !!jsonData[R - 1]) {
             jsonData[R - 1].exchangeRate = exchangeRate;
           }
         }
@@ -1076,7 +1075,7 @@ export async function modifyOrder1File(file, allElements = {}) {
     const formula = costInStockFormula;
 
     if (costInStockCell) {
-      if (productName?.includes(KEY_PREFERENCES.SUBTOTAL)) {
+      if (productName && productName?.includes(KEY_PREFERENCES.SUBTOTAL)) {
         const subtotalTotalFormula = `SUM(${costInStockLetter}2:${costInStockLetter}${
           rowNumber - 1
         })`;

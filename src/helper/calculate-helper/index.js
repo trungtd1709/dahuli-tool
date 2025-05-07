@@ -335,10 +335,6 @@ export const addShippingAndPaymentCost = (
   totalSkuType,
   allElements
 ) => {
-  const allOriginalShipment = Utils.getUniqueValueFromObjArr(
-    skuList,
-    "originalShipment"
-  );
   const newSkuList = skuList.map((sku, index) => {
     const { shipmentId, originalShipment, shipment } = sku;
     const SKU = sku?.SKU?.trim();
@@ -408,14 +404,14 @@ export const addShippingAndPaymentCost = (
       domesticShippingCostObj &&
       (isDomesticShippingNameContainAnySku
         ? Utils.includes(domesticShippingCostObj?.name, SKU)
-        : false)
+        : true)
     );
     const isCostInternationalShipping = !!(
       shipmentInternationalCost &&
       internationalShippingCostObj &&
       (isInternationalShippingNameContainAnySku
         ? Utils.includes(internationalShippingCostObj?.name, SKU)
-        : false)
+        : true)
     );
 
     const totalUnitCell = `${totalUnitColAlphabet}${dataFirstRow}`;
@@ -603,7 +599,13 @@ const getShippingFormula = (
       }
     }
   } else {
-    itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.totalShipmentQuantity}`;
+    if(shippingCostObj?.totalShipmentQuantity){
+
+      itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.totalShipmentQuantity}`;
+    }
+    else{
+      itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.weight}`;
+    }
   }
 
   return itemShippingCostFormula;

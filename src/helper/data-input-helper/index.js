@@ -224,6 +224,9 @@ export const transformOrder1List = (rawJson = [], shipmentId) => {
         totalUsd: domesticCostUsd,
         isDomestic: true,
         paymentCostDivisor: null,
+        name: productName,
+        weight: quantity,
+
       };
       domesticShippingCostArr.push(
         InputShippingCost.fromJson(domesticShippingCostObj)
@@ -240,6 +243,8 @@ export const transformOrder1List = (rawJson = [], shipmentId) => {
         totalUsd: internationalCostUsd,
         isDomestic: false,
         paymentCostDivisor: null,
+        name: productName,
+        weight: quantity,
       };
       internationalShippingCostArr.push(
         InputShippingCost.fromJson(internationalShippingCostObj)

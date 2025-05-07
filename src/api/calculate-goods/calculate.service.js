@@ -83,12 +83,14 @@ export const calculateGood = async (files = []) => {
       );
 
       const totalOrder1Data = transformOrder1List(rawJsonOrder1, shipmentId);
+
       const {
         elementsPriceArr = [],
         domesticShippingCostArr = [],
         internationalShippingCostArr = [],
         packingLabelingCostArr = [],
       } = totalOrder1Data;
+      
       if (isEmptyValue(elementsPrice)) {
         elementsPrice = [...elementsPriceArr, ...packingLabelingCostArr];
       }

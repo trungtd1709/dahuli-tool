@@ -132,3 +132,10 @@ export const SHIPMENT_OUTPUT_COL_ALPHABET = {
   ORDER: "I",
   NOTE: "J",
 };
+
+export const TIME_FORMAT = {
+  DD_MM_YYYY_HH_mm_ss: "DD-MM-YYYY HH:mm:ss",
+  YYYY_MM_DD_HH_mm_ss: "YYYY-MM-DD HH:mm:ss",
+  YYYY_MM_DD: "YYYY-MM-DD",
+  DD_MM_YYYY: "DD-MM-YYYY"
+}
