@@ -129,6 +129,8 @@ const transformToElementPrice = (obj, labelingCostArr = []) => {
     leftQuantity: inStock,
     paymentCostDivisor,
     image,
+    labelingCostCny,
+    labelingCostUsd,
   });
 
   return elementPrice;
@@ -184,34 +186,48 @@ export const transformOrder1List = (rawJson = [], shipmentId) => {
   let domesticShippingCostArr = [];
   let internationalShippingCostArr = [];
   let packingLabelingCostArr = [];
+  let customizeCostArr = [];
   let inputPrinttingFeeArr = [];
 
   // add phí ship nội địa vào obj nếu có
   for (let [index, item] of rawJson.entries()) {
     const productName = item?.productName?.toLowerCase() ?? "";
     const totalCny = item?.[INPUT_KEY_NAME.TOTAL_CNY]?.toString();
+    const cnyPrice = item?.[INPUT_KEY_NAME.CNY];
+    const usdPrice = item?.[INPUT_KEY_NAME.USD];
     const { quantity, fileName } = item;
     const exchangeRate = item[INPUT_KEY_NAME.EXCHANGE_RATE];
 
     // START Lọc labeling cost
     if (
-      productName.includes(KEY_PREFERENCES.PACKING) &&
-      productName.includes(KEY_PREFERENCES.LABELING)
+      Utils.includes(productName, KEY_PREFERENCES.PACKING) &&
+      Utils.includes(productName, KEY_PREFERENCES.LABELING)
     ) {
-      const packingLabelingCostYuan = evalCalculation(
-        `${totalCny} / ${quantity}`
-      );
-
       const packingLabelingCostObj = ElementPrice.fromJson({
         name: item?.productName?.trim(),
         fileName,
-        cnyPrice: packingLabelingCostYuan,
+        cnyPrice,
+        usdPrice,
         quantity,
         exchangeRate,
       });
       packingLabelingCostArr.push(packingLabelingCostObj);
     }
     // END Lọc labeling cost
+
+    // START Lọc customize cost
+    if (Utils.includes(productName, KEY_PREFERENCES.CUSTOMIZE)) {
+      const customizeCostObj = ElementPrice.fromJson({
+        name: item?.productName?.trim(),
+        fileName,
+        cnyPrice,
+        usdPrice,
+        quantity,
+        exchangeRate,
+      });
+      customizeCostArr.push(customizeCostObj);
+    }
+    // END Lọc customize cost
 
     // START phí ship
     if (
@@ -226,7 +242,6 @@ export const transformOrder1List = (rawJson = [], shipmentId) => {
         paymentCostDivisor: null,
         name: productName,
         weight: quantity,
-
       };
       domesticShippingCostArr.push(
         InputShippingCost.fromJson(domesticShippingCostObj)
@@ -266,8 +281,9 @@ export const transformOrder1List = (rawJson = [], shipmentId) => {
   // END REMOVE
 
   const elementsPriceArr = rawJson.map((item) => {
-    return transformToElementPrice(item,packingLabelingCostArr);
+    return transformToElementPrice(item, packingLabelingCostArr);
   });
+
   return {
     elementsPriceArr,
     domesticShippingCostArr,
@@ -438,7 +454,9 @@ export const transformShippingCostInput = (
   });
 
   if (shipment != originalShipment) {
-    const isOriginalShipmentExist = shippingArr.some((item) => item.productName.includes(originalShipment));
+    const isOriginalShipmentExist = shippingArr.some((item) =>
+      item.productName.includes(originalShipment)
+    );
     if (isOriginalShipmentExist) {
       shippingArr = shippingArr.filter((item) => {
         return item.productName.includes(originalShipment);
