@@ -201,10 +201,10 @@ export class ElementPrice {
   getLabelingCostUsd() {
     let labelingCostUsd;
     if (this.labelingCostUsd) {
-      labelingCostUsd = this.usdPrice;
+      labelingCostUsd = this.labelingCostUsd;
     }
     else if(this.labelingCostCny && this.exchangeRate){
-      labelingCostUsd = `${this.cnyPrice} / ${this.exchangeRate}`;
+      labelingCostUsd = `${this.labelingCostCny} / ${this.exchangeRate}`;
     }
     return labelingCostUsd;
   }

@@ -157,9 +157,9 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
 export const addPackingCost = (skuList, elementsPrice) => {
   // trong order1 neu co packingLabelingCost thì đã có trong key packingLabelingCost
   // tìm trong elementsPrice còn packing fee ko
-  skuList.map((sku) => {
+  skuList = skuList.map((sku) => {
     const { elements = [] } = sku;
-    let totalLabelingCostUsd;
+    let packingLabelingCost;
     elements.forEach((el) => {
       const { name, quantity } = el;
       const elePriceObj = elementsPrice.find((elObj) =>
@@ -167,13 +167,14 @@ export const addPackingCost = (skuList, elementsPrice) => {
       );
       if (elePriceObj && elePriceObj.getLabelingCostUsd() && quantity) {
         const labelingCost = `${elePriceObj.getLabelingCostUsd()} * ${quantity}`;
-        if (totalLabelingCostUsd) {
-          totalLabelingCostUsd = `${totalLabelingCostUsd} + ${labelingCost}`;
+        if (packingLabelingCost) {
+          packingLabelingCost = `${packingLabelingCost} + ${labelingCost}`;
         } else {
-          totalLabelingCostUsd = labelingCost;
+          packingLabelingCost = labelingCost;
         }
       }
     });
+    return {...sku, packingLabelingCost};
   });
   return skuList;
   // return skuList.map((item) => {
