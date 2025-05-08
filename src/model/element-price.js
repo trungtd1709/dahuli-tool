@@ -198,6 +198,17 @@ export class ElementPrice {
     }
   }
 
+  getLabelingCostUsd() {
+    let labelingCostUsd;
+    if (this.labelingCostUsd) {
+      labelingCostUsd = this.usdPrice;
+    }
+    else if(this.labelingCostCny && this.exchangeRate){
+      labelingCostUsd = `${this.cnyPrice} / ${this.exchangeRate}`;
+    }
+    return labelingCostUsd;
+  }
+
   getUsdFormula() {
     let usdFormula;
     if (!isEmptyValue(this.cnyPrice) && !isEmptyValue(this.exchangeRate)) {

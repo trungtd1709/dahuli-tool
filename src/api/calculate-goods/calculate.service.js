@@ -2,7 +2,7 @@ import JSZip from "jszip";
 import _ from "lodash";
 import { BadRequestError } from "../../error/bad-request-err.js";
 import {
-  addCogsAndAmount,
+  addKeyCogsAmount,
   addCustomizeAndPaymentCost,
   addPackingCost,
   addPpuPaymentCost,
@@ -46,10 +46,10 @@ export const calculateGood = async (files = []) => {
     files = addFileTypeAndOrder(files);
 
     const tsvFilesArr = getTsvFilesArr(files) ?? [];
-    let totalSkuList = await getTotalSkuList(files) ?? [];
-    let rawInputShippingCost = await getRawInputShippingCost(files) ?? [];
-    let rawJsonOrder1 = await getRawOrder1Data(files) ?? [];
-    let shipmentData = await getShipmentData(files) ?? [];
+    let totalSkuList = (await getTotalSkuList(files)) ?? [];
+    let rawInputShippingCost = (await getRawInputShippingCost(files)) ?? [];
+    let rawJsonOrder1 = (await getRawOrder1Data(files)) ?? [];
+    let shipmentData = (await getShipmentData(files)) ?? [];
     let allElements = {};
 
     // tổng các loại sku
@@ -90,10 +90,8 @@ export const calculateGood = async (files = []) => {
         internationalShippingCostArr = [],
         packingLabelingCostArr = [],
       } = totalOrder1Data;
-      
-      if (isEmptyValue(elementsPrice)) {
-        elementsPrice = [...elementsPriceArr, ...packingLabelingCostArr];
-      }
+
+      elementsPrice = [...elementsPriceArr];
       inputShippingCost = [
         ...inputShippingCost,
         ...domesticShippingCostArr,
@@ -109,13 +107,10 @@ export const calculateGood = async (files = []) => {
         return { ...item, shipmentId, originalShipment };
       });
       skuList = addPackingCost(skuList, elementsPrice);
-      skuList = addCogsAndAmount(skuList);
+      skuList = addKeyCogsAmount(skuList);
       skuList = addTotalAmountAndQuantity(skuList);
       skuList = calculatePpuPrice(skuList, elementsPrice);
-      skuList = addCustomizeAndPaymentCost(
-        skuList,
-        elementsPrice,
-      );
+      skuList = addCustomizeAndPaymentCost(skuList, elementsPrice);
 
       const allShipmentElements = await getAllShipmentElements(
         skuList,
@@ -151,7 +146,6 @@ export const calculateGood = async (files = []) => {
       allSkuList,
       zip
     );
-
 
     const zipFile = zip.generateAsync({ type: "nodebuffer" });
     return zipFile;

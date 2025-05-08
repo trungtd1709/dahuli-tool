@@ -434,6 +434,16 @@ export class Utils {
   
     return fileName;
   }
+
+  static equal(str1, str2) {
+    // Remove all spaces from both strings
+    if (!str1 || !str2) {
+      return false;
+    }
+    const cleanedStr1 = str1.replace(/\s+/g, "");
+    const cleanedStr2 = str2.replace(/\s+/g, "");
   
-  
+    // Compare the cleaned strings
+    return cleanedStr1?.toLowerCase() === cleanedStr2?.toLowerCase();
+  }
 }

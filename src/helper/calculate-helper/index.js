@@ -157,23 +157,42 @@ export const calculatePpuPrice = (skuList, elementsPrice) => {
 export const addPackingCost = (skuList, elementsPrice) => {
   // trong order1 neu co packingLabelingCost thì đã có trong key packingLabelingCost
   // tìm trong elementsPrice còn packing fee ko
-  return skuList.map((item) => {
-    const packing = item?.packing?.toLowerCase();
-    const packingObj =
-      elementsPrice.find((item) =>
-        compareStringsIgnoreSpaces(item.name, packing)
-      ) ?? {};
-
-    let packingLabelingCost;
-    if (!isEmptyValue(packingObj)) {
-      packingLabelingCost = packingObj.getUsdFormula();
-    }
-
-    if (!_.isEmpty(packingLabelingCost)) {
-      return { ...item, packingLabelingCost };
-    }
-    return item;
+  skuList.map((sku) => {
+    const { elements = [] } = sku;
+    let totalLabelingCostUsd;
+    elements.forEach((el) => {
+      const { name, quantity } = el;
+      const elePriceObj = elementsPrice.find((elObj) =>
+        Utils.equal(elObj?.name, name)
+      );
+      if (elePriceObj && elePriceObj.getLabelingCostUsd() && quantity) {
+        const labelingCost = `${elePriceObj.getLabelingCostUsd()} * ${quantity}`;
+        if (totalLabelingCostUsd) {
+          totalLabelingCostUsd = `${totalLabelingCostUsd} + ${labelingCost}`;
+        } else {
+          totalLabelingCostUsd = labelingCost;
+        }
+      }
+    });
   });
+  return skuList;
+  // return skuList.map((item) => {
+  //   const packing = item?.packing?.toLowerCase();
+  //   const packingObj =
+  //     elementsPrice.find((item) =>
+  //       compareStringsIgnoreSpaces(item.name, packing)
+  //     ) ?? {};
+
+  //   let packingLabelingCost;
+  //   if (!isEmptyValue(packingObj)) {
+  //     packingLabelingCost = packingObj.getUsdFormula();
+  //   }
+
+  //   if (!_.isEmpty(packingLabelingCost)) {
+  //     return { ...item, packingLabelingCost };
+  //   }
+  //   return item;
+  // });
 };
 
 /**
@@ -484,7 +503,7 @@ export const addShippingAndPaymentCost = (
  * @param {Array} skuList - The array of objects.
  * @returns {Array} The array of objects with their total price.
  */
-export const addCogsAndAmount = (skuList = []) => {
+export const addKeyCogsAmount = (skuList = []) => {
   return skuList.map((item) => {
     return { ...item, cogs: "", amount: "" };
   });
@@ -599,11 +618,9 @@ const getShippingFormula = (
       }
     }
   } else {
-    if(shippingCostObj?.totalShipmentQuantity){
-
+    if (shippingCostObj?.totalShipmentQuantity) {
       itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.totalShipmentQuantity}`;
-    }
-    else{
+    } else {
       itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.weight}`;
     }
   }
