@@ -174,7 +174,7 @@ export const addPackingCost = (skuList, elementsPrice) => {
         }
       }
     });
-    return {...sku, packingLabelingCost};
+    return { ...sku, packingLabelingCost };
   });
   return skuList;
   // return skuList.map((item) => {
@@ -351,9 +351,7 @@ export const addCustomizeAndPaymentCost = (
  */
 export const addShippingAndPaymentCost = (
   skuList = [],
-  shippingCostArr = [],
-  totalSkuType,
-  allElements
+  shippingCostArr = []
 ) => {
   const newSkuList = skuList.map((sku, index) => {
     const { shipmentId, originalShipment, shipment } = sku;
@@ -459,6 +457,170 @@ export const addShippingAndPaymentCost = (
         shipmentInternationalCost,
         totalUnitCell,
         totalQuantityInternationalShippingCost
+      );
+    }
+
+    const paymentCostDivisor =
+      domesticShippingCostObj?.paymentCostDivisor ??
+      internationalShippingCostObj?.paymentCostDivisor;
+
+    // first row trong excel phải + 2
+    const rowIndex = index + 2;
+    const domesticShippingCostCell = `${OUTPUT_COL_ALPHABET.DOMESTIC_SHIPPING_COST}${rowIndex}`;
+    const internationalShippingCostCell = `${OUTPUT_COL_ALPHABET.INTERNATIONAL_SHIPPING_COST}${rowIndex}`;
+
+    let shippingPaymentCostFormula;
+    if (!isEmptyValue(paymentCostDivisor)) {
+      if (itemDomesticShippingCostFormula && isCostDomesticShipping) {
+        shippingPaymentCostFormula = `${domesticShippingCostCell} / ${paymentCostDivisor}`;
+      }
+      if (itemInternationalShippingCostFormula && isCostInternationalShipping) {
+        shippingPaymentCostFormula = `${internationalShippingCostCell} / ${paymentCostDivisor}`;
+      }
+      if (
+        itemDomesticShippingCostFormula &&
+        itemInternationalShippingCostFormula &&
+        isCostDomesticShipping &&
+        isCostInternationalShipping
+      ) {
+        shippingPaymentCostFormula = `(${domesticShippingCostCell} + ${internationalShippingCostCell}) / ${paymentCostDivisor}`;
+      }
+    }
+
+    return {
+      ...sku,
+      domesticShippingCost: itemDomesticShippingCostFormula,
+      internationalShippingCost: itemInternationalShippingCostFormula,
+      shippingPaymentCost: shippingPaymentCostFormula,
+    };
+  });
+  return newSkuList;
+};
+
+export const newAddShippingAndPaymentCost = (
+  skuList = [],
+  shippingCostArr = []
+) => {
+
+  // START calculate shipped elements
+  let totalShippedElements = 0;
+  skuList.forEach((sku) => {
+    const { elements = [] } = sku;
+    const skuQuantity = sku?.quantity ?? 0;
+
+    elements.forEach((ele) => {
+      const eleQuantity = ele?.quantity ?? 0;
+      totalShippedElements += eleQuantity * skuQuantity;
+    });
+  });
+  // END calculate shipped elements
+
+  const newSkuList = skuList.map((sku, index) => {
+    const { shipmentId, originalShipment, shipment } = sku;
+    const SKU = sku?.SKU?.trim();
+
+    const domesticShippingCostObj = shippingCostArr.find(
+      ({ shipmentId: id, isDomestic }) => id === shipmentId && isDomestic
+    );
+    const internationalShippingCostObj = shippingCostArr.find(
+      ({ shipmentId: id, isDomestic }) =>
+        id === shipmentId && isDomestic == false
+    );
+
+    const isOriginalShipmentDomestic =
+      domesticShippingCostObj?.name?.includes(".");
+
+    const isOriginalShipmentInternational =
+      internationalShippingCostObj?.name?.includes(".");
+
+    const dataFirstRow = 2; // trong excel row đầu tiên index = 2
+    const totalUnitColAlphabet = OUTPUT_COL_ALPHABET.TOTAL_UNIT;
+
+    const shipmentDomesticCost = domesticShippingCostObj?.totalUsd ?? 0;
+    const shipmentInternationalCost =
+      internationalShippingCostObj?.totalUsd ?? 0;
+
+    let isDomesticShippingNameContainAnySku;
+    let totalQuantityDomesticShippingCost = 0;
+    if (!domesticShippingCostObj) {
+      isDomesticShippingNameContainAnySku = false;
+    } else {
+      isDomesticShippingNameContainAnySku = skuList.some((item) => {
+        return Utils.includes(domesticShippingCostObj?.name, item?.SKU);
+      });
+    }
+
+    if (isDomesticShippingNameContainAnySku) {
+      skuList.forEach((item) => {
+        if (
+          Utils.includes(domesticShippingCostObj?.name, item?.SKU) &&
+          compareStrings(shipmentId, item?.shipmentId)
+        ) {
+          totalQuantityDomesticShippingCost += item?.quantity ?? 0;
+        }
+      });
+    }
+
+    let isInternationalShippingNameContainAnySku;
+    let totalQuantityInternationalShippingCost = 0;
+    if (!internationalShippingCostObj) {
+      isInternationalShippingNameContainAnySku = false;
+    } else {
+      isInternationalShippingNameContainAnySku = skuList.some((item) => {
+        return Utils.includes(internationalShippingCostObj?.name, item?.SKU);
+      });
+    }
+
+    if (isInternationalShippingNameContainAnySku) {
+      skuList.forEach((item) => {
+        if (Utils.includes(internationalShippingCostObj?.name, item?.SKU)) {
+          totalQuantityInternationalShippingCost += item?.quantity ?? 0;
+        }
+      });
+    }
+
+    const isCostDomesticShipping = !!(
+      shipmentDomesticCost &&
+      domesticShippingCostObj &&
+      (isDomesticShippingNameContainAnySku
+        ? Utils.includes(domesticShippingCostObj?.name, SKU)
+        : true)
+    );
+    const isCostInternationalShipping = !!(
+      shipmentInternationalCost &&
+      internationalShippingCostObj &&
+      (isInternationalShippingNameContainAnySku
+        ? Utils.includes(internationalShippingCostObj?.name, SKU)
+        : true)
+    );
+
+    const totalUnitCell = `${totalUnitColAlphabet}${dataFirstRow}`;
+
+    let itemDomesticShippingCostFormula = 0;
+    if (isCostDomesticShipping) {
+      itemDomesticShippingCostFormula = newGetShippingFormula(
+        skuList,
+        domesticShippingCostObj,
+        isOriginalShipmentDomestic,
+        originalShipment,
+        shipmentDomesticCost,
+        totalUnitCell,
+        totalQuantityDomesticShippingCost,
+        sku
+      );
+    }
+
+    let itemInternationalShippingCostFormula = 0;
+    if (isCostInternationalShipping) {
+      itemInternationalShippingCostFormula = newGetShippingFormula(
+        skuList,
+        internationalShippingCostObj,
+        isOriginalShipmentInternational,
+        originalShipment,
+        shipmentInternationalCost,
+        totalUnitCell,
+        totalQuantityInternationalShippingCost,
+        sku
       );
     }
 
@@ -624,6 +786,59 @@ const getShippingFormula = (
     } else {
       itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.weight}`;
     }
+  }
+
+  return itemShippingCostFormula;
+};
+
+const newGetShippingFormula = (
+  skuList,
+  shippingCostObj,
+  isOriginalShipment,
+  originalShipment,
+  shipmentTotalShippingCost,
+  totalUnitCell,
+  totalQuantityShippingCost,
+  sku
+) => {
+  let itemShippingCostFormula = 0;
+  const skuInOriginalShipment = skuList.filter(
+    (item) => item.originalShipment == originalShipment
+  );
+
+  // TH này ví dụ như S470.1
+  if (isOriginalShipment) {
+    if (shippingCostObj?.name?.includes(originalShipment)) {
+      const firstItemShipmentIndex =
+        skuList.findIndex((sku) => sku.originalShipment == originalShipment) +
+        2;
+
+      if (totalQuantityShippingCost) {
+        itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalQuantityShippingCost}`;
+      } else {
+        const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
+        itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitOfThisShipmentCell}`;
+      }
+    } else {
+      if (totalQuantityShippingCost) {
+        itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalQuantityShippingCost}`;
+      } else {
+        itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitCell}`;
+      }
+    }
+  } else {
+    if (shippingCostObj?.totalShipmentQuantity) {
+      itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.totalShipmentQuantity}`;
+    } else {
+      itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.weight}`;
+    }
+  }
+
+  const { elements = [] } = sku;
+  const elementsLength = elements?.length;
+
+  if (itemShippingCostFormula) {
+    itemShippingCostFormula = `${itemShippingCostFormula} * ${elementsLength}`;
   }
 
   return itemShippingCostFormula;

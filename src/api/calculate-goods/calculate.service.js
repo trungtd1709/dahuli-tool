@@ -9,6 +9,7 @@ import {
   addShippingAndPaymentCost,
   addTotalAmountAndQuantity,
   calculatePpuPrice,
+  newAddShippingAndPaymentCost,
 } from "../../helper/calculate-helper/index.js";
 import {
   addFileTypeAndOrder,
@@ -122,7 +123,14 @@ export const calculateGood = async (files = []) => {
       allInputShippingCost = [...allInputShippingCost, ...inputShippingCost];
     }
 
-    allSkuList = addShippingAndPaymentCost(
+    // allSkuList = addShippingAndPaymentCost(
+    //   allSkuList,
+    //   allInputShippingCost,
+    //   totalSkuType,
+    //   allElements
+    // );
+
+    allSkuList = newAddShippingAndPaymentCost(
       allSkuList,
       allInputShippingCost,
       totalSkuType,
