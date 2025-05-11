@@ -552,7 +552,11 @@ export const getFileType = (file) => {
     return FILE_TYPE.SHIPMENT;
   }
 
-  if (headers.find((item) => item?.toLowerCase().includes(CHECK_KEYWORD.WEIGHT.toLowerCase()))) {
+  if (
+    headers.find((item) =>
+      item?.toLowerCase().includes(CHECK_KEYWORD.WEIGHT.toLowerCase())
+    )
+  ) {
     return FILE_TYPE.SHIPPING;
   }
 
@@ -776,11 +780,7 @@ export async function modifyOrder1File(file, allElements = {}) {
 
     if (
       colKeyName &&
-      colKeyName
-        .toString()
-        .trim()
-        .toLowerCase()
-        .includes(KEY_PREFERENCES.QTY.toLowerCase())
+      Utils.includes(colKeyName.toString(), KEY_PREFERENCES.QTY)
     ) {
       quantityColumnIndex = colNumber;
       quantityColumnLetter = XlsxUtils.columnIndexToLetter(quantityColumnIndex);
@@ -788,17 +788,17 @@ export async function modifyOrder1File(file, allElements = {}) {
 
     if (
       colKeyName &&
-      colKeyName.toString().trim() == INPUT_KEY_NAME.TOTAL_USD
+      Utils.includes(colKeyName.toString(), INPUT_KEY_NAME.TOTAL_USD)
     ) {
       totalUsdColumnIndex = colNumber;
       totalUsdColumnLetter = XlsxUtils.columnIndexToLetter(totalUsdColumnIndex);
     }
 
-    if (colKeyName === SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK) {
+    if (Utils.equal(colKeyName, SHIPMENT_OUTPUT_KEY_NAME.IN_STOCK)) {
       oldInStockIndex = colNumber;
     }
 
-    if (colKeyName === SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK) {
+    if (Utils.equal(colKeyName, SHIPMENT_OUTPUT_KEY_NAME.COST_IN_STOCK)) {
       oldCostInStockIndex = colNumber;
       oldCostInStockLetter = XlsxUtils.columnIndexToLetter(oldCostInStockIndex);
     }
@@ -883,10 +883,13 @@ export async function modifyOrder1File(file, allElements = {}) {
   // START ADD IN STOCK VALUE
   for (let rowNumber = 2; rowNumber <= lastRowIndex; rowNumber++) {
     const row = worksheet.getRow(rowNumber);
-
+    const quantityCell = row.getCell(quantityColumnIndex);
     const productNameCell = row.getCell(productNameColumnIndex);
     const productName = productNameCell.value;
-    if(compareStrings(productName, KEY_PREFERENCES.PAYMENT_FEE) || compareStrings(productName, KEY_PREFERENCES.PAYMENT_COST)){
+    if (
+      compareStrings(productName, KEY_PREFERENCES.PAYMENT_FEE) ||
+      compareStrings(productName, KEY_PREFERENCES.PAYMENT_COST)
+    ) {
       continue;
     }
 
@@ -986,6 +989,8 @@ export async function modifyOrder1File(file, allElements = {}) {
     // Add data for each row under the new column
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return;
+      const quantityCell = row.getCell(quantityColumnIndex);
+      if(!quantityCell?.value || !Utils.isNumber(quantityCell?.value)) return;
 
       const shipmentQuantityColLetter = XlsxUtils.columnIndexToLetter(
         XlsxUtils.findColumnIndexByKeyName(worksheet, shipmentKey)
@@ -1085,7 +1090,7 @@ export async function modifyOrder1File(file, allElements = {}) {
         ...costInStockCell.value,
         formula,
       };
-      if(compareStrings(productName, KEY_PREFERENCES.TOTAL)){
+      if (compareStrings(productName, KEY_PREFERENCES.TOTAL)) {
         const totalCostInStockFormula = `SUM(${costInStockLetter}2:${costInStockLetter}${
           lastRowIndex - 1
         })`;
@@ -1115,15 +1120,15 @@ export async function modifyOrder1File(file, allElements = {}) {
   }
 
   XlsxUtils.addDollarSignToColumn(worksheet, costInStockIndex);
-    XlsxUtils.alignRightValueColumn(worksheet, costInStockIndex);
+  XlsxUtils.alignRightValueColumn(worksheet, costInStockIndex);
 
-  XlsxUtils.removeColStyleAndNumFmt(worksheet,inStockColIndex);
+  XlsxUtils.removeColStyleAndNumFmt(worksheet, inStockColIndex);
   for (
     let colIndex = shipmentStartColIndex;
     colIndex <= shipmentLastColIndex;
     colIndex++
   ) {
-    XlsxUtils.removeColStyleAndNumFmt(worksheet,colIndex);
+    XlsxUtils.removeColStyleAndNumFmt(worksheet, colIndex);
     XlsxUtils.alignRightValueColumn(worksheet, colIndex);
   }
   XlsxUtils.adjustColumnWidths(worksheet);

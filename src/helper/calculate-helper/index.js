@@ -606,7 +606,8 @@ export const newAddShippingAndPaymentCost = (
         shipmentDomesticCost,
         totalUnitCell,
         totalQuantityDomesticShippingCost,
-        sku
+        sku,
+        totalShippedElements
       );
     }
 
@@ -620,7 +621,8 @@ export const newAddShippingAndPaymentCost = (
         shipmentInternationalCost,
         totalUnitCell,
         totalQuantityInternationalShippingCost,
-        sku
+        sku,
+        totalShippedElements
       );
     }
 
@@ -799,47 +801,54 @@ const newGetShippingFormula = (
   shipmentTotalShippingCost,
   totalUnitCell,
   totalQuantityShippingCost,
-  sku
+  sku,
+  totalShippedElements
 ) => {
+  const {elements = [], quantity} = sku;
+  let totalEleCountPerSku = 0 ;
+  let totalShippedElementOfSku = 0;
+  elements.forEach((ele) =>{
+    const eleQuantity = ele?.quantity ?? 0;
+    totalEleCountPerSku += eleQuantity;
+  })
+
   let itemShippingCostFormula = 0;
-  const skuInOriginalShipment = skuList.filter(
-    (item) => item.originalShipment == originalShipment
-  );
+  itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalShippedElements} * ${totalEleCountPerSku}`;
 
   // TH này ví dụ như S470.1
-  if (isOriginalShipment) {
-    if (shippingCostObj?.name?.includes(originalShipment)) {
-      const firstItemShipmentIndex =
-        skuList.findIndex((sku) => sku.originalShipment == originalShipment) +
-        2;
+  // if (isOriginalShipment) {
+  //   if (shippingCostObj?.name?.includes(originalShipment)) {
+  //     const firstItemShipmentIndex =
+  //       skuList.findIndex((sku) => sku.originalShipment == originalShipment) +
+  //       2;
 
-      if (totalQuantityShippingCost) {
-        itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalQuantityShippingCost}`;
-      } else {
-        const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
-        itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitOfThisShipmentCell}`;
-      }
-    } else {
-      if (totalQuantityShippingCost) {
-        itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalQuantityShippingCost}`;
-      } else {
-        itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitCell}`;
-      }
-    }
-  } else {
-    if (shippingCostObj?.totalShipmentQuantity) {
-      itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.totalShipmentQuantity}`;
-    } else {
-      itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.weight}`;
-    }
-  }
+  //     if (totalQuantityShippingCost) {
+  //       itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalQuantityShippingCost}`;
+  //     } else {
+  //       const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
+        // itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitOfThisShipmentCell}`;
+  //     }
+  //   } else {
+  //     if (totalQuantityShippingCost) {
+  //       itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalQuantityShippingCost}`;
+  //     } else {
+  //       itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitCell}`;
+  //     }
+  //   }
+  // } else {
+  //   if (shippingCostObj?.totalShipmentQuantity) {
+  //     itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.totalShipmentQuantity}`;
+  //   } else {
+  //     itemShippingCostFormula = `${shipmentTotalShippingCost} / ${shippingCostObj?.weight}`;
+  //   }
+  // }
 
-  const { elements = [] } = sku;
-  const elementsLength = elements?.length;
+  // const { elements = [] } = sku;
+  // const elementsLength = elements?.length;
 
-  if (itemShippingCostFormula) {
-    itemShippingCostFormula = `${itemShippingCostFormula} * ${elementsLength}`;
-  }
+  // if (itemShippingCostFormula) {
+  //   itemShippingCostFormula = `${itemShippingCostFormula} * ${elementsLength}`;
+  // }
 
   return itemShippingCostFormula;
 };

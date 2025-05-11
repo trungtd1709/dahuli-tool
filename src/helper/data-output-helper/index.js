@@ -255,7 +255,7 @@ const removeObjKey = (skuList, keyName) => {
  * @param {Array.<Express.Multer.File>} files
  * @param {JSZip} zip
  */
-export const addOrder1FileToZip = async (files = [], zip, allElements) => {
+export const addOrderFileToZip = async (files = [], zip, allElements) => {
   const order1Files = files
     .filter((file) => file.fileType === FILE_TYPE.ORDER_1)
     .sort((fileA, fileB) => {

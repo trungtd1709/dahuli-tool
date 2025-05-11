@@ -446,4 +446,8 @@ export class Utils {
     // Compare the cleaned strings
     return cleanedStr1?.toLowerCase() === cleanedStr2?.toLowerCase();
   }
+
+  static isNumber(value) {
+    return !isNaN(parseFloat(value)) && isFinite(value);
+  }
 }

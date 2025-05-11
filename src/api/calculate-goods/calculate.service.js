@@ -24,7 +24,7 @@ import {
 } from "../../helper/data-input-helper/index.js";
 import {
   addCogsFileToZip,
-  addOrder1FileToZip,
+  addOrderFileToZip,
   getAllShipmentElements,
   addShippingFileToZip,
   removeSkuKey,
@@ -83,7 +83,7 @@ export const calculateGood = async (files = []) => {
         shipmentQuantity
       );
 
-      const totalOrder1Data = transformOrder1List(rawJsonOrder1, shipmentId);
+      const totalOrder1Data = transformOrder1List(rawJsonOrder1, shipmentId, shipment, originalShipment);
 
       const {
         elementsPriceArr = [],
@@ -140,7 +140,7 @@ export const calculateGood = async (files = []) => {
     allSkuList = removeSkuKey(allSkuList);
 
     await addCogsFileToZip(allSkuList, zip, shipment);
-    await addOrder1FileToZip(files, zip, allElements);
+    await addOrderFileToZip(files, zip, allElements);
     await addShippingFileToZip(
       files,
       zip,

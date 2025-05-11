@@ -178,7 +178,12 @@ export const transformPrinttingFeeInput = (rawJson = []) => {
   return printtingFeeInput.filter((item) => item.price);
 };
 
-export const transformOrder1List = (rawJson = [], shipmentId) => {
+export const transformOrder1List = (
+  rawJson = [],
+  shipmentId,
+  shipment,
+  originalShipment
+) => {
   rawJson = rawJson.filter(
     (item) => item?.productName?.toLowerCase() != CHECK_KEYWORD.TOTAL
   );
@@ -191,7 +196,7 @@ export const transformOrder1List = (rawJson = [], shipmentId) => {
 
   // add phí ship nội địa vào obj nếu có
   for (let [index, item] of rawJson.entries()) {
-    const productName = item?.productName?.toLowerCase() ?? "";
+    const productName = item?.productName ?? "";
     const totalCny = item?.[INPUT_KEY_NAME.TOTAL_CNY]?.toString();
     const cnyPrice = item?.[INPUT_KEY_NAME.CNY];
     const usdPrice = item?.[INPUT_KEY_NAME.USD];
@@ -231,8 +236,8 @@ export const transformOrder1List = (rawJson = [], shipmentId) => {
 
     // START phí ship
     if (
-      productName.includes(KEY_PREFERENCES.DOMESTIC) &&
-      productName.includes(shipmentId.toLowerCase())
+      Utils.includes(productName, KEY_PREFERENCES.DOMESTIC) &&
+      Utils.includes(productName, shipment)
     ) {
       const domesticCostUsd = `${totalCny} / ${exchangeRate}`;
       const domesticShippingCostObj = {
@@ -242,6 +247,8 @@ export const transformOrder1List = (rawJson = [], shipmentId) => {
         paymentCostDivisor: null,
         name: productName,
         weight: quantity,
+        shipment,
+        originalShipment
       };
       domesticShippingCostArr.push(
         InputShippingCost.fromJson(domesticShippingCostObj)
@@ -249,8 +256,8 @@ export const transformOrder1List = (rawJson = [], shipmentId) => {
     }
 
     if (
-      productName.includes(KEY_PREFERENCES.INTERNATIONAL) &&
-      productName.includes(shipmentId.toLowerCase())
+      Utils.includes(productName, KEY_PREFERENCES.INTERNATIONAL) &&
+      Utils.includes(productName, shipment)
     ) {
       const internationalCostUsd = `${totalCny} / ${exchangeRate}`;
       const internationalShippingCostObj = {
@@ -260,6 +267,8 @@ export const transformOrder1List = (rawJson = [], shipmentId) => {
         paymentCostDivisor: null,
         name: productName,
         weight: quantity,
+        shipment,
+        originalShipment
       };
       internationalShippingCostArr.push(
         InputShippingCost.fromJson(internationalShippingCostObj)
