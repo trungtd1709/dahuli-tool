@@ -501,20 +501,6 @@ export const newAddShippingAndPaymentCost = (
   skuList = [],
   shippingCostArr = []
 ) => {
-
-  // START calculate shipped elements
-  let totalShippedElements = 0;
-  skuList.forEach((sku) => {
-    const { elements = [] } = sku;
-    const skuQuantity = sku?.quantity ?? 0;
-
-    elements.forEach((ele) => {
-      const eleQuantity = ele?.quantity ?? 0;
-      totalShippedElements += eleQuantity * skuQuantity;
-    });
-  });
-  // END calculate shipped elements
-
   const newSkuList = skuList.map((sku, index) => {
     const { shipmentId, originalShipment, shipment } = sku;
     const SKU = sku?.SKU?.trim();
@@ -606,8 +592,7 @@ export const newAddShippingAndPaymentCost = (
         shipmentDomesticCost,
         totalUnitCell,
         totalQuantityDomesticShippingCost,
-        sku,
-        totalShippedElements
+        sku
       );
     }
 
@@ -621,8 +606,7 @@ export const newAddShippingAndPaymentCost = (
         shipmentInternationalCost,
         totalUnitCell,
         totalQuantityInternationalShippingCost,
-        sku,
-        totalShippedElements
+        sku
       );
     }
 
@@ -801,18 +785,34 @@ const newGetShippingFormula = (
   shipmentTotalShippingCost,
   totalUnitCell,
   totalQuantityShippingCost,
-  sku,
-  totalShippedElements
+  sku
 ) => {
-  const {elements = [], quantity} = sku;
-  let totalEleCountPerSku = 0 ;
-  let totalShippedElementOfSku = 0;
-  elements.forEach((ele) =>{
+  const { elements = [], quantity, SKU, shipment } = sku;
+
+  // START calculate shipped elements
+  let totalShippedElements = 0;
+  skuList.forEach((skuItem) => {
+    const { elements = [] } = skuItem;
+    const skuQuantity = skuItem?.quantity ?? 0;
+    
+    if ((Utils.includes(shippingCostObj?.name, originalShipment) && Utils.equal(skuItem?.originalShipment, originalShipment)) || !Utils.includes(shippingCostObj?.name, originalShipment)) {
+      elements.forEach((ele) => {
+        const eleQuantity = ele?.quantity ?? 0;
+        totalShippedElements += eleQuantity * skuQuantity;
+      });
+    }
+
+  });
+  // END calculate shipped elements
+
+  let totalEleCountPerSku = 0;
+  elements.forEach((ele) => {
     const eleQuantity = ele?.quantity ?? 0;
     totalEleCountPerSku += eleQuantity;
-  })
+  });
 
   let itemShippingCostFormula = 0;
+
   itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalShippedElements} * ${totalEleCountPerSku}`;
 
   // TH này ví dụ như S470.1
@@ -826,7 +826,7 @@ const newGetShippingFormula = (
   //       itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalQuantityShippingCost}`;
   //     } else {
   //       const totalUnitOfThisShipmentCell = `${OUTPUT_COL_ALPHABET.TOTAL_UNIT}${firstItemShipmentIndex}`;
-        // itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitOfThisShipmentCell}`;
+  // itemShippingCostFormula = `${shipmentTotalShippingCost} / ${totalUnitOfThisShipmentCell}`;
   //     }
   //   } else {
   //     if (totalQuantityShippingCost) {
