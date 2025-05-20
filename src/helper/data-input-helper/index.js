@@ -248,7 +248,7 @@ export const transformOrder1List = (
         name: productName,
         weight: quantity,
         shipment,
-        originalShipment
+        originalShipment,
       };
       domesticShippingCostArr.push(
         InputShippingCost.fromJson(domesticShippingCostObj)
@@ -268,7 +268,7 @@ export const transformOrder1List = (
         name: productName,
         weight: quantity,
         shipment,
-        originalShipment
+        originalShipment,
       };
       internationalShippingCostArr.push(
         InputShippingCost.fromJson(internationalShippingCostObj)
@@ -322,8 +322,8 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
     const exchangeRate = item[INPUT_KEY_NAME.EXCHANGE_RATE];
 
     if (
-      productName.includes(KEY_PREFERENCES.PACKING) &&
-      productName.includes(KEY_PREFERENCES.LABELING)
+      Utils.includes(productName, KEY_PREFERENCES.PACKING) &&
+      Utils.includes(productName, KEY_PREFERENCES.LABELING)
     ) {
       const packingLabelingCostYuan = evalCalculation(
         `${totalCny} / ${quantity}`
@@ -342,8 +342,8 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
 
     // phí tính cột riêng
     if (
-      productName.includes(KEY_PREFERENCES.DOMESTIC) &&
-      productName.includes(shipmentId.toLowerCase())
+      Utils.includes(productName, KEY_PREFERENCES.DOMESTIC) &&
+      Utils.includes(productName, shipmentId)
     ) {
       const domesticCostUsd = `${totalCny} / ${exchangeRate}`;
       const domesticShippingCostObj = {
@@ -358,8 +358,8 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
     }
 
     if (
-      productName.includes(KEY_PREFERENCES.INTERNATIONAL) &&
-      productName.includes(shipmentId.toLowerCase())
+      Utils.includes(productName, KEY_PREFERENCES.INTERNATIONAL) &&
+      Utils.includes(productName, shipmentId)
     ) {
       const internationalCostUsd = `${totalCny} / ${exchangeRate}`;
       const internationalShippingCostObj = {
@@ -375,7 +375,7 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
 
     // phí tính PPU
     // obj phí ship nội địa của 1 sản phẩm
-    if (!item?.quantity && productName?.includes(prevProductName)) {
+    if (!item?.quantity && Utils.includes(productName, prevProductName)) {
       const prevQuantity = prevProductQuantity.toString();
       const itemShippingFee = evalCalculation(`${totalCny} / ${prevQuantity}`);
       rawJson[index - 1][INPUT_KEY_NAME.DOMESTIC_SHIPPING_COST] =
@@ -386,10 +386,11 @@ export const transformOrderList1Input = (rawJson = [], shipmentId) => {
   // remove obj shipping cost
   rawJson = rawJson.filter((obj) => {
     return (
-      !obj.productName?.toLowerCase()?.includes("domestic") &&
+      !Utils.includes(obj.productName, KEY_PREFERENCES.DOMESTIC) &&
+      
       !(
-        obj.productName?.toLowerCase()?.includes("labeling") &&
-        obj.productName?.toLowerCase()?.includes("packing")
+        Utils.includes(obj.productName, KEY_PREFERENCES.LABELING) &&
+        Utils.includes(obj.productName, KEY_PREFERENCES.PACKING)
       )
     );
   });
@@ -453,22 +454,20 @@ export const transformShippingCostInput = (
   shipmentQuantity
 ) => {
   shippingArr = shippingArr.filter((item) => {
-    return item.productName.includes(shipment);
+    return Utils.includes(item.productName, shipment);
   });
 
   shippingArr = shippingArr.filter((item) => {
-    return !item.productName
-      .toLowerCase()
-      .includes(KEY_PREFERENCES.PAYMENT_COST);
+    return !Utils.includes(item.productName, KEY_PREFERENCES.PAYMENT_COST);
   });
 
   if (shipment != originalShipment) {
     const isOriginalShipmentExist = shippingArr.some((item) =>
-      item.productName.includes(originalShipment)
+      Utils.includes(item.productName, originalShipment)
     );
     if (isOriginalShipmentExist) {
       shippingArr = shippingArr.filter((item) => {
-        return item.productName.includes(originalShipment);
+        return Utils.includes(item.productName, originalShipment);
       });
     }
   }
@@ -520,7 +519,7 @@ const transformShippingCostItem = (
   let totalCny = rawTotalCny ?? "";
 
   if (priceShippingFormulaUsd && weight) {
-    if (removeWhitespace(priceShippingFormulaUsd).includes(`/${weight}`)) {
+    if (Utils.includes(priceShippingFormulaUsd, `/${weight}`)) {
       totalUsd = removeDivideByNumber(priceShippingFormulaUsd, weight);
     } else {
       totalUsd = `(${priceShippingFormulaUsd} * ${weight})`;
@@ -529,9 +528,8 @@ const transformShippingCostItem = (
   if (priceShippingFormulaCny && weight) {
     totalCny = `(${priceShippingFormulaCny} * ${weight})`;
   }
-  const lowerCaseShipName = name.toLowerCase();
   // ko chứa chữ domestic mặc định là international
-  const isDomestic = lowerCaseShipName.includes(KEY_PREFERENCES.DOMESTIC);
+  const isDomestic = Utils.includes(name, KEY_PREFERENCES.DOMESTIC);
 
   // if(!name?.includes(originalShipment)){
   //   originalShipment = shipment;

@@ -365,11 +365,15 @@ export const addShippingAndPaymentCost = (
         id === shipmentId && isDomestic == false
     );
 
-    const isOriginalShipmentDomestic =
-      domesticShippingCostObj?.name?.includes(".");
+    const isOriginalShipmentDomestic = Utils.includes(
+      domesticShippingCostObj?.name,
+      "."
+    );
 
-    const isOriginalShipmentInternational =
-      internationalShippingCostObj?.name?.includes(".");
+    const isOriginalShipmentInternational = Utils.includes(
+      internationalShippingCostObj?.name,
+      "."
+    );
 
     const dataFirstRow = 2; // trong excel row đầu tiên index = 2
     const totalUnitColAlphabet = OUTPUT_COL_ALPHABET.TOTAL_UNIT;
@@ -513,11 +517,16 @@ export const newAddShippingAndPaymentCost = (
         id === shipmentId && isDomestic == false
     );
 
-    const isOriginalShipmentDomestic =
-      domesticShippingCostObj?.name?.includes(".");
+    const isOriginalShipmentDomestic = Utils.includes(
+      domesticShippingCostObj?.name,
+      "."
+    );
 
-    const isOriginalShipmentInternational =
-      internationalShippingCostObj?.name?.includes(".");
+    const isOriginalShipmentInternational = Utils.includes(
+      internationalShippingCostObj?.name,
+      "."
+    );
+
 
     const dataFirstRow = 2; // trong excel row đầu tiên index = 2
     const totalUnitColAlphabet = OUTPUT_COL_ALPHABET.TOTAL_UNIT;
@@ -748,9 +757,9 @@ const getShippingFormula = (
   // TH này ví dụ như S470.1
   if (isOriginalShipment) {
     // if ( originalShipment == shippingCostObj.originalShipment) {
-    if (shippingCostObj?.name?.includes(originalShipment)) {
+    if (Utils.includes(shippingCostObj?.name, originalShipment)) {
       const firstItemShipmentIndex =
-        skuList.findIndex((sku) => sku.originalShipment == originalShipment) +
+        skuList.findIndex((sku) => Utils.equal(sku.originalShipment, originalShipment)) +
         2;
 
       if (totalQuantityShippingCost) {
@@ -794,14 +803,17 @@ const newGetShippingFormula = (
   skuList.forEach((skuItem) => {
     const { elements = [] } = skuItem;
     const skuQuantity = skuItem?.quantity ?? 0;
-    
-    if ((Utils.includes(shippingCostObj?.name, originalShipment) && Utils.equal(skuItem?.originalShipment, originalShipment)) || !Utils.includes(shippingCostObj?.name, originalShipment)) {
+
+    if (
+      (Utils.includes(shippingCostObj?.name, originalShipment) &&
+        Utils.equal(skuItem?.originalShipment, originalShipment)) ||
+      !Utils.includes(shippingCostObj?.name, originalShipment)
+    ) {
       elements.forEach((ele) => {
         const eleQuantity = ele?.quantity ?? 0;
         totalShippedElements += eleQuantity * skuQuantity;
       });
     }
-
   });
   // END calculate shipped elements
 

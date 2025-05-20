@@ -227,12 +227,8 @@ const getPaymentCostDivisor = ({ worksheet, paymentCostKeyName }) => {
 
 // lấy số sau dấu /
 function extractDivisor(formula) {
-  // if (formula.includes("SUM")) {
   const match = formula.match(/\/\s*([\d,\.]+)/);
   return match ? match[1].trim() : null;
-  // } else {
-  //   return null;
-  // }
 }
 
 /**
@@ -490,13 +486,11 @@ const changeObjKeyName = (jsonData = []) => {
     const newObj = {};
 
     Object.keys(obj).forEach((key) => {
-      if (key.toLowerCase().includes("weight")) {
+      if (Utils.includes(key, INPUT_KEY_NAME.WEIGHT)) {
         newObj["weight"] = obj[key]; // Rename the key to 'weight'
-      } else if (
-        key.toLowerCase().includes(INPUT_KEY_NAME.PRODUCT_NAME.toLowerCase())
-      ) {
+      } else if (Utils.includes(key, INPUT_KEY_NAME.PRODUCT_NAME)) {
         newObj["productName"] = obj[key]; // Rename keys containing 'name' to 'name'
-      } else if (key.toLowerCase().includes("qty")) {
+      } else if (Utils.includes(key, KEY_PREFERENCES.QTY)) {
         newObj["quantity"] = obj[key];
       } else {
         newObj[key] = obj[key]; // Keep other keys unchanged
@@ -513,7 +507,7 @@ const changeObjKeyName = (jsonData = []) => {
  * @returns {Array}
  */
 export const getFileType = (file) => {
-  if (file.originalname.includes(CHECK_KEYWORD.TSV)) {
+  if (Utils.includes(file.originalname, CHECK_KEYWORD.TSV)) {
     return FILE_TYPE.TSV;
   }
 
@@ -540,23 +534,21 @@ export const getFileType = (file) => {
     headers.push(header);
   }
 
-  if (headers.find((item) => item.includes(CHECK_KEYWORD.PPU_ELEMENTS))) {
+  if (
+    headers.find((item) => Utils.includes(item, CHECK_KEYWORD.PPU_ELEMENTS))
+  ) {
     return FILE_TYPE.SKU_LIST;
   }
 
   // File shipment cũng có weight nhưng đã chặn trước trong TH này
   if (
-    headers.find((item) => item.includes(CHECK_KEYWORD.SHIPMENT_ID)) &&
-    headers.find((item) => item.includes(CHECK_KEYWORD.SHIPMENT))
+    headers.find((item) => Utils.includes(item, CHECK_KEYWORD.SHIPMENT_ID)) &&
+    headers.find((item) => Utils.includes(item, CHECK_KEYWORD.SHIPMENT))
   ) {
     return FILE_TYPE.SHIPMENT;
   }
 
-  if (
-    headers.find((item) =>
-      item?.toLowerCase().includes(CHECK_KEYWORD.WEIGHT.toLowerCase())
-    )
-  ) {
+  if (headers.find((item) => Utils.includes(item, CHECK_KEYWORD.WEIGHT))) {
     return FILE_TYPE.SHIPPING;
   }
 
@@ -990,7 +982,7 @@ export async function modifyOrder1File(file, allElements = {}) {
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return;
       const quantityCell = row.getCell(quantityColumnIndex);
-      if(!quantityCell?.value || !Utils.isNumber(quantityCell?.value)) return;
+      if (!quantityCell?.value || !Utils.isNumber(quantityCell?.value)) return;
 
       const shipmentQuantityColLetter = XlsxUtils.columnIndexToLetter(
         XlsxUtils.findColumnIndexByKeyName(worksheet, shipmentKey)
@@ -1449,11 +1441,11 @@ export async function modifyShippingFile(
         let formula = "";
         const shippingRowName = row.getCell(productNameColumnIndex).value;
         if (
-          shippingRowName?.includes(originalShipment) &&
+          Utils.includes(shippingRowName, originalShipment) &&
           originalShipment != shipment
         ) {
           formula = `${totalUsd}`;
-        } else if (shippingRowName?.includes(shipment)) {
+        } else if (Utils.includes(shippingRowName, shipment)) {
           formula = `${totalUsd} / ${totalShipmentQuantity} * ${shipmentQuantity}`;
         }
         if (formula) {

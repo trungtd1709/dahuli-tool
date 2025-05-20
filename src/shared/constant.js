@@ -20,6 +20,7 @@ export const INPUT_KEY_NAME = {
   SHIPMENT_ID: "Shipment ID",
   IN_STOCK: "In Stock",
   WEIGHT: "Weight",
+  QTY: "qty"
 };
 
 export const KEY_PREFERENCES = {
@@ -37,7 +38,8 @@ export const KEY_PREFERENCES = {
   SUBTOTAL: "SUBTOTAL",
   SHIPPING_PAYMENT_COST: "Shipping payment cost",
   TOTAL: "Total",
-  CUSTOMIZE: "customize"
+  CUSTOMIZE: "customize",
+  WEIGHT: "weight"
 };
 
 export const OUTPUT_KEY_NAME = {

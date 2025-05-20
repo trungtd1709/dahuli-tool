@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { KEY_PREFERENCES, OUTPUT_NUM_DECIMAL_FORMAT } from "./constant.js";
-import { isEmptyValue } from "./utils.js";
+import { Utils, isEmptyValue } from "./utils.js";
 import { EXCEL_CONFIG } from "./config.js";
 
 export class XlsxUtils {
@@ -160,8 +160,8 @@ export class XlsxUtils {
 
   static checkIsPaymentFee = (productName = "") => {
     return (
-      productName?.toLowerCase()?.includes(KEY_PREFERENCES.PAYMENT_COST) ||
-      productName?.toLowerCase()?.includes(KEY_PREFERENCES.PAYMENT_FEE)
+      Utils.includes(productName, KEY_PREFERENCES.PAYMENT_COST) ||
+      Utils.includes(productName, KEY_PREFERENCES.PAYMENT_FEE)
     );
   };
 
@@ -207,7 +207,7 @@ export class XlsxUtils {
   };
 
   static isPaymentFee = (string) => {
-    return string?.toLowerCase()?.includes(KEY_PREFERENCES.PAYMENT);
+    return Utils.includes(string, KEY_PREFERENCES.PAYMENT);
   };
 
   /**
@@ -254,8 +254,8 @@ export class XlsxUtils {
   };
 
   /**
-   * 
-   * @param {ExcelJS.Worksheet} worksheet 
+   *
+   * @param {ExcelJS.Worksheet} worksheet
    */
   static addNumFmt4Decimal = (worksheet, colIndex) => {
     worksheet.getColumn(colIndex).eachCell((cell) => {
@@ -264,15 +264,15 @@ export class XlsxUtils {
   };
 
   /**
-   * 
-   * @param {ExcelJS.Worksheet} worksheet 
+   *
+   * @param {ExcelJS.Worksheet} worksheet
    */
   static removeColStyleAndNumFmt = (worksheet, colIndex) => {
     worksheet.getColumn(colIndex).eachCell((cell) => {
       cell.style = {}; // Reset all styles
       delete cell.numFmt; // Remove numFmt
     });
-  }
+  };
 
   static adjustColumnWidths = (worksheet, extraPadding = 0.1, minWidth = 4) => {
     worksheet.columns.forEach((column) => {
@@ -281,7 +281,7 @@ export class XlsxUtils {
         const cellValue = cell.value ? cell.value.toString() : "";
         maxLength = Math.max(maxLength, cellValue.length);
       });
-  
+
       // Ensure width is at least the default Excel width (8.43)
       column.width = Math.max(maxLength + extraPadding, minWidth);
     });

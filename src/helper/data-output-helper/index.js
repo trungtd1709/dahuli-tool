@@ -382,7 +382,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
           let accumulatorTotalUsd = accumulator[current.name].totalUsd;
 
           if (accumulatorTotalUsd) {
-            if (accumulatorTotalUsd?.includes(usdPrice)) {
+            if (Utils.includes(accumulatorTotalUsd, usdPrice)) {
               accumulator[current.name].totalUsd = addUpQuantityFormula(
                 accumulatorTotalUsd,
                 usdPrice,
@@ -406,7 +406,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
                 // firstFormula?.split("*")[1]?.trim()
                 // );
                 if (
-                  accumulatorTotalUsd?.includes(oldUsdPrice) &&
+                  Utils.includes(accumulatorTotalUsd, oldUsdPrice) &&
                   _.isInteger(oldFileQuantity)
                 ) {
                   accumulatorTotalUsd = addUpQuantityFormula(
@@ -436,7 +436,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
         }
         let accumulatorTotalCny = accumulator[current.name].totalCny;
         if (accumulatorTotalCny) {
-          if (accumulatorTotalCny?.includes(cnyPrice)) {
+          if (Utils.includes(accumulatorTotalCny, cnyPrice)) {
             accumulator[current.name].totalCny = addUpQuantityFormula(
               accumulatorTotalCny,
               cnyPrice,
@@ -453,7 +453,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
                 firstFormula?.split("*")[1]?.trim()
               );
               if (
-                accumulatorTotalCny?.includes(oldCnyPrice) &&
+                Utils.includes(accumulatorTotalCny, oldCnyPrice) &&
                 _.isInteger(oldFileQuantity)
               ) {
                 accumulatorTotalCny = addUpQuantityFormula(
@@ -487,7 +487,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
   allShipmentElements = allShipmentElements.map((element) => {
     let { name, quantity, usdPrice, cnyPrice, totalCny, totalUsd } = element;
     const elementPriceObj = elementsPrice.find((item) =>
-      compareStringsIgnoreCase(item?.name, name)
+      Utils.equal(item?.name, name)
     );
     let imageBuffer;
 
@@ -534,7 +534,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
             );
             paymentCost = `${totalUsdPriceAddress} / ${paymentCostDivisor}`;
             const order = elementPrice.getOrder();
-            if (order && !paymentFeeOrder?.includes(order)) {
+            if (order && !Utils.includes(paymentFeeOrder, order)) {
               if (paymentFeeOrder) {
                 paymentFeeOrder = `${paymentFeeOrder} + ${order}`;
               } else {
@@ -558,7 +558,7 @@ export const getAllShipmentElements = async (skuList, elementsPrice = []) => {
                 const oldElementPaymentCost = `${elementPrice.getUsdFormula()} * ${quantityInOldEle} / ${paymentCostDivisor}`;
                 const nextElementPaymentCost = `${nextElePrice.getUsdFormula()} * ${leftQuantity} / ${nextElePaymentCostDivisor}`;
                 paymentCost = `${oldElementPaymentCost} + ${nextElementPaymentCost}`;
-                if (!paymentFeeOrder?.includes(nextEleOrder)) {
+                if (!Utils.includes(paymentFeeOrder, nextEleOrder)) {
                   paymentFeeOrder = `${paymentFeeOrder} + ${nextEleOrder}`;
                 }
 
@@ -649,8 +649,8 @@ export const addShipmentFileToZip = async (
         (item, index) => {
           const { leftQuantity, ...leftItem } = item;
           if (
-            item.totalCny?.toString()?.includes("null") ||
-            item.totalCny?.toString()?.includes("undefined")
+            Utils.includes(item.totalCny, "null") ||
+            Utils.includes(item.totalCny, "undefined")
           ) {
             return { ...leftItem, totalCny: "", cnyPrice: "" };
           } else {
@@ -661,7 +661,7 @@ export const addShipmentFileToZip = async (
 
       const paymentCostObjIndex = allElements[originalShipment].findIndex(
         (item) => {
-          return item.name.toLowerCase().includes(KEY_PREFERENCES.PAYMENT);
+          return Utils.includes(item.name, KEY_PREFERENCES.PAYMENT);
         }
       );
       let paymentCostObj;
